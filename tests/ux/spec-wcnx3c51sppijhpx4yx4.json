@@ -1,0 +1,15 @@
+{"checks":[
+ {"role":"master","size":"desktop","steps":[
+  ["start","/flight/settings/school"],["see","Normal booking hours"],
+  ["shot",{"caption":"School Settings: Normal booking hours under Calendar Hours","focus":"[data-change='FLY-37']","changed":[{"sel":"select[name='normal_start_hour']","note":"Normal booking hours"}]}]]},
+ {"role":"flight_student","size":"phone","sql":[
+  "UPDATE assets SET is_flight_asset = 1 WHERE id = {asset}",
+  "INSERT OR REPLACE INTO app_settings (key, value) VALUES ('normal_booking_start_hour', 9)",
+  "INSERT OR REPLACE INTO app_settings (key, value) VALUES ('normal_booking_end_hour', 17)"],
+  "steps":[["start","/flight/schedule/availability?view=day&date=2030-01-07&mode=calendar"],
+  ["see","Requests only"],["see","not confirmed until an instructor confirms it"],
+  ["shot",{"caption":"Availability: full grid, times outside normal hours grey and marked Requests only","changed":[{"sel":".avail-slot-req","note":"Requests only"}]}],
+  ["start","/flight/schedule/new?date=2030-01-07&time=07:30"],
+  ["see","must be accepted by an instructor after booking"],
+  ["shot",{"caption":"Picking a request-only time: pop-up and Request button","changed":[{"sel":"#reqOnlyModal .modal-content","note":"Request-only pop-up"}]}]]}
+]}

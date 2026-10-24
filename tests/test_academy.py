@@ -1,7 +1,7 @@
 """Flight Academy: leaderboard page access and the "Log Your Flying" entries
 (add, bad input, landing-currency link, delete, who may do what).
 """
-from harness import OpsHubTestCase, open_finding
+from harness import OpsHubTestCase
 
 
 class AcademyBase(OpsHubTestCase):

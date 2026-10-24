@@ -1,0 +1,67 @@
+{
+ "checks": [
+  {
+   "role": "cfi",
+   "size": "phone",
+   "sql": [
+    "UPDATE assets SET is_flight_asset = 1, hobbs_hours = 500.0, tach_hours = 480.0 WHERE id = {asset}",
+    "INSERT INTO scheduled_flights (asset_id, student_id, cfi_id, scheduled_date, scheduled_time, duration_hours, status) VALUES ({asset}, {student}, {cfi}, date('now','localtime'), strftime('%H:%M', 'now','localtime'), 1.0, 'scheduled')"
+   ],
+   "steps": [
+    [
+     "start",
+     "/flight/dashboard"
+    ],
+    [
+     "tap",
+     "Start Session"
+    ],
+    [
+     "see",
+     "Session started"
+    ],
+    [
+     "start",
+     "/flight/log/active"
+    ],
+    [
+     "fill",
+     "[id^='active_note_']",
+     "Nose strut is low"
+    ],
+    [
+     "shot",
+     {
+      "caption": "One note box, one Save",
+      "focus": "details[open]",
+      "changed": [
+       {
+        "sel": "[id^='active_note_']",
+        "note": "Note box takes the full width"
+       },
+       {
+        "sel": "details[open] button.btn-primary",
+        "note": "One Save: saves and sends the note"
+       }
+      ]
+     }
+    ],
+    [
+     "tap",
+     "Save"
+    ],
+    [
+     "see",
+     "Note sent to Maintenance"
+    ],
+    [
+     "shot",
+     {
+      "caption": "After Save the note is sent",
+      "focus": "details[open]"
+     }
+    ]
+   ]
+  }
+ ]
+}

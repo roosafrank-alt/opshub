@@ -1,0 +1,6 @@
+{"checks":[{"role":"cfi","size":"phone",
+"sql":["UPDATE assets SET is_flight_asset = 1 WHERE id = {asset}",
+"INSERT INTO scheduled_flights (asset_id, student_id, cfi_id, scheduled_date, scheduled_time, duration_hours, status) VALUES ({asset}, {student}, {cfi}, date('now','localtime'), strftime('%H:%M', 'now','localtime','-20 minutes'), 1.5, 'scheduled')"],
+"steps":[["start","/flight/dashboard"],["see","Not started"],["see","Start Session"],
+["shot",{"caption":"Late lesson keeps Start Session and Log Flight on the Next Lesson card","focus":".card.border-primary","changed":[{"sel":".card.border-primary .badge.bg-warning","note":"Not started tag"},{"sel":".card.border-primary .btn-success","note":"Start Session is back"}]}],
+["tap","Start Session"],["see","Session started"]]}]}

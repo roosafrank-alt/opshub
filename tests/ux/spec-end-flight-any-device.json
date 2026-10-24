@@ -1,0 +1,79 @@
+{
+ "checks": [
+  {
+   "role": "cfi",
+   "size": "desktop",
+   "sql": [
+    "UPDATE assets SET is_flight_asset = 1, hobbs_hours = 500.0, tach_hours = 480.0 WHERE id = {asset}",
+    "UPDATE students SET training_goal = 'private' WHERE id = {student}",
+    "INSERT INTO acs_ratings (name, slug, uploaded_at, status) VALUES ('Private Pilot ACS', 'private-pilot-acs', datetime('now'), 'parsed')",
+    "INSERT INTO acs_areas (rating_id, code, title, order_index) VALUES ((SELECT id FROM acs_ratings WHERE slug='private-pilot-acs'), 'IV', 'Takeoffs, Landings, and Go-Arounds', 1)",
+    "INSERT INTO acs_tasks (area_id, code, title, order_index) VALUES ((SELECT id FROM acs_areas WHERE code='IV'), 'A', 'Normal Takeoff and Climb', 1)",
+    "INSERT INTO acs_tasks (area_id, code, title, order_index) VALUES ((SELECT id FROM acs_areas WHERE code='IV'), 'B', 'Soft-Field Landing', 2)",
+    "INSERT INTO scheduled_flights (asset_id, student_id, cfi_id, scheduled_date, scheduled_time, duration_hours, status) VALUES ({asset}, {student}, {cfi}, date('now','localtime'), strftime('%H:%M', 'now','localtime'), 1.0, 'scheduled')"
+   ],
+   "steps": [
+    [
+     "start",
+     "/flight/dashboard"
+    ],
+    [
+     "tap",
+     "Start Session"
+    ],
+    [
+     "see",
+     "Session started"
+    ],
+    [
+     "tap",
+     "End Flight"
+    ],
+    [
+     "see",
+     "Confirm Hobbs and Tach"
+    ],
+    [
+     "shot",
+     {
+      "caption": "Computer: End Flight box open"
+     }
+    ]
+   ]
+  },
+  {
+   "role": "cfi",
+   "size": "phone",
+   "steps": [
+    [
+     "start",
+     "/flight/log/active"
+    ],
+    [
+     "see",
+     "Elapsed"
+    ],
+    [
+     "see",
+     "Discard session"
+    ],
+    [
+     "see",
+     "Confirm Hobbs and Tach"
+    ],
+    [
+     "shot",
+     {
+      "caption": "Phone: same box already open",
+      "changed": [
+       {
+        "sel": ".end-flight-modal.show",
+        "note": "Box open without tapping"
+       }
+      ]
+     }
+    ]
+   ]
+  }
+ ]
+}

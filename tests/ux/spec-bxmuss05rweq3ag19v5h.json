@@ -1,0 +1,22 @@
+{
+  "checks": [
+    {
+      "role": "shop_admin",
+      "size": "phone",
+      "steps": [
+        ["start", "/squawks"],
+        ["see", "Add estimate"],
+        ["shot", {"caption": "Squawks list on a phone: one short 'Add estimate' line per squawk, so more squawks fit and Assign to stays close",
+                  "changed": [{"sel": ".squawk-estimate-line", "note": "One short line instead of two rows of boxes"}]}],
+        ["tap", "Add estimate"],
+        ["fill", "Estimated hours", "2.5"],
+        ["fill", "Shop rate for this aircraft, dollars per hour", "120"],
+        ["fill", "Parts estimate", "85"],
+        ["see", "Save"],
+        ["shot", {"caption": "Opened: the total fills itself in (2.5 h x $120 + $85 = $385), no Total button",
+                  "focus": ".squawk-estimate-line[open]",
+                  "changed": [{"sel": ".squawk-estimate-line[open] input[name=est_cost]", "note": "Total works itself out as you type"}]}]
+      ]
+    }
+  ]
+}

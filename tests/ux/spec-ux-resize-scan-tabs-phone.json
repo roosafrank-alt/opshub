@@ -1,0 +1,36 @@
+{
+  "checks": [
+    {
+      "role": "tech",
+      "size": "phone",
+      "steps": [
+        ["start", "/scan"],
+        ["see", "USB Scanner"],
+        ["see", "Camera"],
+        ["shot", {"caption": "Scan page on a phone: both tabs now fit side by side on one line, equal width, with shorter names.",
+                   "focus": ".scan-tabs",
+                   "changed": [{"sel": ".scan-tabs", "note": "Tabs now equal width, one line, shorter labels"}]}]
+      ]
+    },
+    {
+      "role": "master",
+      "size": "desktop",
+      "steps": [
+        ["start", "/scan"],
+        ["see", "USB / Keyboard Scanner"],
+        ["see", "Camera Scanner"],
+        ["shot", {"caption": "Desktop is unaffected: tabs keep their full names and natural width.",
+                   "focus": ".scan-tabs"}]
+      ]
+    },
+    {
+      "role": "shop_admin",
+      "size": "phone",
+      "steps": [
+        ["start", "/parts/new"],
+        ["see", "Part Name"],
+        ["shot", {"caption": "New Part (one of the 34 centered form pages) now fits the phone's width exactly - no more 4px sideways wiggle while scrolling."}]
+      ]
+    }
+  ]
+}

@@ -96,16 +96,16 @@ class EditAircraftTest(OpsHubTestCase):
         self.assertEqual(self.client.post("/assets/999/edit", data=dict(tag="X")).status_code, 404)
         self.assertEqual(self.client.get("/assets/999").status_code, 404)
 
-    def test_only_admin_and_tech_can_edit(self):
-        # Techs may edit aircraft details (the page is admin + tech by design).
+    def test_tech_can_edit_the_profile_but_inspector_cannot(self):
+        # JOBS-04: a tech creates planes from the New Project dropdown, so a tech
+        # can finish the profile too. Inspectors and everyone else cannot.
         a = self.make_asset("N1")
-        for role in ("inspector", "shop_student", "cfi", "flight_student", "no_roles"):
-            self.login(role)
-            self.client.post(f"/assets/{a}/edit", data=dict(tag="N1", make="Hacked"))
-            self.assertNotEqual(self.q1("SELECT make FROM assets WHERE id=?", (a,))["make"], "Hacked", role)
+        self.login("inspector")
+        self.client.post(f"/assets/{a}/edit", data=dict(tag="N1", make="Hacked"))
+        self.assertNotEqual(self.q1("SELECT make FROM assets WHERE id=?", (a,))["make"], "Hacked")
         self.login("tech")
-        self.client.post(f"/assets/{a}/edit", data=dict(tag="N1", make="TechEdit"))
-        self.assertEqual(self.q1("SELECT make FROM assets WHERE id=?", (a,))["make"], "TechEdit")
+        self.client.post(f"/assets/{a}/edit", data=dict(tag="N1", make="Cessna"))
+        self.assertEqual(self.q1("SELECT make FROM assets WHERE id=?", (a,))["make"], "Cessna")
 
 
 class HoursTest(OpsHubTestCase):
@@ -196,3 +196,6 @@ class TrashRestorePurgeTest(OpsHubTestCase):
             r = self.client.post(f"/assets/{a}/purge")
             self.assertLess(r.status_code, 400, kind)
             self.assertIsNone(self.q1("SELECT id FROM assets WHERE id=?", (a,)), kind)
+            table = "plane_squawks" if kind == "squawk" else "flights"
+            kept = self.q1(f"SELECT a.tag FROM {table} t JOIN assets a ON a.id = t.asset_id")
+            self.assertEqual(kept["tag"], "Deleted aircraft", kind)  # history kept, not erased

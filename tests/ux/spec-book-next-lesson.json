@@ -1,0 +1,57 @@
+{
+  "checks": [
+    {
+      "role": "cfi",
+      "size": "phone",
+      "sql": [
+        "UPDATE assets SET is_flight_asset = 1, hobbs_hours = 500.0, tach_hours = 480.0 WHERE id = {asset}",
+        "INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, solo, hobbs_start, tach_start, started_at, created_at) VALUES ({cfi}, {student}, {asset}, date('now'), 0, 500.0, 480.0, datetime('now', '-90 minutes'), datetime('now'))"
+      ],
+      "steps": [
+        ["start", "/flight/log/active"],
+        ["see", "Elapsed"],
+        ["tap", "End Session"],
+        ["fill", "hobbs_end", "501.5"],
+        ["fill", "tach_end", "481.3"],
+        ["tap", "Unpaid"],
+        ["tap", "Session Complete"],
+        ["tap", "Yes, log it"],
+        ["see", "Session ended and logged."],
+        ["shot", {"caption": "Session-ended box with the one-tap Book button and pencil icon",
+                  "focus": ".alert-success",
+                  "changed": [{"sel": ".alert-success form button", "note": "New: one-tap Book button, same instructor/plane/time, one week out"},
+                              {"sel": ".alert-success a[title]", "note": "New: pencil icon opens Schedule Flight pre-filled"}]}],
+        ["tap", "Book"],
+        ["see", "Flight scheduled."],
+        ["shot", {"caption": "One tap booked the next lesson - back on the calendar, confirmed"}]
+      ]
+    },
+    {
+      "role": "cfi",
+      "size": "phone",
+      "sql": [
+        "INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, solo, hobbs_start, tach_start, started_at, created_at) VALUES ({cfi}, {student}, {asset}, date('now'), 0, 501.5, 481.3, datetime('now', '-90 minutes'), datetime('now'))"
+      ],
+      "steps": [
+        ["start", "/flight/log/active"],
+        ["tap", "End Session"],
+        ["fill", "hobbs_end", "503.0"],
+        ["fill", "tach_end", "482.6"],
+        ["tap", "Unpaid"],
+        ["tap", "Session Complete"],
+        ["tap", "Yes, log it"],
+        ["see", "Session ended and logged."],
+        ["tap", "[title='Pick a different date or time before booking']"],
+        ["shot", {"caption": "Pencil icon opens Schedule Flight pre-filled with the same student, instructor, plane and one-week-out time, so the CFI can adjust it before booking"}]
+      ]
+    },
+    {
+      "role": "flight_student",
+      "size": "phone",
+      "steps": [
+        ["start", "/flight/schedule?view=list"],
+        ["shot", {"caption": "The student sees the newly-booked lesson, one week out, on their own calendar"}]
+      ]
+    }
+  ]
+}

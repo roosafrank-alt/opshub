@@ -273,12 +273,17 @@ class HomeworkTest(GSBase):
 
 
 class SignoffRemoveElementsTest(GSBase):
-    from harness import open_finding as _of
-
-    @_of("qa-signoff-remove-keeps-verified")
     def test_removing_signoff_unverifies_elements_it_verified(self):
         self.login("cfi")
         self.sign()
         sid = self.signoffs()[0]["id"]
         self.client.post(f"/flight/groundschool/task/{self.task}/signoff/{sid}/remove")
         self.assertEqual(len(self.verified()), 0)
+
+    def test_removing_signoff_keeps_elements_verified_one_by_one(self):
+        self.login("cfi")
+        self.client.post(f"/flight/groundschool/element/{self.el1}/verify", data={"student_id": self.student})
+        self.sign()
+        sid = self.signoffs()[0]["id"]
+        self.client.post(f"/flight/groundschool/task/{self.task}/signoff/{sid}/remove")
+        self.assertEqual([r["element_id"] for r in self.verified()], [self.el1])

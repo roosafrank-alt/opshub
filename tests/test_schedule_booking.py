@@ -1,7 +1,7 @@
 """Flight school scheduling: booking a flight (/schedule/new), conflicts,
 bad input, student self-service requests, and cancelling."""
 from datetime import date, timedelta
-from harness import OpsHubTestCase, open_finding
+from harness import OpsHubTestCase
 import db
 
 

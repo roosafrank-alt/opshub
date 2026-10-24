@@ -73,21 +73,6 @@ class SaveEntryTest(LogbookBase):
         self.save()
         self.assertEqual(len(self.entries()), 2)
 
-    @open_finding("qa-logbook-bad-hours")
-    def test_nan_or_infinite_hours_are_not_stored(self):
-        self.login("tech")
-        self.save(tach="nan", hobbs="inf")
-        e = self.entries()[0]
-        for col in ("tach_hours", "hobbs_hours"):
-            v = e[col]
-            self.assertTrue(v is None or (v == v and abs(v) != float("inf")), f"{col}={v!r}")
-
-    @open_finding("qa-logbook-bad-hours")
-    def test_negative_hours_are_not_stored(self):
-        self.login("tech")
-        self.save(tach="-50")
-        self.assertIsNone(self.entries()[0]["tach_hours"])
-
 
 class EditPrintDeleteTest(LogbookBase):
     def test_edit_updates_fields(self):

@@ -1,0 +1,44 @@
+{
+  "checks": [
+    {
+      "role": "flight_student", "size": "phone",
+      "steps": [
+        ["start", "/flight/dashboard"],
+        ["see", "Your Recent Flights"],
+        ["see", "Last flew: today"],
+        ["shot", {"caption": "Student dashboard, phone: no more Time Since Last Flight box - last flew shown under Your Recent Flights",
+                   "changed": [{"sel": ".last-flew-line", "note": "New: Last flew line, right under the heading"}]}]
+      ]
+    },
+    {
+      "role": "flight_student", "size": "desktop",
+      "steps": [
+        ["start", "/flight/dashboard"],
+        ["see", "Your Recent Flights"],
+        ["see", "Last flew: today"],
+        ["shot", {"caption": "Student dashboard, desktop: same change",
+                   "changed": [{"sel": ".last-flew-line", "note": "New: Last flew line, right under the heading"}]}]
+      ]
+    },
+    {
+      "role": "flight_student", "size": "phone",
+      "sql": ["UPDATE flights SET flight_date = date('now', '-95 days') WHERE id = {flight}"],
+      "steps": [
+        ["start", "/flight/dashboard"],
+        ["see", "Last flew: 3 months ago"],
+        ["see", "CFI checkout needed to solo"],
+        ["shot", {"caption": "Lapsed solo currency: the line turns red with a CFI checkout note",
+                   "changed": [{"sel": ".last-flew-line", "note": "Red: last flew over 90 days ago, CFI checkout needed to solo"}]}]
+      ]
+    },
+    {
+      "role": "flight_student", "size": "phone",
+      "steps": [
+        ["start", "/flight/dashboard"],
+        ["tap", "Your Recent Flights"],
+        ["see", "N12345"],
+        ["shot", {"caption": "Tapping the Your Recent Flights row still opens the recent flights table"}]
+      ]
+    }
+  ]
+}

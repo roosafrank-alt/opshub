@@ -1,0 +1,49 @@
+{
+  "checks": [
+    {
+      "role": "cfi",
+      "size": "phone",
+      "sql": [
+        "UPDATE assets SET is_owner_placeholder=1, is_flight_asset=1 WHERE id={asset}",
+        "UPDATE flights SET started_at='2024-01-01 08:00:00', stopped_at=NULL, ended_at=NULL, paused_seconds=0 WHERE id={flight}"
+      ],
+      "steps": [
+        ["start", "/flight/log/active"],
+        ["see", "Add a note"],
+        ["shot", {"caption": "Running session in a student's own plane - starting-info card now says just \"Add a note\", no Oil Added box"}]
+      ]
+    },
+    {
+      "role": "cfi",
+      "size": "phone",
+      "sql": [
+        "UPDATE flights SET stopped_at='2024-01-01 09:30:00' WHERE id={flight}"
+      ],
+      "steps": [
+        ["start", "/flight/log/active"],
+        ["see", "Recorded Time"],
+        ["shot", {"caption": "End Session for that same own-plane session - Oil Added box is gone"}]
+      ]
+    },
+    {
+      "role": "cfi",
+      "size": "phone",
+      "steps": [
+        ["start", "/flight/log/new?asset_id={asset}&student_id={student}&cfi_id={cfi}&scheduled_flight_id={sched}"],
+        ["see", "Student's own plane"],
+        ["shot", {"caption": "Log a Flight for an own-plane booking - no Oil Added box"}]
+      ]
+    },
+    {
+      "role": "cfi",
+      "size": "phone",
+      "steps": [
+        ["start", "/flight/schedule/new?complete=1"],
+        ["see", "Oil Added"],
+        ["tap", "Students Aircraft"],
+        ["shot", {"caption": "Schedule Flight's \"Session Already Complete?\" log section - checking Students Aircraft hides Oil Added too",
+                   "focus": {"from": "#recorded-hours-field", "to": "input[name='ground_time_hours']"}, "pad": 20}]
+      ]
+    }
+  ]
+}

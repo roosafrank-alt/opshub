@@ -68,31 +68,31 @@ Shop / inventory
 - [x] Orders: new, edit, wishlist, export CSV (tech sees costs?)
 - [x] Labor tracking: `/api/labor/scan` start/stop, double-start, stop someone else's session, pay totals
 - [ ] Labor: two scans of the same badge at the same instant (needs a threaded test; today's check-then-insert isn't atomic)
-- [x] Pi health (`pi_health.py` cron job): temperature/throttle parsing, alert once per crossing, recovery below 70C, still-throttled blocks recovery, no reading off the Pi (15 tests; all fine, no findings; the System page itself is covered in test_system_page)
-- [x] Project lifecycle: status, trash/restore/purge, renumber after delete (new/intake/edit still to do)
-- [x] Project sub-areas: add, rename (history follows), complete, then inspector confirm or send back
-- [x] Squawks: new, acknowledge, assign, repair, worker acknowledge (both `kind`s), inspector confirm / send back, fix on job
-- [x] Assets: new, quick new, edit, hours update, trash/restore/purge (open: qa-asset-new-crash, qa-asset-purge-crash, qa-asset-hours-bad-values; still undecided: should a lower Hobbs/Tach reading than the last one be allowed?)
-- [x] Maintenance items: new, edit, complete, due/overdue math around hours and dates (open: qa-maint-bad-numbers, qa-maint-deleted-item-still-editable)
-- [x] Logbook entries: create, edit, print, starter templates (open: qa-logbook-bad-hours; Photos and the rest still to do)
-- [x] Photos: upload (bad file types), set cover, delete (all fine; no size limit on uploads, not reported: nothing to compare against)
-- [x] Trash page: empty trash, restore, purge (open: qa-purge-live-project; a deleted aircraft's tag stays reserved, no crash)
-- [x] Shop billing, shop pay, and stats totals match the underlying transactions and labor (qa-double-paid-overwrites now fixed and live; totals, returns, periods, owed, permissions all fine)
+- [ ] Pi health / System page (`/admin/system`, `pi_health.py`) once it's live: temperature parsing, alert thresholds, no duplicate alerts
+- [ ] Project lifecycle: new, intake, edit, status, trash/restore/purge, renumber after delete
+- [ ] Project sub-areas: add, rename (history follows), complete, then inspector confirm or send back
+- [ ] Squawks: new, acknowledge, assign, repair, worker acknowledge (both `kind`s)
+- [ ] Assets: new, quick new, edit, hours update (can hours go backwards?), trash/restore/purge
+- [ ] Maintenance items: new, edit, complete, due/overdue math around hours and dates
+- [ ] Logbook entries: create, edit, print, starter templates
+- [ ] Photos: upload (bad file types, huge files), set cover, delete
+- [ ] Trash page: empty trash, restore conflicts
+- [ ] Shop billing, shop pay, and stats totals match the underlying transactions and labor
 
 Accounts / admin
 - [x] Login form, wrong password, deactivated account
 - [x] Customer portal only shows the customer's own aircraft
-- [x] Admin users: create, edit, deactivate, role changes take effect on next request (all fine except open: qa-user-password-stored-readable; plan said "next request" - verified for role, admin rights and deactivation)
-- [x] View As (master admin impersonation): enter, exit, switch, person view, can't escalate (all fine, no findings; switching between previews is intended now)
-- [x] Admin reset pages: each reset touches only what it says (all fine, no findings)
+- [ ] Admin users: create, edit, deactivate, role changes take effect on next request
+- [ ] View As (master admin impersonation): enter, exit, can't escalate
+- [ ] Admin reset pages: each reset touches only what it says
 
 Flight school
-- [x] Scheduling, part 1: new booking, conflicts, bad input, student request, cancel, weekly repeat, time off (qa-schedule-bad-input-crash and qa-schedule-deleted-plane now fixed and live; still to do: edit, reschedule, approve/deny, change requests, recurring edge cases)
-- [x] Flight sessions: start from a booking, early start, double start, stop/restart/pause, end (Hobbs/Tach checks, paid choice), discard, who may do what (qa-flight-end-nan-hobbs now fixed and live; still to do: log new/edit after the fact, delete, toggle paid, Hobbs/tach gaps between flights)
-- [x] Billing: student ledger balances, CFI pay, plane rates (34 tests: cost rounding, solo, rate overrides, Add Funds bad amounts and permissions, Mark Paid/Unpaid, double pay, CFI pay page and period pay; all fine, no findings)
-- [x] Ground school / ACS, part 1: task sign-offs (add, re-sign, remove, wrong task, roles, bad student), element verify, homework assign/cancel/review (34 tests; open: qa-signoff-remove-keeps-verified; still to do: student progress bars, self-complete, quiz/game results, uploads/reparse, resources)
-- [x] Academy: leaderboard page access, Log Your Flying add/delete, landing-currency link, roles (26 tests; qa-academy-nan-entry-crash now fixed and live; pilot logbook still to do)
-- [x] Notifications and push alerts: daily email/text reminders (low stock, maintenance, flight reminders) and the in-flight phone alerts (30 min left, time up, running late): correct recipients, no duplicate sends (36 tests; all fine, no findings; core-return reminders still to do)
+- [ ] Scheduling: new, edit, conflicts, recurring, CFI time off
+- [ ] Flight log: new, early start, active flight, complete, Hobbs/tach gaps
+- [ ] Billing: student ledger balances, CFI pay, plane rates
+- [ ] Ground school / ACS: sign-offs, progress (the crawler needs seed data for these, they currently 404)
+- [ ] Pilot logbook, Academy
+- [ ] Notifications and push alerts: correct recipients, no duplicate sends
 
 ## Findings
 
@@ -102,12 +102,6 @@ fix for each of the first night's bugs was already written on branch
 `qa/2026-09-25` (closed PR #1), and the runner may reuse it once a card is
 approved.
 
-## Oct 16 sync (tests caught up with deliberate app changes)
+## Oct 24 sync
 
-Eleven tests had gone stale against changes made on purpose, so the suite was
-red on `main` and `idea-queue` alike. Tests now match the app: resets need
-RESET typed (HUB-29); a tech may adjust a count, edit aircraft and add/edit
-maintenance items but not delete (SHOP-06); an unticked sub-area that an
-inspector/admin already confirmed can only be reopened by them (JOBS-13);
-apprentices can clock only onto jobs they have a task on; the per-person
-"view as" route is gone (Switch role only).
+This branch had fallen behind `main`'s own tests (new roles in the harness, fixed-finding markers). The tests folder was merged forward from `main` file by file (QA-only files kept), the two tests for the dismissed card `qa-logbook-bad-hours` were removed, and the stale part-page title check was updated (the title now carries `class="mb-0"`). Run the health check by copying this branch's `tests/` over each branch **after** a sync like this one, or older harness files will break the newer app tests.

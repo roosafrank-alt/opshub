@@ -79,13 +79,12 @@ over from the top, and put areas that changed a lot since their last review
 
 - [x] Daily-job flows (flow_audit journeys), reviewed 2026-09-26: filed ux-assign-part-flow (12 taps + 4 fields vs ~5), ux-log-flight-scroll (7 taps + 1,546px scroll). Added journeys scan-out and log-flight.
 - [x] Scan page, phone (tech), reviewed 2026-09-26: the page itself is quick (operator pre-filled, project then part scans need no extra taps); filed ux-scan-button-shop-dashboard (Scan only in the ☰ menu, 5 taps vs 3).
-- [x] Flight School dashboard, phone (CFI and student), reviewed 2026-09-29: earlier cards (sun times, tiles, next lesson, section headers) are all fixed on main; the desktop tile-height card (ux-flight-dash-tiles-desktop) is still waiting; Frank wants all 4 quick-access tiles kept. Nothing new filed.
-- [x] Shop dashboard, phone and desktop, reviewed 2026-09-29: filed ux-shop-recent-activity-phone (5-column table, dates on 3 lines) and ux-shop-clocked-in-empty (full box for 'nobody clocked in'). Low-stock rows, Upcoming header and Reorder buttons now fixed on main.
-- [x] Top menu / navigation on every screen size, reviewed 2026-09-30: phone ☰ menus and desktop headers checked for every account; the icons-only shop header at 1366px follows the approved width rule (not re-filed). Filed ux-launcher-phone-rows (owner's 'Choose a program' is 3.5 screens on a phone), ux-viewas-chips-cut-phone (Inspector chip off the edge of the ☰ menu), ux-admin-header-programs (grid icon means Overview in Admin) and ux-workers-new-laborer-wording. The 'two tiles both titled Winds Aloft' note is gone (the flight tile is now Fly with Kate!).
-- [x] Shop dashboard stat boxes, reviewed 2026-09-30: all 4 boxes now have an arrow and open their page (fixed on main by ux-shop-stat-boxes-by-role). Nothing new filed.
-- [x] Log a flight / active flight, phone (CFI), reviewed 2026-10-01: filed ux-session-complete-popup (ending a lesson 7 taps, target 6: a 'Log this session?' pop-up after Session Complete) and ux-active-flight-tidy (two 'Clock stopped' messages, raw start time, student named twice, a screen of empty map). Added journey end-lesson.
-- [x] Schedule and calendar, phone and desktop, reviewed 2026-10-01: filed ux-schedule-phone-month (Month on a phone is 3 screens of hour lines; tomorrow's lesson reads '10:…'), ux-schedule-phone-toolbar (7 pinned rows of controls cover ~40% of the screen) and ux-book-form-phone (Schedule Flight ~1,950px down). Desktop Month/Week left as is. Added journey cfi-tomorrow. Also filed ux-header-view-overflow: the queued 'View' idea (c0d7ff5, idea-queue only) makes nav-fit.js keep words on, so admin headers run 360-480px off a 1366px screen.
-  - Second review run, 2026-10-01 (same two areas, ran in parallel): its duplicates were dropped; it added ux-late-lesson-start (once a lesson's booked time passes the Next Lesson card only offers 'Log this lesson' and says 'Started'; Start is hidden in the faded block in Today's list, 2 taps + 1,100px scroll vs 1) and ux-parts-two-search-boxes (Parts on a laptop has two search boxes). Hourly marks on phone Month view are Frank's own request.
+- [ ] Flight School dashboard, phone (CFI and student) (clock/sun-times wrap filed 2026-09-26 as ux-flight-dash-sun-times; still needs a full review)
+- [ ] Shop dashboard, phone and desktop
+- [ ] Top menu / navigation on every screen size (shop admin menu overflow at 1366px FIXED on idea-queue 2026-09-26; two home tiles both titled "Winds Aloft"; flight-only accounts hit a redirect loop on shop pages, filed ux-shop-link-redirect-loop 2026-09-26)
+- [ ] Shop dashboard stat boxes: Active Projects and Low Stock Items look tappable but aren't (found 2026-09-25)
+- [ ] Log a flight / active flight, phone (CFI)
+- [ ] Schedule and calendar, phone and desktop
 - [ ] Projects list and project detail (desktop, office)
 - [ ] Parts list and part detail (phone and desktop)
 - [ ] Orders (desktop)
@@ -97,41 +96,6 @@ over from the top, and put areas that changed a lot since their last review
 - [ ] Admin pages: users, notifications, system (desktop)
 
 ## Tool notes
-
-- 2026-10-01: fix_preview.py specs take `sql` (sample-data setup with the same {id} placeholders, e.g. a lesson in the air); rows stay for later specs in the same run. Marks taken right after a setup_js that submits a form come back empty (the page is mid-navigation), so mark those by `box` or by hand. journeys.py has `_sample(sql)` for a journey's own sample record; added end-lesson (CFI, 7 taps, target 6) and cfi-tomorrow (CFI, 3 taps, target 2). All 13 journeys finish. Note: the 2026-09-30 cards ux-launcher-phone-rows, ux-viewas-chips-cut-phone, ux-admin-header-programs and ux-workers-new-laborer-wording are not in the card list (not re-filed).
-- 2026-10-01 (second run): fix_preview.py specs can also take `setup_post` (POSTs as the
-  logged-in account before the page opens, e.g. `/flight/schedule/{sched}/start` to have a lesson
-  running; `keep_flash: true` keeps that POST's flash banner for the page, so no setup_js
-  navigation and no empty marks) and `viewport: true` (shoot exactly the visible screen at the
-  current scroll, sticky bars included; the default "top screenful" crop is always the top of
-  the page). Sample data (ux_audit.seed_realistic) now also has a CFI lesson in N2231Q booked 20
-  minutes before the run and not started, and a student request waiting for approval (tomorrow
-  4 pm, N2231Q), so todays-flights now sees "0 of 2 done". Journeys start-late-lesson (2 taps,
-  target 1) and cfi-approve-request (2, on target) added; 15 journeys in all.
-
-- 2026-09-30: flow_audit's app map now follows the redirect from "/" for one-program
-  accounts, so tech, CFI, student and owner maps are no longer empty (they showed
-  "0 pages reachable"). The walker taps the first VISIBLE match (the schedule form has
-  hidden Intro quick-pick times with the same labels). flow_audit stops with a clear
-  message if BeautifulSoup isn't installed. fix_preview.py: new `wait_ms` (pause after
-  setup_js, e.g. for the ☰ menu animation) and `size: "tv"` (1920x1080, the shop TV).
-  journeys.py: low-stock now starts on /shop (shop admins' login skips the picker since
-  2026-09-29); added request-lesson (student, 6 taps, target 5) and cfi-book-lesson
-  (CFI, 9 taps, target 6; filed ux-book-lesson-taps). All 11 journeys finish.
-  The sandbox needed `pip install --break-system-packages --ignore-installed blinker flask
-  pypdf pdfplumber beautifulsoup4` before the tools would run.
-- 2026-09-30: the approved ux-tv-schedule-scroll change is live (TV mode in the account
-  menu), but at 1920x1080 the Month view still doesn't fit: the page zooms out to its
-  55% limit and is still about 1.4 screens tall, so the current week is below the edge.
-  Left as approved (not marked fixed).
-
-- 2026-09-29: journeys.py brought up to date with the app: techs and CFIs now land
-  straight on their home page (no launcher tile), Assign Parts is the wrench pop-up
-  on the project page, the log-flight button is "Session Complete", and the phone
-  Scan button opens the camera (the test browser has none, so scan-out taps the
-  "USB Scanner" tab first). Added journeys start-next-lesson and report-squawk.
-  All 9 journeys finish; results 2026-09-29: assign-part 7 taps (target 5, was 12),
-  report-squawk 5 (target 4), everything else on target.
 
 - 2026-09-26: `scan("CODE")` walker step added (a USB scanner: types into the
   scan box and presses Enter, counted as 1 tap). The sample data now marks
@@ -160,25 +124,3 @@ over from the top, and put areas that changed a lot since their last review
   like and do afterwards.
 - Never re-file a dismissed card. Update an existing "new" card instead of
   duplicating it.
-
-## Fix previews (every card with a screenshot)
-
-Frank wants to SEE the fix before approving it. For every card you file or
-update that has screenshots, also attach a picture of what the page will look
-like after the fix:
-
-```bash
-python3 tests/ux/fix_preview.py specs.json --out /tmp/previews
-```
-
-Each spec (documented at the top of `fix_preview.py`) names the account, screen
-size and page, circles the problem in red (`problem` marks), then applies a
-temporary in-browser mockup of the suggested fix (`mock_js`, or `mock_html` for
-an error page or a brand-new screen, `after_path` if the fix lands somewhere
-else) and circles what changed in green (`changed` marks). Nothing touches app
-code. Mock what the card's suggestedFix says, using the app's own Bootstrap
-classes so it looks real, and look at both pictures before filing. Store the
-NOW picture as `screenshots[i]` (with `marks`) and the AFTER picture as
-`previews[j]` = {id, url, caption, type, marks, before: i, mock: true}; for a
-card with fixOptions, make one preview per visually different option with
-`option: <index>`.

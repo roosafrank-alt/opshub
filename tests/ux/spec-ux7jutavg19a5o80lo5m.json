@@ -1,0 +1,107 @@
+{
+ "checks": [
+  {
+   "role": "flight_student",
+   "size": "phone",
+   "sql": [
+    "INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date, scheduled_time, duration_hours, notes, status, created_by) SELECT (SELECT id FROM assets WHERE is_flight_asset = 1 ORDER BY id LIMIT 1), (SELECT id FROM cfis WHERE active = 1 ORDER BY id LIMIT 1), s.id, date('now','+5 day'), '10:00', 1.5, 'Pattern work', 'scheduled', 'Front Desk' FROM students s WHERE s.user_id = (SELECT id FROM users WHERE username = 'flight_student' LIMIT 1)"
+   ],
+   "steps": [
+    [
+     "start",
+     "/flight/schedule?view=list"
+    ],
+    [
+     "tap",
+     "N81PA"
+    ],
+    [
+     "tap",
+     "#sd-student-cancel-btn"
+    ],
+    [
+     "fill",
+     "reason",
+     "sick"
+    ],
+    [
+     "tap",
+     "#student-cancel-submit-btn"
+    ],
+    [
+     "see",
+     "Pick a new time?"
+    ],
+    [
+     "shot",
+     {
+      "caption": "After cancelling: three open times, one tap to rebook",
+      "focus": "#rebook-box",
+      "changed": [
+       {
+        "sel": "#rebook-box",
+        "note": "New: pick a new time right away"
+       }
+      ]
+     }
+    ],
+    [
+     "tap",
+     "Other times"
+    ],
+    [
+     "see",
+     "Request"
+    ]
+   ]
+  },
+  {
+   "role": "flight_student",
+   "size": "phone",
+   "sql": [
+    "INSERT INTO scheduled_flights (asset_id, cfi_id, student_id, scheduled_date, scheduled_time, duration_hours, notes, status, created_by) SELECT (SELECT id FROM assets WHERE is_flight_asset = 1 ORDER BY id LIMIT 1), (SELECT id FROM cfis WHERE active = 1 ORDER BY id LIMIT 1), s.id, date('now','+8 day'), '10:00', 1.5, 'Pattern work', 'scheduled', 'Front Desk' FROM students s WHERE s.user_id = (SELECT id FROM users WHERE username = 'flight_student' LIMIT 1)"
+   ],
+   "steps": [
+    [
+     "start",
+     "/flight/schedule?view=list"
+    ],
+    [
+     "tap",
+     "N81PA"
+    ],
+    [
+     "tap",
+     "#sd-student-cancel-btn"
+    ],
+    [
+     "fill",
+     "reason",
+     "sick"
+    ],
+    [
+     "tap",
+     "#student-cancel-submit-btn"
+    ],
+    [
+     "see",
+     "Pick a new time?"
+    ],
+    [
+     "tap",
+     "#rebook-box form button"
+    ],
+    [
+     "see",
+     "Booked:"
+    ],
+    [
+     "shot",
+     {
+      "caption": "One tap booked the new time"
+     }
+    ]
+   ]
+  }
+ ]
+}

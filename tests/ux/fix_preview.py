@@ -15,14 +15,9 @@ specs.json is a list of specs:
   {
     "name": "sun-times",                 # file name stem
     "role": "cfi",                       # master | shop_admin | tech | cfi | flight_student | customer
-    "size": "phone",                     # phone | desktop | tv (1920x1080, the shop TV)
+    "size": "phone",                     # phone | desktop
     "path": "/flight/dashboard",         # may use {project} {asset} {part} {order} {student} ... ids
-    "setup_post": [{"path": "/flight/schedule/{sched}/start", "form": {}}],
-                                         # optional: POSTs made as the logged-in account before the
-                                         #   page opens (e.g. start a lesson so /flight/log/active has one);
-                                         #   add "keep_flash": true to keep that POST's flash message for the page
     "setup_js": "...",                   # optional: runs before both shots (open a menu, fill a field)
-    "wait_ms": 600,                      # optional: pause after setup_js (default 200; menus animate ~350ms)
     "focus": "#sunline",                 # optional: crop to this element (CSS selector, plus padding);
                                          #   omit for the top screenful, "full" for the whole page,
                                          #   {"from": sel, "to": sel} for the full-width band between two
@@ -34,11 +29,7 @@ specs.json is a list of specs:
                                          #   redirects somewhere else); same {id} placeholders
     "focus_after": "#sunline",           # optional: crop for AFTER (defaults to focus)
     "changed": [{"sel": "...", "note": "One line per time, no '|'"}], # green marks on AFTER
-    "viewport": false,                   # optional: true = shoot just the visible screen at the current
-                                         #   scroll (after setup_js), e.g. to show a sticky bar mid-page
-    "now_only": false,                   # true: just the marked NOW shot (no mockup)
-    "sql": ["UPDATE ..."]                # optional: set up sample data first (same {id} placeholders,
-                                         #   e.g. a running lesson: INSERT INTO flights ... started_at ...)
+    "now_only": false                    # true: just the marked NOW shot (no mockup)
   }
 A mark's "sel" may match several elements; each gets its own box. A mark may
 use "box": [x, y, w, h] in page pixels instead of "sel".
@@ -63,8 +54,6 @@ sys.path.insert(0, os.path.dirname(HERE))
 
 import ux_audit as ux  # noqa: E402  (harness, sample data, CDN cache, screen sizes)
 from ux_audit import harness, flask_app, PASSWORD  # noqa: E402
-
-TV = dict(viewport={"width": 1920, "height": 1080})  # the TV plugged into the Pi (added 2026-09-30)
 
 RECTS_JS = r"""
 (specs) => specs.map(m => {
@@ -103,20 +92,13 @@ def crop_box(page, focus, pad, vw):
 def shoot(page, spec, marks, focus, out_png):
     from PIL import Image
     vw = page.viewport_size["width"]
+    box = crop_box(page, focus, spec.get("pad", 16), vw)
     rects = page.evaluate(RECTS_JS, marks or [])
-    if spec.get("viewport"):  # exactly what is on screen now (after setup_js scrolled), sticky bars included
-        sx, sy, vh = page.evaluate("() => [scrollX, scrollY, innerHeight]")
-        box = (sx, sy, sx + vw, sy + vh)
-        page.screenshot(path=out_png, full_page=False)
-        im = Image.open(out_png).convert("RGB")
-    else:
-        box = crop_box(page, focus, spec.get("pad", 16), vw)
-        page.screenshot(path=out_png, full_page=True)
-        im = Image.open(out_png).convert("RGB")
-        scale = im.width / max(1, page.evaluate("() => document.documentElement.scrollWidth"))
-        x0, y0, x1, y1 = box
-        im = im.crop((int(x0 * scale), int(y0 * scale), int(x1 * scale), int(y1 * scale)))
+    page.screenshot(path=out_png, full_page=True)
+    im = Image.open(out_png).convert("RGB")
+    scale = im.width / max(1, page.evaluate("() => document.documentElement.scrollWidth"))
     x0, y0, x1, y1 = box
+    im = im.crop((int(x0 * scale), int(y0 * scale), int(x1 * scale), int(y1 * scale)))
     if im.width > 1200:
         im = im.resize((1200, int(im.height * 1200 / im.width)))
     jpg = out_png[:-4] + ".jpg"
@@ -175,21 +157,11 @@ def main():
         for spec in specs:
             rec = {"name": spec["name"]}
             try:
-                for q in spec.get("sql", []):  # sample-data setup for this spec (added 2026-10-01)
-                    tc.exec(q.format(**ids))
-                size_name = spec.get("size", "phone")
-                ctx = browser.new_context(**(ux.PHONE if size_name == "phone" else
-                                             TV if size_name == "tv" else ux.DESKTOP))
+                ctx = browser.new_context(**(ux.PHONE if spec.get("size", "phone") == "phone" else ux.DESKTOP))
                 ctx.route(re.compile(r"^https?://(?!127\.0\.0\.1)"), ux._serve_cdn)
                 role = spec.get("role", "master")
                 user = "owner@example.com" if role == "customer" else role
                 ctx.request.post(base + "/", form={"username": user, "password": PASSWORD, "remember": "on"})
-                fmt = {k: v for k, v in ids.items()}
-                for req in spec.get("setup_post", []):
-                    # "keep_flash": don't follow the redirect, so the page's flash message is still
-                    # waiting when the page opens (e.g. the banner End Session shows)
-                    ctx.request.post(base + req["path"].format(**fmt), form=req.get("form", {}),
-                                     max_redirects=0 if req.get("keep_flash") else 20)
                 page = ctx.new_page()
                 path = spec["path"].format(**{k: v for k, v in ids.items()})
                 try:
@@ -200,7 +172,7 @@ def main():
                 if spec.get("dump"):
                     open(os.path.join(args.out, spec["name"] + ".html"), "w").write(page.content())
                 if spec.get("setup_js"):
-                    page.evaluate(spec["setup_js"]); time.sleep(spec.get("wait_ms", 200) / 1000)
+                    page.evaluate(spec["setup_js"]); time.sleep(0.2)
                 name, marks, ok = shoot(page, spec, spec.get("problem"), spec.get("focus"), os.path.join(args.out, spec["name"] + "-now.png"))
                 rec["now"] = {"file": name, "marks": marks}
                 if not ok:

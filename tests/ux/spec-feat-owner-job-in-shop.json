@@ -1,0 +1,20 @@
+{"checks": [
+ {"role": "customer", "size": "phone",
+  "sql": [
+   "UPDATE projects SET scheduled_date = date('now','-3 days'), promised_date = date('now','+3 days'), promised_show_owner = 1 WHERE id = {project}",
+   "INSERT INTO project_sections (project_id, name, completed_at) VALUES ({project}, 'Annual inspection', datetime('now'))",
+   "INSERT INTO project_sections (project_id, name, completed_at) VALUES ({project}, 'Oil change', datetime('now'))",
+   "INSERT INTO project_sections (project_id, name) VALUES ({project}, 'Left main tire')",
+   "INSERT INTO order_wishlist (description, project_id, status) VALUES ('Vacuum pump', {project}, 'open')"
+  ],
+  "steps": [
+   ["start", "/portal/aircraft/{asset}"],
+   ["tap", "Skip tour"],
+   ["see", "In the shop now"],
+   ["see", "Promised back"],
+   ["see", "Cost so far"],
+   ["shot", {"caption": "Owner's My Aircraft with the plane in the shop: one card with progress, what's left, promised date and cost so far", "focus": "[id^=in-shop-]",
+     "changed": [{"sel": "[id^=in-shop-]", "note": "One In the shop now card replaces the Appointments and Job Costs rows"}]}],
+   ["shot", {"caption": "The whole page: no second Appointments or Job Costs box for the same job", "focus": "full"}]
+  ]}
+]}
