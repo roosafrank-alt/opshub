@@ -431,9 +431,25 @@
 ]) }}
 {% endif %}
 
-{% if gs_continue and student %}
+{% if (gs_homework or gs_continue) and student %}
 {#- Idea ux-gs-continue-lesson: one slim row back into the next unfinished
    Ground School lesson. #}
+{% if gs_homework %}
+<a href="{{ url_for('groundschool.task_detail', task_id=gs_homework.task_id) }}" class="card text-decoration-none mb-3" id="gs-continue-row" data-homework="1" style="background:#fff8dc;">
+  <div class="card-body py-2 px-3 d-flex align-items-center gap-2">
+    <i class="bi bi-mortarboard fs-4 text-info"></i>
+    <div class="flex-grow-1" style="min-width:0;">
+      <div class="small text-truncate"><i class="bi bi-flag-fill text-warning"></i> <span class="fw-bold text-body">Homework from {{ gs_homework.by }}</span>{% if gs_homework.due %} <span style="color:{{ '#b02a37' if gs_homework.overdue else '#8a6100' }};">&middot; due {{ gs_homework.due }}</span>{% endif %}</div>
+      <div class="fw-bold text-truncate text-body">Next: {{ gs_homework.label }}</div>
+      <div class="d-flex align-items-center gap-2">
+        <div class="progress flex-grow-1" style="height:4px;"><div class="progress-bar" style="width:{{ (100 * gs_homework.done / gs_homework.total)|round|int }}%;"></div></div>
+        <span class="small text-muted text-nowrap">{{ gs_homework.done }} of {{ gs_homework.total }} assigned done</span>
+      </div>
+    </div>
+    <i class="bi bi-chevron-right text-muted"></i>
+  </div>
+</a>
+{% else %}
 <a href="{{ url_for('groundschool.task_detail', task_id=gs_continue.task_id) }}" class="card text-decoration-none mb-3" id="gs-continue-row">
   <div class="card-body py-2 px-3 d-flex align-items-center gap-2">
     <i class="bi bi-mortarboard fs-4 text-info"></i>
@@ -448,6 +464,7 @@
     <i class="bi bi-chevron-right text-muted"></i>
   </div>
 </a>
+{% endif %}
 {% endif %}
 
 <div id="dashboard-live-region" data-live-url="{{ url_for('flight.dashboard_live') }}">

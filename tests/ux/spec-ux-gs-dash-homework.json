@@ -1,0 +1,67 @@
+{
+ "checks": [
+  {
+   "role": "flight_student",
+   "size": "phone",
+   "sql": [
+    "INSERT INTO acs_ratings (name, slug, uploaded_at, status) VALUES ('Part 91 Refresher','p91',datetime('now'),'parsed')",
+    "INSERT INTO acs_areas (rating_id, code, title, order_index) SELECT id,'I','Area I',1 FROM acs_ratings WHERE slug='p91'",
+    "INSERT INTO acs_areas (rating_id, code, title, order_index) SELECT id,'II','Area II',2 FROM acs_ratings WHERE slug='p91'",
+    "INSERT INTO acs_tasks (area_id, code, title, acs_references, order_index) SELECT id,'A','Flight Review and Currency','x',1 FROM acs_areas WHERE code='I' AND title='Area I'",
+    "INSERT INTO acs_tasks (area_id, code, title, acs_references, order_index) SELECT id,'A','Preflight Action and Fuel Requirements','x',1 FROM acs_areas WHERE code='II' AND title='Area II'",
+    "INSERT INTO acs_tasks (area_id, code, title, acs_references, order_index) SELECT id,'B','Airworthiness Requirements','x',2 FROM acs_areas WHERE code='II' AND title='Area II'",
+    "INSERT INTO acs_task_elements (task_id, kind, code, text, order_index) SELECT id,'knowledge','K1','Element '||id,1 FROM acs_tasks WHERE title<>'zz' AND acs_references='x'",
+    "INSERT INTO academy_course_grants (student_id, rating_id, granted_by, granted_at) SELECT {student}, id,'t',datetime('now') FROM acs_ratings WHERE slug='p91'",
+    "INSERT INTO gs_assignments (student_id, task_id, due_on, assigned_by_name, assigned_at) SELECT {student}, t.id, date('now','+3 days'),'Cfi',datetime('now') FROM acs_tasks t JOIN acs_areas a ON a.id=t.area_id WHERE a.title='Area II'"
+   ],
+   "steps": [
+    [
+     "start",
+     "/flight/dashboard"
+    ],
+    [
+     "see",
+     "Homework from Cfi"
+    ],
+    [
+     "see",
+     "0 of 2 assigned done"
+    ],
+    [
+     "shot",
+     {
+      "caption": "Phone dashboard: Ground School row leads with the homework and its due date",
+      "focus": "#gs-continue-row",
+      "changed": [
+       {
+        "sel": "#gs-continue-row",
+        "note": "Yellow homework row: from, due date, next lesson, assigned progress"
+       }
+      ]
+     }
+    ]
+   ]
+  },
+  {
+   "role": "flight_student",
+   "size": "desktop",
+   "steps": [
+    [
+     "start",
+     "/flight/dashboard"
+    ],
+    [
+     "see",
+     "assigned done"
+    ],
+    [
+     "shot",
+     {
+      "caption": "Desktop dashboard: same row",
+      "focus": "#gs-continue-row"
+     }
+    ]
+   ]
+  }
+ ]
+}

@@ -1843,6 +1843,7 @@ def _dashboard_context(conn, cfi, student):
     the full-page dashboard() route and the live-refresh fragment route
     (dashboard_live()) below, so the two never drift out of sync."""
     gs_continue = None
+    gs_homework = None
     if student:
         import groundschool
         from auth import student_course_grants
@@ -1854,6 +1855,25 @@ def _dashboard_context(conn, cfi, student):
                     break
         except Exception:
             gs_continue = None
+        # Idea ux-gs-dash-homework: unfinished homework leads the Ground School row.
+        try:
+            hw_all = groundschool.homework_for(conn, student["id"])
+            hw_open = [h for h in hw_all if h["state"] != "done"]
+            if hw_open:
+                hw_open.sort(key=lambda h: (h["a"]["due_on"] or "9999-99-99", h["a"]["assigned_at"] or "", h["a"]["id"]))
+                first = hw_open[0]
+                due = min((h["a"]["due_on"] for h in hw_open if h["a"]["due_on"]), default=None)
+                due_txt = ""
+                if due:
+                    dd = datetime.strptime(due[:10], "%Y-%m-%d")
+                    due_txt = dd.strftime("%a, %b ") + str(dd.day)
+                gs_homework = {"task_id": first["a"]["task_id"],
+                               "label": "Task %s. %s" % (first["a"]["tcode"], first["a"]["ttitle"]),
+                               "by": (first["a"]["assigned_by_name"] or "your CFI"), "due": due_txt,
+                               "overdue": any(h["overdue"] for h in hw_open),
+                               "done": len(hw_all) - len(hw_open), "total": len(hw_all)}
+        except Exception:
+            gs_homework = None
     active_flights = []
     upcoming = []
     pending_requests = []
@@ -2298,7 +2318,7 @@ def _dashboard_context(conn, cfi, student):
         "SELECT tag, color, schedule_color FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 ORDER BY schedule_order, tag").fetchall()
     plane_color = {r["tag"]: _plane_display_color(r["tag"], r["color"], r["schedule_color"]) for r in fleet}
 
-    return dict(gs_continue=gs_continue, cfi=cfi, student=student, recent_flights=recent_flights,
+    return dict(gs_continue=gs_continue, gs_homework=gs_homework, cfi=cfi, student=student, recent_flights=recent_flights,
                 active_flights=active_flights, upcoming=upcoming, plane_maint=plane_maint, hundred_badges=hundred_badges,
                 pending_requests=pending_requests, change_requests=change_requests,
                 my_requests=my_requests, my_notifications=my_notifications,
