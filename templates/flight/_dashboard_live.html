@@ -629,7 +629,7 @@
 </div>
 {% endif %}
 
-{% if next_lesson or log_lesson or flight_admin or (student and not cfi) %}
+{% if next_lesson or log_lesson or flight_admin or cfi or (student and not cfi) %}
 <div class="card p-3 mb-3 border-primary">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div class="flex-grow-1{% if next_lesson %} schedule-block{% endif %}"{% if next_lesson %} role="button" style="cursor:pointer;"
@@ -788,18 +788,15 @@
       </div>
       {% endif %}
     </div>
-    {% if flight_admin %}
+    {% if cfi or flight_admin %}
     <div class="d-flex flex-column align-items-end gap-2">
-      {#- Buttons, not links: a plain <a> navigated to a fresh /dashboard
-         page load, which reset scroll to the top (QA "your next lesson
-         toggling") - these instead fetch just this scope from
-         flight.dashboard_live and swap it into #dashboard-live-region in
-         place, same pattern as the region's own poll refresh (see the
-         next-scope-btn click handler in dashboard.html), so the page never
-         moves. #}
-      <div class="btn-group btn-group-sm" role="group" aria-label="Whose next lesson">
-        <button type="button" class="btn next-scope-btn {{ 'btn-primary' if next_scope != 'school' else 'btn-outline-primary' }}" data-next-scope="mine"><i class="bi bi-person"></i> Personal</button>
-        <button type="button" class="btn next-scope-btn {{ 'btn-primary' if next_scope == 'school' else 'btn-outline-primary' }}" data-next-scope="school"><i class="bi bi-people"></i> School</button>
+      {#- ONE switch for the whole page: sets the Next Lesson card, Today's
+         Schedule, Upcoming and Recent Flights together (session dash_scope,
+         see _dashboard_context). Buttons, not links, so it swaps in place
+         via the dash-scope-btn click handler in dashboard.html. #}
+      <div class="btn-group btn-group-sm" role="group" aria-label="Whose flights">
+        <button type="button" class="btn dash-scope-btn {{ 'btn-primary' if dash_scope != 'mine' else 'btn-outline-primary' }}" data-dash-scope="all" data-change="FLY-29"><i class="bi bi-people"></i> Whole school</button>
+        <button type="button" class="btn dash-scope-btn {{ 'btn-primary' if dash_scope == 'mine' else 'btn-outline-primary' }}" data-dash-scope="mine" data-change="FLY-29"><i class="bi bi-person"></i> Just mine</button>
       </div>
     </div>
     {% endif %}
@@ -989,16 +986,6 @@
 #}
 <div class="card p-3 mb-3">
   {% if cfi %}
-  {#- All / Mine: whole school (default) or just this instructor's flights -
-     applies to Today's Schedule, Upcoming and Recent Flights. #}
-  <div class="d-flex justify-content-between align-items-center mb-2 gap-2">
-    <span class="small text-muted">{{ 'Showing only your flights' if dash_scope == 'mine' else 'Showing the whole school' }}</span>
-    <div class="btn-group btn-group-sm" role="group" aria-label="Whose flights">
-      {#- Buttons (not links) so they swap in place like Personal / School - FLY-29. #}
-      <button type="button" class="btn dash-scope-btn {{ 'btn-primary' if dash_scope != 'mine' else 'btn-outline-primary' }}" data-dash-scope="all" data-change="FLY-29"><i class="bi bi-people"></i> All</button>
-      <button type="button" class="btn dash-scope-btn {{ 'btn-primary' if dash_scope == 'mine' else 'btn-outline-primary' }}" data-dash-scope="mine" data-change="FLY-29"><i class="bi bi-person"></i> Mine</button>
-    </div>
-  </div>
   {#- Phones: "Today's Schedule (27-09-2026)" squeezed next to the big
      completion badge wrapped into three lines, splitting the date in half
      (QA ux-flight-dash-section-headers). Just "Today" plus a small grey

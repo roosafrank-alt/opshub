@@ -31,12 +31,27 @@ class NextLessonToggleNoReloadTest(OpsHubTestCase):
     def test_toggle_is_a_button_not_a_link_so_it_never_navigates(self):
         c = self.login("master")
         body = c.get("/flight/dashboard").get_data(as_text=True)
-        self.assertIn('class="btn next-scope-btn', body)
+        self.assertIn('class="btn dash-scope-btn', body)
+        self.assertNotIn('next-scope-btn', body)
+        self.assertNotIn('Showing the whole school', body)
         self.assertNotIn('href="/flight/dashboard?next=', body)
 
-    def test_a_non_master_admin_cannot_flip_the_scope(self):
+    def test_one_switch_sets_card_and_schedule(self):
+        c = self.login("master")
+        body = c.get("/flight/dashboard/live?scope=mine").get_data(as_text=True)
+        self.assertIn("Your Next Lesson", body)
+        self.assertNotIn("Next Lesson - Whole School", body)
+        body = c.get("/flight/dashboard/live?scope=all").get_data(as_text=True)
+        self.assertIn("Next Lesson - Whole School", body)
+        self.assertIn("Just mine", body)
+
+    def test_students_get_no_switch(self):
+        body = self.login("flight_student").get("/flight/dashboard").get_data(as_text=True)
+        self.assertNotIn("data-dash-scope", body)
+
+    def test_a_non_master_admin_cannot_flip_the_next_scope(self):
         c = self.login("cfi")
         body = c.get("/flight/dashboard/live?next=school").get_data(as_text=True)
         with c.session_transaction() as s:
             self.assertIsNone(s.get("next_scope"))
-        self.assertNotIn('next-scope-btn', body)
+        self.assertNotIn('Next Lesson - Whole School', body)

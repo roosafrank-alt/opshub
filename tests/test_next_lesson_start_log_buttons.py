@@ -36,7 +36,7 @@ class NextLessonStartLogButtonsTest(OpsHubTestCase):
         # card/chip is clicked), so assertions have to be scoped to just the
         # Next Lesson card's own HTML, not the whole page.
         start = body.index("Your Next Lesson")
-        end = body.index("Showing the whole school", start)
+        end = body.index("dash-collapse-toggle", start)
         return body[start:end]
 
     def test_more_than_30_min_out_shows_only_details_button(self):

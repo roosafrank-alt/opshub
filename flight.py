@@ -1874,7 +1874,7 @@ def _dashboard_context(conn, cfi, student):
     # Today's Schedule, Upcoming and Recent Flights; "mine" narrows those
     # three to flights this instructor is on. Remembered in the session
     # (see dashboard()) so the live refresh keeps it.
-    dash_scope = session.get("dash_scope", "all") if cfi else "all"
+    dash_scope = session.get("dash_scope", "all") if (cfi or is_flight_admin()) else "all"
     mine_id = cfi["id"] if (cfi and dash_scope == "mine") else None
     if cfi:
         # Shows every instructor's recent flights, not just this CFI's own -
@@ -2146,7 +2146,7 @@ def _dashboard_context(conn, cfi, student):
     # own next lesson, a student theirs. Master admins can flip it to the
     # whole school's next block (?next=school / ?next=mine, remembered for
     # this login - see dashboard()).
-    next_scope = "school" if (is_flight_admin() and session.get("next_scope") == "school") else "mine"
+    next_scope = "school" if (is_flight_admin() and dash_scope != "mine") else "mine"
     next_lesson = None
     now_dt = datetime.now()
     today_s = now_dt.strftime("%Y-%m-%d")
@@ -2328,6 +2328,8 @@ def dashboard():
     # ?next=mine|school - master admins' toggle for the Next Lesson countdown.
     if request.args.get("next") in ("mine", "school") and is_flight_admin():
         session["next_scope"] = request.args["next"]
+        # One switch now: the Next Lesson card follows the schedule's scope.
+        session["dash_scope"] = "all" if request.args["next"] == "school" else "mine"
     conn = get_db()
     cfi = current_cfi(conn)
     student = current_student(conn)
@@ -2358,6 +2360,8 @@ def dashboard_live():
     page's scroll position."""
     if request.args.get("next") in ("mine", "school") and is_flight_admin():
         session["next_scope"] = request.args["next"]
+        # One switch now: the Next Lesson card follows the schedule's scope.
+        session["dash_scope"] = "all" if request.args["next"] == "school" else "mine"
     # FLY-29: the All / Mine toggle swaps in place the same way.
     if request.args.get("scope") in ("all", "mine"):
         session["dash_scope"] = request.args["scope"]

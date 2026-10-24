@@ -321,7 +321,7 @@ class DashboardTest(FlyBase):
         html = c.get("/flight/dashboard").get_data(as_text=True)
         self.assertIn('data-dash-scope="mine"', html)
         c.get("/flight/dashboard/live?scope=mine")
-        self.assertIn("Showing only your flights", c.get("/flight/dashboard/live").get_data(as_text=True))
+        self.assertIn("Your Next Lesson", c.get("/flight/dashboard/live").get_data(as_text=True))
 
     def test_withdraw_change_request(self):  # FLY-35
         sid = self.book(change_request_note="Can we move it?", change_requested_at=db.now_iso())
