@@ -78,24 +78,29 @@
         </div>
       </div>
     </div>
-    <div class="mb-3">
-      <label class="form-label">Calendar Color <span class="text-muted small">(optional)</span></label>
-      <div class="d-flex align-items-center gap-2 flex-wrap">
-        <input type="hidden" name="scheduled_color" id="scheduled-color-input" value="{{ project.scheduled_color if project and project.scheduled_color else '' }}">
-        {% for c in ['#0d6efd', '#6f42c1', '#d63384', '#dc3545', '#fd7e14', '#198754', '#20c997', '#6c757d'] %}
-        <button type="button" class="color-swatch-btn" data-color="{{ c }}" style="width:26px;height:26px;border-radius:50%;background:{{ c }};border:2px solid {{ 'black' if (project and project.scheduled_color == c) else 'transparent' }};cursor:pointer;"></button>
-        {% endfor %}
-        <button type="button" class="color-swatch-btn" data-color="" style="width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid {{ 'black' if not (project and project.scheduled_color) else '#adb5bd' }};cursor:pointer;" title="Default"></button>
+    <details class="mb-3 project-more-options" data-change="DESIGN-9"{% if project and (project.scheduled_color or project.prework_checklist or project.standard_items) %} open{% endif %}>
+      <summary class="text-primary" style="cursor:pointer;"><span class="fw-semibold">More options</span> <span class="text-muted small">(calendar color, prework checklist, standard items)</span></summary>
+      <div class="pt-3">
+        <div class="mb-3">
+          <label class="form-label">Calendar Color <span class="text-muted small">(optional)</span></label>
+          <div class="d-flex align-items-center gap-2 flex-wrap">
+            <input type="hidden" name="scheduled_color" id="scheduled-color-input" value="{{ project.scheduled_color if project and project.scheduled_color else '' }}">
+            {% for c in ['#0d6efd', '#6f42c1', '#d63384', '#dc3545', '#fd7e14', '#198754', '#20c997', '#6c757d'] %}
+            <button type="button" class="color-swatch-btn" data-color="{{ c }}" style="width:26px;height:26px;border-radius:50%;background:{{ c }};border:2px solid {{ 'black' if (project and project.scheduled_color == c) else 'transparent' }};cursor:pointer;"></button>
+            {% endfor %}
+            <button type="button" class="color-swatch-btn" data-color="" style="width:26px;height:26px;border-radius:50%;background:#fff;border:2px solid {{ 'black' if not (project and project.scheduled_color) else '#adb5bd' }};cursor:pointer;" title="Default"></button>
+          </div>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Prework Checklist <span class="text-muted small">(optional - things to check before starting work, one per line)</span></label>
+          <textarea name="prework_checklist" class="form-control" rows="4" placeholder="e.g.&#10;Check squawk log for open items&#10;Verify parts on hand&#10;Confirm work area/hangar available">{{ project.prework_checklist if project and project.prework_checklist else '' }}</textarea>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Standard Items Performed <span class="text-muted small">(optional - steps typically done on this kind of job, one per line)</span></label>
+          <textarea name="standard_items" class="form-control" rows="4" placeholder="e.g.&#10;Drain and replace oil/filter&#10;Inspect brakes&#10;Lubricate control surfaces">{{ project.standard_items if project and project.standard_items else '' }}</textarea>
+        </div>
       </div>
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Prework Checklist <span class="text-muted small">(optional - things to check before starting work, one per line)</span></label>
-      <textarea name="prework_checklist" class="form-control" rows="4" placeholder="e.g.&#10;Check squawk log for open items&#10;Verify parts on hand&#10;Confirm work area/hangar available">{{ project.prework_checklist if project and project.prework_checklist else '' }}</textarea>
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Standard Items Performed <span class="text-muted small">(optional - steps typically done on this kind of job, one per line)</span></label>
-      <textarea name="standard_items" class="form-control" rows="4" placeholder="e.g.&#10;Drain and replace oil/filter&#10;Inspect brakes&#10;Lubricate control surfaces">{{ project.standard_items if project and project.standard_items else '' }}</textarea>
-    </div>
+    </details>
     <div class="d-flex gap-2" data-change="DESIGN-8">
       <button type="submit" class="btn btn-dark fw-bold" data-change="DESIGN-1">{{ 'Save Changes' if project else 'Add Project' }}</button>
       <a href="{{ url_for('project_detail', project_id=project.id) if project else url_for('projects_list') }}" class="btn btn-outline-secondary" onclick="var r = document.referrer; if (r && r.indexOf(location.origin) === 0 && r !== location.href && history.length > 1) { history.back(); return false; }">Cancel</a>
