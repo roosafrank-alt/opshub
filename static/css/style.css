@@ -703,7 +703,6 @@ body .legend-swatch { width: .8rem; height: .8rem; border-radius: 2px; }
   .plane-cols { flex-direction: column; flex-wrap: nowrap; margin: 0; gap: 1rem; }
   .plane-cols > .col-lg-4, .plane-cols > .col-lg-8,
   .plane-cols .plane-mt-row, .plane-cols .plane-mt-row > [class*="col-"] { display: contents; }
-  .plane-cols > .plane-quick { padding: 0; }
   :where(.plane-cols > .col-lg-4 > *, .plane-cols > .col-lg-8 > *,
          .plane-cols .plane-mt-row > [class*="col-"] > .card) { order: 50; }
   .plane-cols > .col-lg-4 > *, .plane-cols > .col-lg-8 > *,
@@ -712,8 +711,16 @@ body .legend-swatch { width: .8rem; height: .8rem; border-radius: 2px; }
   .plane-cols [class~="plane-maint"] { order: 2; }
   .plane-cols [class~="plane-hours"] { order: 3; }
   .plane-cols [class~="plane-todo"] { order: 4; }
-  .plane-cols > .plane-quick { order: 5; }
-  .plane-cols .plane-empty:not(.plane-open) { display: none; }
+  .plane-cols .plane-quick { order: 5; margin: 0 !important; }
+}
+
+/* Empty plane sections (no photos, to-dos, ADs, compression checks) fold into
+   the row of small buttons on every screen size; with the To-Do box gone,
+   Maintenance takes the full width. */
+.plane-cols .plane-empty:not(.plane-open) { display: none; }
+@media (min-width: 1200px) {
+  .plane-mt-row:has(> .col-xl-5 > .plane-todo.plane-empty:not(.plane-open)) > .col-xl-7 { width: 100%; }
+  .plane-mt-row:has(> .col-xl-5 > .plane-todo.plane-empty:not(.plane-open)) > .col-xl-5 { display: none; }
 }
 
 /* Orders tabs: five tabs on one line on a phone (laptop unchanged) */

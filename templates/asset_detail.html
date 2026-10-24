@@ -83,13 +83,6 @@
 {% if not compression_count %}{% set _ = plane_quick.append(('plane-compression', 'bi-speedometer', 'Compression check')) %}{% endif %}
 
 <div class="row g-3 plane-cols">
-  {% if plane_quick %}
-  <div class="plane-quick d-lg-none d-flex flex-wrap gap-2">
-    {% for target, icon, label in plane_quick %}
-    <button type="button" class="btn btn-outline-secondary btn-sm" data-plane-open="{{ target }}"><i class="bi {{ icon }}"></i> {{ label }}</button>
-    {% endfor %}
-  </div>
-  {% endif %}
   <div class="col-lg-4">
     <div class="card p-3 plane-hours">
       <h6>Hours</h6>
@@ -124,6 +117,13 @@
       </form>
       {% endif %}
     </div>
+    {% if plane_quick %}
+    <div class="plane-quick d-flex flex-wrap gap-2 mt-3">
+      {% for target, icon, label in plane_quick %}
+      <button type="button" class="btn btn-outline-secondary btn-sm" data-plane-open="{{ target }}"><i class="bi {{ icon }}"></i> {{ label }}</button>
+      {% endfor %}
+    </div>
+    {% endif %}
 
     <div class="card p-3 mt-3{{ ' plane-empty' if not photos }}" id="plane-photos">
       <h6>Photos</h6>
@@ -674,13 +674,14 @@
 })();
 </script>
 <script>
-// Phone only: a button in the "empty sections" row opens that section in place.
+// A button in the "empty sections" row opens that section in place.
 document.querySelectorAll('[data-plane-open]').forEach(function (btn) {
   btn.addEventListener('click', function () {
-    var box = document.getElementById(btn.getAttribute('data-plane-open'));
-    if (box) { box.classList.add('plane-open'); btn.remove(); box.scrollIntoView({behavior: 'smooth', block: 'center'}); }
-    var row = document.querySelector('.plane-quick');
-    if (row && !row.querySelector('button')) row.remove();
+    var target = btn.getAttribute('data-plane-open');
+    var box = document.getElementById(target);
+    if (box) { box.classList.add('plane-open'); box.scrollIntoView({behavior: 'smooth', block: 'center'}); }
+    document.querySelectorAll('[data-plane-open="' + target + '"]').forEach(function (b) { b.remove(); });
+    document.querySelectorAll('.plane-quick').forEach(function (row) { if (!row.querySelector('button')) row.remove(); });
   });
 });
 </script>
