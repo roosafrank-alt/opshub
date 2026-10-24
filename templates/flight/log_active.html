@@ -135,10 +135,28 @@
     {% if f.end_state %}
     <button type="button" class="btn {{ 'btn-outline-info' if f.acs_planned_at else 'btn-success' }} fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#end-flight-modal-{{ f.id }}"{% if not f.acs_planned_at %} onclick="fetch('{{ url_for('flight.log_end_flight_started', flight_id=f.id) }}', {method: 'POST', credentials: 'same-origin'})"{% endif %}><i class="bi {{ 'bi-list-check' if f.acs_planned_at else 'bi-airplane' }}"></i> {{ 'ACS planning' if f.acs_planned_at else 'End Flight' }}</button>
     {% endif %}
+    {#- Idea "if end session is clicked before end flight": while the ending Hobbs/Tach haven't been confirmed
+       in End Flight, End Session pops up a reminder instead of stopping the clock. #}
+    {% if f.end_state and f.end_state.step == 'times' %}
+    <button type="button" class="btn btn-danger fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#end-first-modal-{{ f.id }}"><i class="bi bi-stop-fill"></i> End Session</button>
+    {% else %}
     <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-flex flex-fill mb-0">
       <button type="submit" class="btn btn-danger fw-bold flex-fill"><i class="bi bi-stop-fill"></i> End Session</button>
     </form>
+    {% endif %}
   </div>
+  {% if f.end_state and f.end_state.step == 'times' %}
+  <div class="modal fade" id="end-first-modal-{{ f.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+      <div class="modal-header py-2"><h6 class="modal-title"><i class="bi bi-exclamation-triangle text-warning"></i> End the flight first</h6>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+      <div class="modal-body">The flight must be ended first: tap <strong>End Flight</strong> and enter the Hobbs and Tach end times, then tap End Session.</div>
+      <div class="modal-footer py-2">
+        <button type="button" class="btn btn-success" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#end-flight-modal-{{ f.id }}"{% if not f.acs_planned_at %} onclick="fetch('{{ url_for('flight.log_end_flight_started', flight_id=f.id) }}', {method: 'POST', credentials: 'same-origin'})"{% endif %}><i class="bi bi-airplane"></i> Open End Flight</button>
+      </div>
+    </div></div>
+  </div>
+  {% endif %}
   {% if f.next_focus_tasks %}
   <div class="small mb-2"><i class="bi bi-list-check text-primary"></i> <strong>Next flight:</strong> {{ f.next_focus_tasks|join(' · ') }}</div>
   {% endif %}
