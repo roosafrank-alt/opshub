@@ -709,47 +709,62 @@ data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == '
 {% elif view == 'day' %}
 <div class="card p-3">
   {{ wl_chips(day_str) }}
-  {% set span_min = day_timeline_end_min - day_timeline_start_min %}
-  {#- Past-day graying: a day entirely before today is fully grayed; today
-     is grayed only up to the current time (now_min, from
-     _schedule_calendar_context); a future day gets no overlay. Sits behind
-     the flight blocks (lower in the DOM, no z-index) so booked flights
-     still show their normal colors on top of the gray. #}
-  {% set day_now_pct = ((now_min - day_timeline_start_min) / span_min * 100)|round(2) %}
-  {% set day_now_pct = [day_now_pct, 100]|min %}
-  {% set day_now_pct = [day_now_pct, 0]|max %}
-  {% set day_past_pct = 100 if (today_str and day_str < today_str) else (day_now_pct if (today_str and day_str == today_str) else 0) %}
-  <div class="day-timeline-wrap">
-    <div class="day-timeline-hours">
-      {% for h in range(day_timeline_start_min // 60, day_timeline_end_min // 60 + 1) %}
-      {% set hour12 = h % 12 %}
-      {% set hour12 = 12 if hour12 == 0 else hour12 %}
-      {% set ampm = 'AM' if h < 12 else 'PM' %}
-      {% set line_top_pct = (h * 60 - day_timeline_start_min) / span_min * 100 %}
-      <div class="day-timeline-hour-line" style="top:{{ line_top_pct }}%;">
-        <span class="day-timeline-hour-label">{{ hour12 }} {{ ampm }}</span>
-      </div>
-      {% endfor %}
-    </div>
-    {#- Clicking empty space in the track (not an existing flight block)
-       schedules a new flight at that time - see the click handler in
-       schedule.html, which turns the click's vertical position into a
-       time using these data-* bounds. #}
-    <div class="day-timeline-track{% if session.get('cfi_id') or session.get('student_id') %} day-timeline-track-clickable{% endif %}"
-         data-track-date="{{ day_str }}" data-start-min="{{ day_timeline_start_min }}" data-end-min="{{ day_timeline_end_min }}">
-      {% if day_past_pct %}<div class="day-timeline-past-overlay" style="height:{{ day_past_pct }}%;"></div>{% endif %}
-      {% for h in range(day_timeline_start_min // 60, day_timeline_end_min // 60 + 1) %}
-      {% set line_top_pct = (h * 60 - day_timeline_start_min) / span_min * 100 %}
-      <div class="day-timeline-grid-line" style="top:{{ line_top_pct }}%;"></div>
-      {% endfor %}
-      {% for f, style in day_timeline %}
-      {{ day_timeline_block(f, style) }}
-      {% endfor %}
-    </div>
+  {#- Same plane x time-slot grid as the Availability page's Day view (times
+     down, planes across, no sideways scrolling): an open slot is green and
+     clicking it starts a booking at that plane and time; a booked slot
+     holds the flight itself, so a click opens its details as before. A
+     flight longer than one slot shows once, then "cont." below it. #}
+  {% set is_student_viewer = session.get('student_id') and not session.get('cfi_id') %}
+  {% if not avail_day.planes %}
+  <p class="text-muted mb-0">No active planes to show.</p>
+  {% else %}
+  <div class="avail-fit">
+    <table class="table table-bordered avail-grid avail-grid-v mb-0">
+      <thead>
+        <tr>
+          <th class="avail-time-col">Time</th>
+          {% for row in avail_day.grid %}<th class="text-center avail-plane-head">{{ row.plane.tag }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for slot in avail_day.slots %}
+        {% set i = loop.index0 %}
+        <tr>
+          <th class="avail-time-col">{{ slot.label }}</th>
+          {% for row in avail_day.grid %}
+          {% set cell = row.cells[i] %}
+          {% if cell.show %}
+          <td class="avail-slot-flight">
+            {% for f in cell.show %}{{ schedule_block(f, false) }}{% endfor %}
+            {% if not cell.booked and not cell.is_past and not cell.down %}<a class="avail-slot-open-link" href="{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(cell.start_min // 60, cell.start_min % 60), asset_id=row.plane.id) }}">Open</a>{% endif %}
+          </td>
+          {% elif cell.booked %}
+          {% if i > 0 and row.cells[i - 1].flight and row.cells[i - 1].flight.id == cell.flight.id %}
+          <td class="avail-slot-booked avail-slot-cont" title="{{ row.plane.tag }} - same flight as the slot above">cont.</td>
+          {% else %}
+          <td class="avail-slot-booked avail-slot-cont">{{ 'Past' if cell.is_past else 'Booked' }}</td>
+          {% endif %}
+          {% elif cell.is_past %}
+          <td class="avail-slot-past" title="{{ cell.label }} has already passed">Past</td>
+          {% elif cell.down %}
+          <td class="avail-slot-past" title="{{ row.plane.tag }} is down for maintenance ({{ cell.down_reason }}) and can't be booked">Grounded</td>
+          {% else %}
+          <td class="{{ 'avail-slot-req' if cell.requests_only else 'avail-slot-open' }}" role="button"
+              onclick="window.location.href='{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(cell.start_min // 60, cell.start_min % 60), asset_id=row.plane.id) }}'"
+              title="{{ row.plane.tag }} open {{ cell.label }} - click to schedule a flight{{ ' (requests only: not confirmed until an instructor confirms it)' if cell.requests_only }}">
+            {{ 'Requests only' if cell.requests_only else 'Open' }}
+          </td>
+          {% endif %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
   </div>
-  {% if day_untimed %}
+  {% endif %}
+  {% if day_untimed or day_extra %}
   <div class="mt-3">
-    <div class="small text-muted mb-1">No time set</div>
+    <div class="small text-muted mb-1">{% if day_untimed %}No time set{% endif %}{% if day_untimed and day_extra %} / {% endif %}{% if day_extra %}Breaks and other items without a plane{% endif %}</div>
     <div class="table-responsive">
       <table class="table table-sm align-middle mb-0 table-stack">
         <tbody>
@@ -759,6 +774,7 @@ data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == '
         </tbody>
       </table>
     </div>
+    {% if day_extra %}<div class="d-flex flex-wrap gap-1">{% for f in day_extra %}<div style="min-width:9rem">{{ schedule_block(f, true) }}</div>{% endfor %}</div>{% endif %}
   </div>
   {% endif %}
   {% if not day_flights %}

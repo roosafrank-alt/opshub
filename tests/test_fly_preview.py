@@ -490,8 +490,9 @@ class SchoolDayTest(FlyBase):
         self.assertIn("7 AM - 7 PM", c.get("/flight/cfis/schedule").get_data(as_text=True))
         c.get("/flight/schedule?view=day")
         day = c.get("/flight/schedule?view=day").get_data(as_text=True)
-        self.assertIn('data-start-min="420"', day)
-        self.assertIn('data-end-min="1140"', day)
+        # The Day view is the Availability-style plane x time-slot grid now,
+        # so the school-day window shows in the Month/Week timelines instead.
+        self.assertIn("avail-grid-v", day)
 
     def test_bad_window_is_refused(self):  # FLY-37
         c = self.login("master")

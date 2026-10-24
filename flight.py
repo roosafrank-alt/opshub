@@ -5241,6 +5241,7 @@ def _schedule_calendar_context():
     list_scroll_anchor_id = None
     range_flights = None
     day_prev = day_next = None
+    avail_day, day_extra = None, []
     if view == "day":
         try:
             day_date = datetime.strptime(day_str, "%Y-%m-%d").date()
@@ -5249,6 +5250,28 @@ def _schedule_calendar_context():
             day_str = today.strftime("%Y-%m-%d")
         day_flights = _build_schedule_day(conn, day_str, plane_id or None, cfi_id or None)
         day_timeline, day_untimed = _layout_day_timeline(day_flights)
+        # The Day view uses the same plane x time-slot grid as the
+        # Availability page's Day view (see _schedule_live.html). Each cell
+        # also lists every flight of the day (cancelled and pending ones
+        # too, not just the ones that block the slot) that STARTS in it, so
+        # nothing the old timeline showed is lost; a plane-less break goes
+        # in day_extra.
+        avail_day = _build_availability_day(conn, day_str, plane_id or None)
+        shown = set()
+        for row in avail_day["grid"]:
+            pid = row["plane"]["id"]
+            mine = [f for f in day_flights if f["asset_id"] == pid and _time_window(f["scheduled_time"], f["duration_hours"])]
+            for ci, cell in enumerate(row["cells"]):
+                slot_end = cell["start_min"] + AVAILABILITY_SLOT_MIN
+                cell["show"] = []
+                for f in mine:
+                    start = _time_window(f["scheduled_time"], f["duration_hours"])[0]
+                    first = (ci == 0 and start < slot_end) or (cell["start_min"] <= start < slot_end)
+                    if first:
+                        cell["show"].append(f)
+                        shown.add(f["id"])
+        untimed_ids = {f["id"] for f in day_untimed}
+        day_extra = [f for f in day_flights if f["id"] not in shown and f["id"] not in untimed_ids]
         day_prev = (day_date - timedelta(days=1)).strftime("%Y-%m-%d")
         day_next = (day_date + timedelta(days=1)).strftime("%Y-%m-%d")
         prev_month, prev_year = month, year
@@ -5317,6 +5340,7 @@ def _schedule_calendar_context():
 
     return dict(view=view, month_data=month_data, months_data=months_data,
                 day_str=day_str, day_flights=day_flights, day_timeline=day_timeline, day_untimed=day_untimed,
+                avail_day=avail_day, day_extra=day_extra,
                 day_timeline_start_min=_school_day_window()[0], day_timeline_end_min=_school_day_window()[1],
                 day_prev=day_prev, day_next=day_next,
                 week_days=week_days, week_start_str=week_start_str, week_end_str=week_end_str,
