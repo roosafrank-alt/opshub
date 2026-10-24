@@ -74,7 +74,6 @@ class SchedulePart2Test(OpsHubTestCase):
             with self.subTest(**kw):
                 self.assertLess(self.edit(sid, **kw).status_code, 500)
 
-    @open_finding("qa-schedule-edit-bad-input")
     def test_edit_unknown_or_garbled_ids_and_dates_give_a_message(self):
         sid = self.booking()
         self.login("cfi")
@@ -83,7 +82,6 @@ class SchedulePart2Test(OpsHubTestCase):
             with self.subTest(**kw):
                 self.assertLess(self.edit(sid, **kw).status_code, 500)
 
-    @open_finding("qa-schedule-bad-time-or-length-saved")
     def test_edit_cannot_save_zero_or_negative_length(self):
         sid = self.booking()
         self.login("cfi")
@@ -133,7 +131,6 @@ class SchedulePart2Test(OpsHubTestCase):
         r = self.client.post(f"/flight/schedule/{sid}/reschedule", data=dict(scheduled_date="garbage", scheduled_time="10:00"))
         self.assertLess(r.status_code, 500)
 
-    @open_finding("qa-schedule-bad-time-or-length-saved")
     def test_reschedule_impossible_time_is_not_saved(self):
         sid = self.booking()
         self.login("cfi")

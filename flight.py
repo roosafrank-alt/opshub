@@ -5833,6 +5833,17 @@ def schedule_new():
     return render_template("flight/schedule_form.html", form=None, **form_kwargs)
 
 
+def _bad_time_error(scheduled_time):
+    """A message when a booking time was sent that isn't a real HH:MM clock
+    time (blank is fine: "time TBD"), else None."""
+    if scheduled_time:
+        try:
+            datetime.strptime(scheduled_time, "%H:%M")
+        except ValueError:
+            return "That time isn't valid. Pick the time again."
+    return None
+
+
 def _booking_input_error(conn, asset_id, student_id, cfi_id, scheduled_date, duration_raw, duration_hours):
     """A plain-English message when the booking form was sent something that
     can't be booked (a garbled date or length, or a plane, student or
@@ -6215,6 +6226,13 @@ def schedule_edit(scheduled_id):
             flash("Select a plane, a student, and a date.", "danger")
             conn.close()
             return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
+        input_error = (_bad_time_error(scheduled_time)
+                       or _booking_input_error(conn, asset_id, student_id, cfi_id, scheduled_date,
+                                               request.form.get("duration_hours"), duration_hours))
+        if input_error:
+            flash(input_error, "danger")
+            conn.close()
+            return render_template("flight/schedule_form.html", form=request.form, **form_kwargs)
         if solo:
             plane_row = conn.execute("SELECT tag, solo_allowed FROM assets WHERE id = ?", (asset_id,)).fetchone()
             if plane_row and not plane_row["solo_allowed"]:
@@ -6307,6 +6325,11 @@ def schedule_reschedule(scheduled_id):
     new_time = request.form.get("scheduled_time", "").strip() or None
     if not new_date:
         flash("Pick a new date.", "danger")
+        conn.close()
+        return redirect(url_for("flight.schedule_calendar", year=sched["scheduled_date"][:4], month=int(sched["scheduled_date"][5:7])))
+    time_error = _bad_time_error(new_time)
+    if time_error:
+        flash("Not rescheduled - " + time_error, "danger")
         conn.close()
         return redirect(url_for("flight.schedule_calendar", year=sched["scheduled_date"][:4], month=int(sched["scheduled_date"][5:7])))
     past_error = _past_booking_error(new_date, new_time)
