@@ -250,6 +250,11 @@ data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == '
 {% endif %}
 {% endmacro %}
 
+{#- Idea "Availability button" (revision): small button next to a date that
+   opens the Availability page for that day (flight.schedule_availability).
+   Icon only in the tiny Year-view cells (title says what it is). #}
+{% macro avail_btn(date_str, compact=false) %}<a href="{{ url_for('flight.schedule_availability', date=date_str, plane_id=plane_id) }}" class="btn btn-outline-success avail-day-btn" title="Availability on {{ date_str|usdate }}"><i class="bi bi-calendar2-check"></i>{% if not compact %} Availability{% endif %}</a>{% endmacro %}
+
 {% macro month_table(md, row_height, compact, max_blocks=99, layout_full=false) %}
 <div class="table-responsive{% if compact %} mb-3{% endif %}">
   {% if compact %}<div class="fw-bold small mb-1"><a href="{{ url_for('flight.schedule_calendar', view='month', year=md.year, month=md.month, plane_id=plane_id, cfi_id=cfi_id) }}" class="text-decoration-none">{{ md.month_name }} {{ md.year }}</a></div>{% endif %}
@@ -283,15 +288,16 @@ data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == '
         <td class="bg-light text-muted{{ ' calendar-day-cell-add' if session.get('cfi_id') or session.get('student_id') }}"
             {% if session.get('cfi_id') or session.get('student_id') %}data-add-url="{{ url_for('flight.schedule_new', date=day.date) }}"{% endif %}
             style="min-height:{{ row_height }};">
-          <div class="calendar-day-head">
+          <div class="calendar-day-head d-flex align-items-center gap-1">
           {% if session.get('cfi_id') or session.get('student_id') %}
-          <a href="{{ url_for('flight.schedule_new', date=day.date) }}" class="small d-flex align-items-center gap-1 text-decoration-none calendar-day-add text-muted" title="{{ 'Schedule a flight' if session.get('cfi_id') else 'Request a flight' }} on {{ day.date|usdate }}">
+          <a href="{{ url_for('flight.schedule_new', date=day.date) }}" class="small d-flex align-items-center gap-1 flex-grow-1 text-decoration-none calendar-day-add text-muted" title="{{ 'Schedule a flight' if session.get('cfi_id') else 'Request a flight' }} on {{ day.date|usdate }}">
             {{ day.day }}
             {% if not compact %}<i class="bi bi-plus-circle calendar-day-add-icon"></i>{% endif %}
           </a>
           {% else %}
-          <div class="small">{{ day.day }}</div>
+          <div class="small flex-grow-1">{{ day.day }}</div>
           {% endif %}
+          {{ avail_btn(day.date, compact) }}
           </div>
           {% if layout_full %}
           {#- Idea "Calendar" (revision): these overflow days used to skip
@@ -327,17 +333,18 @@ data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == '
             {% if session.get('cfi_id') or session.get('student_id') %}data-add-url="{{ url_for('flight.schedule_new', date=cell_date) }}"{% endif %}
             {% if is_today %}data-is-today="1"{% endif %}
             style="min-height:{{ row_height }}; vertical-align:top; {% if is_today %}background:#fff8e1; box-shadow:inset 0 0 0 2px #ffc107;{% elif is_past_day %}background:#e9ecef;{% endif %}">
-          <div class="calendar-day-head">
+          <div class="calendar-day-head d-flex align-items-center gap-1">
           {% if session.get('cfi_id') or session.get('student_id') %}
-          <a href="{{ url_for('flight.schedule_new', date=cell_date) }}" class="small fw-bold d-flex align-items-center gap-1 text-decoration-none calendar-day-add {{ 'text-primary' if is_today else 'text-body' }}" title="{{ 'Schedule a flight' if session.get('cfi_id') else 'Request a flight' }} on {{ cell_date|usdate }}">
+          <a href="{{ url_for('flight.schedule_new', date=cell_date) }}" class="small fw-bold d-flex align-items-center gap-1 flex-grow-1 text-decoration-none calendar-day-add {{ 'text-primary' if is_today else 'text-body' }}" title="{{ 'Schedule a flight' if session.get('cfi_id') else 'Request a flight' }} on {{ cell_date|usdate }}">
             {{ day }}{% if is_today %}<span class="badge bg-warning text-dark d-none d-sm-inline-block badge-micro">TODAY</span>{% endif %}
             {% if not compact %}<i class="bi bi-plus-circle calendar-day-add-icon"></i>{% endif %}
           </a>
           {% else %}
-          <div class="small fw-bold d-flex align-items-center gap-1 {{ 'text-primary' if is_today }}">
+          <div class="small fw-bold d-flex align-items-center gap-1 flex-grow-1 {{ 'text-primary' if is_today }}">
             {{ day }}{% if is_today %}<span class="badge bg-warning text-dark d-none d-sm-inline-block badge-micro">TODAY</span>{% endif %}
           </div>
           {% endif %}
+          {{ avail_btn(cell_date, compact) }}
           </div>
           {{ wl_chips(cell_date) }}
           {% if layout_full %}
@@ -482,7 +489,7 @@ data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == '
    bare "Past" row instead of the real time/plane/status/note. #}
 {% if hide_past_detail %}
 <tr class="{{ 'schedule-day-break' if new_day }} schedule-row-past" style="background:#e9ecef; color:#6c757d;">
-  {% if show_date %}<td data-label="Date"><small class="{{ 'fw-bold' if new_day }}">{{ f.scheduled_date|usdate }}</small></td>{% endif %}
+  {% if show_date %}<td data-label="Date"><small class="{{ 'fw-bold' if new_day }}">{{ f.scheduled_date|usdate }}</small>{% if new_day %} {{ avail_btn(f.scheduled_date) }}{% endif %}</td>{% endif %}
   <td data-label="Time"><small>Past</small></td>
   <td data-label="Plane"></td>
   <td class="stack-full" data-label="Student / Instructor"></td>
@@ -507,7 +514,7 @@ data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == '
      data-student-cancel-url="{{ url_for('flight.schedule_student_cancel', scheduled_id=f.id) }}"
      data-start-url="{{ url_for('flight.schedule_start', scheduled_id=f.id) }}"
      data-log-url="{{ url_for('flight.log_new', asset_id=f.asset_id, student_id=f.student_id, cfi_id=f.cfi_id or '', solo='on' if f.solo else '', flight_date=f.scheduled_date, scheduled_flight_id=f.id) }}">
-  {% if show_date %}<td data-label="Date"><small class="{{ 'fw-bold' if new_day }}">{{ f.scheduled_date|usdate }}</small>{% if new_day and is_today %} <span class="badge bg-warning text-dark">Today</span>{% endif %}</td>{% endif %}
+  {% if show_date %}<td data-label="Date"><small class="{{ 'fw-bold' if new_day }}">{{ f.scheduled_date|usdate }}</small>{% if new_day and is_today %} <span class="badge bg-warning text-dark">Today</span>{% endif %}{% if new_day %} {{ avail_btn(f.scheduled_date) }}{% endif %}</td>{% endif %}
   <td data-label="Time"><small>{{ f.time_label or 'Not set' }}</small></td>
   <td data-label="Plane"><span style="display:inline-block;width:12px;height:12px;border-radius:2px;background:{{ f.display_color }};vertical-align:-1px;{% if f.cfi_display_color %}border-left:4px solid {{ f.cfi_display_color }};{% endif %}" title="Plane color{{ ' (neon = solo)' if f.solo }}{{ ' / instructor stripe' if f.cfi_display_color }}"></span> {{ f.plane_tag }}</td>
   <td class="stack-full" data-label="Student / Instructor">{% if session.get('cfi_id') or flight_admin %}{{ f.student_name }} {{ schedule_pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}
@@ -787,10 +794,10 @@ data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == '
       {% for wd in week_days %}
       {% set wd_past_pct = 100 if (today_str and wd.date_str < today_str) else (week_now_pct if wd.is_today else 0) %}
       <div class="week-timeline-day-col">
-        <a href="{{ url_for('flight.schedule_availability', date=wd.date_str, plane_id=plane_id) }}" title="See what's open on this day"
-           class="week-timeline-day-head text-decoration-none {{ 'week-timeline-day-head-today' if wd.is_today }}">
-          {{ wd.weekday }} {{ wd.day_num }}{% if wd.is_today %} <span class="badge bg-warning text-dark badge-micro">TODAY</span>{% endif %}
-        </a>
+        <div class="week-timeline-day-head d-flex flex-wrap justify-content-center align-items-center gap-1 {{ 'week-timeline-day-head-today' if wd.is_today }}">
+          <a href="{{ url_for('flight.schedule_availability', date=wd.date_str, plane_id=plane_id) }}" title="See what's open on this day" class="text-decoration-none text-reset">{{ wd.weekday }} {{ wd.day_num }}{% if wd.is_today %} <span class="badge bg-warning text-dark badge-micro">TODAY</span>{% endif %}</a>
+          {{ avail_btn(wd.date_str) }}
+        </div>
         {{ wl_chips(wd.date_str) }}
         <div class="day-timeline-track{% if session.get('cfi_id') or session.get('student_id') %} day-timeline-track-clickable{% endif %}"
              data-track-date="{{ wd.date_str }}" data-start-min="{{ day_timeline_start_min }}" data-end-min="{{ day_timeline_end_min }}">
