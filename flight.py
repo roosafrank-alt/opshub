@@ -6074,7 +6074,18 @@ def schedule_approve(scheduled_id):
     # assign an instructor later" (FLY-16), which leaves it unassigned and
     # flagged "No instructor assigned yet".
     assign_later = request.values.get("assign") == "later"
-    cfi_id = sched["cfi_id"] or (None if (solo or assign_later) else session["cfi_id"])
+    # The calendar's instructor picker posts the CFI that was chosen from the
+    # list of instructors who are free at that day and time.
+    picked_cfi = None
+    if not sched["cfi_id"] and not solo and not assign_later:
+        picked_id = _parse_int(request.values.get("cfi_id"))
+        if picked_id:
+            picked_cfi = conn.execute("SELECT id FROM cfis WHERE id = ? AND active = 1 AND is_station = 0",
+                                      (picked_id,)).fetchone()
+            if not picked_cfi:
+                conn.close()
+                return _pending_decision_response(False, "That instructor isn't available to pick.", "danger")
+    cfi_id = sched["cfi_id"] or (None if (solo or assign_later) else (picked_cfi["id"] if picked_cfi else session["cfi_id"]))
     conflicts = _scheduling_conflicts(conn, sched["asset_id"], cfi_id, sched["student_id"],
                                       sched["scheduled_date"], sched["scheduled_time"], sched["duration_hours"],
                                       exclude_id=scheduled_id)
@@ -6100,6 +6111,33 @@ def schedule_approve(scheduled_id):
     if needs_review:
         return _pending_decision_response(True, f"Flight request approved, but flagged for review: {review_reason}", "warning", stay_url=stay)
     return _pending_decision_response(True, "Flight request approved and added to the calendar.", "success", stay_url=stay)
+
+
+@flight_bp.route("/schedule/<int:scheduled_id>/available-cfis")
+@cfi_required
+def schedule_available_cfis(scheduled_id):
+    """The instructors who are free for this request's day and time, for the
+    calendar's "Approve" picker on a request with no instructor yet. An
+    instructor is left out when they'd be double-booked, are on time off, or
+    have an expired medical then; problems that are the plane's or the
+    student's (same for every instructor) don't hide anyone here, because
+    approving re-checks them anyway."""
+    conn = get_db()
+    sched = conn.execute("SELECT * FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
+    if not sched:
+        conn.close()
+        return jsonify({"ok": False, "cfis": []}), 404
+    args = (sched["asset_id"],)
+    rest = (sched["student_id"], sched["scheduled_date"], sched["scheduled_time"], sched["duration_hours"])
+    shared = {c["message"] for c in _scheduling_conflicts(conn, args[0], None, *rest, exclude_id=scheduled_id)}
+    free = []
+    for c in conn.execute("SELECT id, name FROM cfis WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall():
+        own = [x for x in _scheduling_conflicts(conn, args[0], c["id"], *rest, exclude_id=scheduled_id)
+               if x["message"] not in shared]
+        if not own:
+            free.append({"id": c["id"], "name": c["name"]})
+    conn.close()
+    return jsonify({"ok": True, "cfis": free, "me": session.get("cfi_id")})
 
 
 @flight_bp.route("/schedule/<int:scheduled_id>/deny", methods=["POST"])

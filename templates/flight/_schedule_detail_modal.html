@@ -162,6 +162,29 @@
 </div>
 
 {% if session.get('cfi_id') %}
+<!-- CFI: "Approve" on a request with no instructor yet pops this up with the
+     instructors who are free at that day and time; tapping one approves the
+     request and books them (schedule_available_cfis lists them,
+     schedule_approve takes the cfi_id). -->
+<div class="modal fade" id="pickCfiModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-sm">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title"><i class="bi bi-person-check"></i> Choose an instructor</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <form method="post" id="pick-cfi-form">
+        <input type="hidden" name="cfi_id" id="pick-cfi-id" value="">
+        <div class="modal-body">
+          <p class="text-muted small mb-2">Free on <span id="pick-cfi-when" class="fw-bold"></span>. Tap one to approve and book them.</p>
+          <div id="pick-cfi-list" class="d-grid gap-2"></div>
+          <div id="pick-cfi-note" class="small text-muted"></div>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
 <!-- CFI/admin: Deny / Propose New Times - denies the pending request and,
      optionally, tells the student what times would work instead. A reason
      is required if no times are picked; picking times is required if no
@@ -528,9 +551,42 @@ document.addEventListener('click', function (evt) {
     var noCfi = isPendingApproval && namesKnown && !el.dataset.cfi && !el.dataset.solo;
     approveForm.classList.toggle('d-none', !isPendingApproval);
     approveForm.action = el.dataset.approveUrl || '#';
-    approveForm.setAttribute('data-confirm', noCfi ? 'Approve and assign yourself as the instructor?'
-      : 'Approve this flight request? It goes onto the calendar as a confirmed booking.');
-    approveForm.setAttribute('data-confirm-ok', noCfi ? 'Yes, approve and assign me' : 'Yes, approve');
+    // No instructor yet: Approve opens a list of the instructors free at that
+    // day and time instead of assuming the person approving is the one.
+    if (noCfi) {
+      approveForm.removeAttribute('data-confirm');
+      approveForm.onsubmit = function (e) {
+        e.preventDefault();
+        var pickForm = document.getElementById('pick-cfi-form');
+        var list = document.getElementById('pick-cfi-list');
+        var note = document.getElementById('pick-cfi-note');
+        pickForm.action = el.dataset.approveUrl || '#';
+        document.getElementById('pick-cfi-when').textContent = (el.dataset.date || '') + (el.dataset.time ? ' at ' + el.dataset.time : '');
+        list.innerHTML = '<span class="text-muted small">Looking...</span>';
+        note.textContent = '';
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('scheduleDetailModal')).hide();
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('pickCfiModal')).show();
+        fetch((el.dataset.approveUrl || '').replace(/approve$/, 'available-cfis'), { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
+          .then(function (r) { return r.json(); })
+          .then(function (data) {
+            list.innerHTML = '';
+            (data.cfis || []).forEach(function (c) {
+              var b = document.createElement('button');
+              b.type = 'button';
+              b.className = 'btn btn-outline-success';
+              b.textContent = c.name + (c.id === data.me ? ' (me)' : '');
+              b.onclick = function () { document.getElementById('pick-cfi-id').value = c.id; pickForm.submit(); };
+              list.appendChild(b);
+            });
+            if (!(data.cfis || []).length) note.textContent = 'No instructor is free then. Use "Approve - assign an instructor later" or pick another time.';
+          })
+          .catch(function () { list.innerHTML = ''; note.textContent = 'Could not load the instructors. Close this and try again.'; });
+      };
+    } else {
+      approveForm.onsubmit = null;
+      approveForm.setAttribute('data-confirm', 'Approve this flight request? It goes onto the calendar as a confirmed booking.');
+      approveForm.setAttribute('data-confirm-ok', 'Yes, approve');
+    }
     if (approveLaterForm) {
       approveLaterForm.classList.toggle('d-none', !noCfi);
       approveLaterForm.action = (el.dataset.approveUrl || '#') + '?assign=later';
