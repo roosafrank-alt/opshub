@@ -1,0 +1,80 @@
+{
+ "checks": [
+  {
+   "role": "master",
+   "size": "phone",
+   "sql": [
+    "UPDATE assets SET is_flight_asset = 1, hobbs_hours = 500.0, tach_hours = 480.0 WHERE id = {asset}",
+    "UPDATE students SET balance = -50.0, plane_rate_override = 100.0 WHERE id = {student}",
+    "INSERT INTO flights (cfi_id, student_id, asset_id, flight_date, solo, hobbs_start, tach_start, started_at, created_at) VALUES ({cfi}, {student}, {asset}, date('now'), 0, 500.0, 480.0, datetime('now', '-90 minutes'), datetime('now'))"
+   ],
+   "steps": [
+    [
+     "start",
+     "/flight/log/active"
+    ],
+    [
+     "tap",
+     "End Flight"
+    ],
+    [
+     "fill",
+     "hobbs_end",
+     "501.4"
+    ],
+    [
+     "fill",
+     "tach_end",
+     "481.2"
+    ],
+    [
+     "tap",
+     "Confirm Hobbs and Tach"
+    ],
+    [
+     "tap",
+     ".modal.show .btn-close"
+    ],
+    [
+     "tap",
+     "End Session"
+    ],
+    [
+     "tap",
+     "Paid"
+    ],
+    [
+     "fill",
+     "payment_amount",
+     "200"
+    ],
+    [
+     "fill",
+     "payment_method",
+     "Cash"
+    ],
+    [
+     "tap",
+     "Apply"
+    ],
+    [
+     "see",
+     "owed from before"
+    ],
+    [
+     "shot",
+     {
+      "caption": "Overpayment note says where the extra goes",
+      "focus": "[id^='payment-apply-note-']",
+      "changed": [
+       {
+        "sel": "[id^='payment-apply-note-']",
+        "note": "Extra goes to the old balance"
+       }
+      ]
+     }
+    ]
+   ]
+  }
+ ]
+}

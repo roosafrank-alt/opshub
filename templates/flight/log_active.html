@@ -596,7 +596,7 @@
             <option value="Venmo/Zelle" {{ 'selected' if f.student_pay_preference == 'Venmo/Zelle' }}>Venmo/Zelle</option>
             <option value="Other" {{ 'selected' if f.student_pay_preference == 'Other' }}>Other</option>
           </select>
-          <button type="button" class="btn btn-outline-primary apply-payment-btn" data-flight-id="{{ f.id }}">Apply</button>
+          <button type="button" class="btn btn-outline-primary apply-payment-btn" data-flight-id="{{ f.id }}" data-owed="{{ '%.2f'|format(-f.student_balance) if (f.student_balance and f.student_balance < -0.005 and not f.guest_name) else '0.00' }}">Apply</button>
           </div>
         </div>
       </div>
@@ -1335,7 +1335,18 @@ document.querySelectorAll('.apply-payment-btn').forEach(function (btn) {
       var short = total - credit - amount;
       var parts = (amount > 0.005 ? '$' + amount.toFixed(2) + ' ' + method : '') + (amount > 0.005 && credit > 0.005 ? ' + ' : '') + (credit > 0.005 ? '$' + credit.toFixed(2) + ' credit' : '');
       if (short > 0.005) { ok = false; msg = 'Applied ' + (parts || '$0.00') + ' of $' + total.toFixed(2) + '. $' + short.toFixed(2) + ' still owed (Session Complete will ask if this is a partial payment).'; }
-      else msg = 'Payment OK: ' + parts + ' covers the $' + total.toFixed(2) + ' flight.';
+      else {
+        msg = 'Payment OK: ' + parts + ' covers the $' + total.toFixed(2) + ' flight.';
+        // Paid more than the flight cost by a student who owes from before:
+        // say where the extra goes (the server puts it on their balance).
+        var over = -short, owed = parseFloat(btn.dataset.owed) || 0;
+        if (over > 0.005 && owed > 0.005) {
+          var toOwed = Math.min(over, owed);
+          msg += ' Extra $' + over.toFixed(2) + ' goes to the $' + owed.toFixed(2) + ' owed from before: ' +
+            ((owed - toOwed) > 0.005 ? '$' + (owed - toOwed).toFixed(2) + ' still owed.' : 'paid off.') +
+            (over - toOwed > 0.005 ? ' $' + (over - toOwed).toFixed(2) + ' left over becomes credit.' : '');
+        }
+      }
     }
     out.textContent = msg + trimmed;
     out.className = 'small mt-1 ' + (ok ? 'text-success' : 'text-danger');
