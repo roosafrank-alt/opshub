@@ -2480,6 +2480,13 @@ def _migrate(conn):
         finally:
             conn.execute("PRAGMA foreign_keys = ON")
 
+    # QA feat-declined-last-visit: a declined found item that was offered
+    # again or added to a later job is marked here (the later job's id) so
+    # it leaves that job's "Declined last visit" box.
+    if not any(c["name"] == "carried_to_project_id" for c in conn.execute("PRAGMA table_info(found_items)").fetchall()):
+        conn.execute("ALTER TABLE found_items ADD COLUMN carried_to_project_id INTEGER")
+        conn.commit()
+
     # Detach (never delete) a purged job's logbook entries and found items
     # from it so a job purged before this fix - already permanently deleted
     # but left with dangling references - doesn't leave orphaned rows

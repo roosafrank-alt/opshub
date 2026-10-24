@@ -3946,6 +3946,93 @@ def _found_items_for_project(conn, project_id):
     return items
 
 
+def _declined_last_visit(conn, project):
+    """QA feat-declined-last-visit: found items an owner declined on an
+    EARLIER job for this plane that haven't been offered again or added to a
+    later job. Newest first, each with its photo count, source job and date."""
+    if not project["asset_id"]:
+        return []
+    rows = conn.execute("""SELECT fi.*, p.code AS job_code FROM found_items fi
+                           LEFT JOIN projects p ON p.id = fi.project_id
+                           WHERE fi.asset_id = ? AND fi.status = 'declined' AND fi.carried_to_project_id IS NULL
+                             AND COALESCE(fi.project_id, 0) != ?
+                           ORDER BY fi.decided_at DESC, fi.id DESC""",
+                        (project["asset_id"], project["id"])).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        d["photo_count"] = conn.execute("SELECT COUNT(*) c FROM photos WHERE found_item_id = ?", (r["id"],)).fetchone()["c"]
+        out.append(d)
+    return out
+
+
+def _declined_item_for_job(conn, project_id, item_id):
+    project = conn.execute("SELECT * FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
+    item = conn.execute("SELECT * FROM found_items WHERE id = ?", (item_id,)).fetchone()
+    if (not project or not item or not project["asset_id"] or item["asset_id"] != project["asset_id"]
+            or item["status"] != "declined" or item["carried_to_project_id"]):
+        return None, None
+    return project, item
+
+
+@app.route("/projects/<int:project_id>/declined/<int:item_id>/offer", methods=["POST"])
+@shop_role_required('admin', 'tech', 'inspector')
+def declined_item_offer_again(project_id, item_id):
+    """Offer a previously declined item to the owner again: a fresh found
+    item on this job (same text, price and photos), sent like any new one."""
+    conn = get_db()
+    project, item = _declined_item_for_job(conn, project_id, item_id)
+    if not project:
+        conn.close()
+        flash("That item was already offered again or added, or isn't on this plane.", "warning")
+        return redirect(url_for("project_detail", project_id=project_id))
+    cur = conn.execute("""INSERT INTO found_items (project_id, asset_id, description, est_parts, est_labor_hours, est_labor_rate,
+                           est_total, status, created_by, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, 'waiting', ?, ?)""",
+                       (project_id, project["asset_id"], item["description"], item["est_parts"], item["est_labor_hours"],
+                        item["est_labor_rate"], item["est_total"], session.get("user_name"), now_iso()))
+    new_id = cur.lastrowid
+    for ph in conn.execute("SELECT filename, caption FROM photos WHERE found_item_id = ? ORDER BY id", (item_id,)).fetchall():
+        conn.execute("INSERT INTO photos (found_item_id, filename, caption, created_at) VALUES (?, ?, ?, ?)",
+                     (new_id, ph["filename"], ph["caption"], now_iso()))
+    conn.execute("UPDATE found_items SET carried_to_project_id = ? WHERE id = ?", (project_id, item_id))
+    conn.commit()
+    reached = _notify_owner_found_items(conn, project)
+    if reached:
+        conn.execute("UPDATE found_items SET notified_at = ? WHERE project_id = ? AND status = 'waiting'",
+                     (now_iso(), project_id))
+        conn.commit()
+    conn.close()
+    flash("Offered to the owner again, with the same photos and price." if reached else
+          "Added to Found items, waiting on the owner's My Aircraft page. They couldn't be texted or emailed "
+          "(no owner linked to this plane, or email/SMS isn't set up).", "success" if reached else "warning")
+    return redirect(url_for("project_detail", project_id=project_id) + "#found-items")
+
+
+@app.route("/projects/<int:project_id>/declined/<int:item_id>/add", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def declined_item_add_to_job(project_id, item_id):
+    """The owner said yes by phone: the declined item becomes a Discrepancy
+    (Sub Area) on this job and leaves the Declined last visit box."""
+    conn = get_db()
+    project, item = _declined_item_for_job(conn, project_id, item_id)
+    if not project:
+        conn.close()
+        flash("That item was already offered again or added, or isn't on this plane.", "warning")
+        return redirect(url_for("project_detail", project_id=project_id))
+    name = (item["description"].split("\n")[0].strip() or f"Found item {item_id}")[:60]
+    candidate, n = name, 2
+    while conn.execute("SELECT 1 FROM project_sections WHERE project_id = ? AND name = ?", (project_id, candidate)).fetchone():
+        candidate = f"{name} ({n})"
+        n += 1
+    conn.execute("INSERT INTO project_sections (project_id, name, created_at) VALUES (?, ?, ?)",
+                 (project_id, candidate, now_iso()))
+    conn.execute("UPDATE found_items SET carried_to_project_id = ? WHERE id = ?", (project_id, item_id))
+    conn.commit()
+    conn.close()
+    flash(f"Added as a Discrepancy on this job: {candidate}.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
 def _project_owner_customers(conn, project):
     if not project["asset_id"]:
         return []
@@ -4439,6 +4526,7 @@ def project_detail(project_id):
         ORDER BY section
     """, (project_id, project_id)).fetchall()]
     found_items = _found_items_for_project(conn, project_id)
+    declined_last_visit = _declined_last_visit(conn, project)
     has_owner = bool(project["asset_id"] and _project_owner_customers(conn, project))
     # QA feat-shop-job-payments: what Mark Completed should warn about, if
     # anything - 0 once the job's marked Paid.
@@ -4500,7 +4588,7 @@ def project_detail(project_id):
                            part_requests=part_requests, waiting_on_parts=waiting_on_parts,
                            labor_sessions=labor_sessions, labor_total_cost=labor_total_cost,
                            labor_total_hours=labor_total_hours, known_sections=known_sections, intake=intake,
-                           found_items=found_items, found_has_owner=has_owner, unpaid_amount=unpaid_amount,
+                           found_items=found_items, declined_last_visit=declined_last_visit, found_has_owner=has_owner, unpaid_amount=unpaid_amount,
                            plane_squawks=plane_squawks, plane_todos_open=plane_todos_open,
                            closeout_checklist=closeout_checklist, owner_notify_preview=owner_notify_preview,
                            found_labor_rate=_found_default_labor_rate(conn=None))

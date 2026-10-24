@@ -728,6 +728,37 @@
     </div>
     {% endif %}
 
+    {#- QA feat-declined-last-visit: what the owner put off on an earlier job
+       for this plane, with one-tap Offer again / Add to this job. #}
+    {% if declined_last_visit and project.status in ('active', 'on_hold') %}
+    {% set dlv_jobs = declined_last_visit|map(attribute='project_id')|unique|list %}
+    <div class="card p-3 mb-3 border-warning" id="declined-last-visit" style="background:#fffbea">
+      <div class="d-flex justify-content-between align-items-baseline gap-2 mb-1">
+        <h6 class="mb-0"><i class="bi bi-arrow-repeat text-warning"></i> Declined last visit <span class="badge bg-warning text-dark">{{ declined_last_visit|length }}</span></h6>
+        {% if dlv_jobs|length == 1 %}<span class="text-muted small">Job {{ declined_last_visit[0].job_code or 'deleted' }} &middot; {{ (declined_last_visit[0].decided_at or declined_last_visit[0].created_at)|usdate }}</span>{% endif %}
+      </div>
+      {% for it in declined_last_visit %}
+      <div class="py-2 border-top">
+        <div class="d-flex justify-content-between align-items-start gap-2">
+          <div class="fw-bold pre-wrap-text">{{ it.description }}</div>
+          <div class="fw-bold text-nowrap">${{ '{:,.2f}'.format(it.est_total) }}</div>
+        </div>
+        <div class="small text-muted mb-1">
+          {% if it.photo_count %}<i class="bi bi-image"></i> {{ it.photo_count }} photo{{ 's' if it.photo_count != 1 }}{% else %}No photos{% endif %}
+          {% if it.decision_note %} &middot; Owner: &ldquo;{{ it.decision_note }}&rdquo;{% endif %}
+          {% if dlv_jobs|length > 1 %} &middot; Job {{ it.job_code or 'deleted' }}, {{ (it.decided_at or it.created_at)|usdate }}{% endif %}
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+          <form method="post" action="{{ url_for('declined_item_offer_again', project_id=project.id, item_id=it.id) }}"><button class="btn btn-outline-primary btn-sm"><i class="bi bi-send"></i> Offer again</button></form>
+          {% if session.get('is_master_admin') or session.get('shop_role') in ('admin', 'tech') %}
+          <form method="post" action="{{ url_for('declined_item_add_to_job', project_id=project.id, item_id=it.id) }}"><button class="btn btn-outline-secondary btn-sm"><i class="bi bi-plus-lg"></i> Add to this job</button></form>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     {#- Part requests (idea "Techs ask for a part right from the job"):
        Need a part -> Asked -> On order -> Arrived, per part. #}
     {% if project.status in ('active', 'on_hold') or part_requests or open_orders %}

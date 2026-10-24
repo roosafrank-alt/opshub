@@ -1,0 +1,25 @@
+{"checks": [
+ {"role": "shop_admin", "size": "desktop",
+  "sql": [
+   "INSERT INTO projects (name, code, status, asset_id, created_at) VALUES ('Annual - last visit', '25-014', 'completed', {asset}, datetime('now','-200 days'))",
+   "INSERT INTO found_items (project_id, asset_id, description, est_parts, est_labor_hours, est_labor_rate, est_total, status, created_by, created_at, decided_at, decided_by, decision_note) SELECT id, {asset}, 'Right main brake disc worn near limit', 300, 1.2, 100, 420, 'declined', 'Tech', datetime('now','-200 days'), datetime('now','-199 days'), 'Owner', 'Do it at the next annual' FROM projects WHERE code = '25-014'",
+   "INSERT INTO found_items (project_id, asset_id, description, est_parts, est_labor_hours, est_labor_rate, est_total, status, created_by, created_at, decided_at, decided_by, decision_note) SELECT id, {asset}, 'ELT battery expires 06/2026', 145, 0, 0, 145, 'declined', 'Tech', datetime('now','-200 days'), datetime('now','-199 days'), 'Owner', 'Will buy my own' FROM projects WHERE code = '25-014'"
+  ],
+  "steps": [
+   ["start", "/projects/{project}"],
+   ["see", "Declined last visit"],
+   ["see", "Right main brake disc worn near limit"],
+   ["see", "Do it at the next annual"],
+   ["shot", {"caption": "New job on the plane: yellow Declined last visit box with price, owner's reason and Offer again", "focus": "#declined-last-visit",
+     "changed": [{"sel": "#declined-last-visit", "note": "New Declined last visit box"}]}],
+   ["tap", "Offer again"],
+   ["see", "Waiting"],
+   ["shot", {"caption": "After Offer again: the item left the box and is on the job as a found item waiting on the owner", "focus": "full"}]
+  ]},
+ {"role": "customer", "size": "phone", "steps": [
+   ["start", "/portal/aircraft/{asset}"],
+   ["tap", "Skip tour"],
+   ["see", "Right main brake disc worn near limit"],
+   ["shot", {"caption": "Owner sees the re-offered item on My Aircraft to approve"}]
+ ]}
+]}
