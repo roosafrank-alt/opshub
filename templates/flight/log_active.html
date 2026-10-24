@@ -67,6 +67,18 @@
     <div>
       <h5 class="mb-0">{{ 'Students Aircraft' if f.asset_is_owner_placeholder else f.plane_tag }} {% if f.asset_is_simulator %}<span class="badge bg-info text-dark">Sim session</span> {% endif %}{% if f.solo %}<span class="badge bg-secondary">Solo</span> {% endif %}{% if can_see_names %}with {{ f.student_name }}{% endif %} {% if f.paused_at %}<span class="badge bg-warning text-dark"><i class="bi bi-pause-fill"></i> Paused</span>{% endif %} {% if not f.can_end %}<span class="badge bg-light text-muted border" title="Only {% if f.solo %}the student flying solo{% else %}the assigned instructor{% endif %}, or a master admin, can pause or end this flight"><i class="bi bi-lock-fill"></i> View only</span>{% endif %}</h5>
       <div class="text-muted small">{% if can_see_names and f.cfi_name %}{{ 'Supervising instructor' if f.solo else 'Instructor' }}: {{ f.cfi_name }} &middot; {% endif %}Started {{ f.started_at|time12 }}</div>
+      {#- Open write-ups on this plane: shown before you fly so they get checked on the preflight (or added to) instead of written up twice. #}
+      {% if f.open_writeups %}
+      <div class="alert alert-warning py-2 px-3 mt-2 mb-0 small open-writeups" style="max-width:36rem">
+        <div class="fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> {{ f.open_writeups|length }} open write-up{{ 's' if f.open_writeups|length != 1 }} on {{ f.plane_tag }}</div>
+        <ul class="list-unstyled mb-1 mt-1">
+          {% for w in f.open_writeups %}
+          <li>&bull; {{ w.text }}{% if w.days is not none %} &middot; {{ 'today' if w.days == 0 else ('1 day ago' if w.days == 1 else w.days ~ ' days ago') }}{% endif %}, {{ 'shop has seen it' if w.seen else 'not looked at yet' }}</li>
+          {% endfor %}
+        </ul>
+        <div class="text-muted">Check these on your preflight. Same problem again? Add it in the note below.</div>
+      </div>
+      {% endif %}
       {#- Idea "when a flight is started": the instructor/admin sees right away
          whether the student has credit on file or owes money, and the same
          line comes back in the End Session form so payment isn't forgotten. #}
