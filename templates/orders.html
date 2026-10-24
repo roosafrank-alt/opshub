@@ -171,6 +171,8 @@
 {% endif %}
 {% endmacro %}
 
+{% macro project_cell(o) %}{% if o.project_name %}<a href="{{ url_for('project_detail', project_id=o.project_id) }}" class="d-inline-block text-truncate align-bottom text-decoration-none" style="max-width:16rem" title="{{ o.project_code }} {{ o.project_name }}"><span class="text-muted small font-monospace">{{ o.project_code }}</span> {{ o.project_name }}</a>{% else %}-{% endif %}{% endmacro %}
+
 {% macro item_cell(o) %}
 {% if o.part_id %}<a href="{{ url_for('part_detail', part_id=o.part_id) }}">{{ o.part_name }}</a>
 {% else %}{{ o.description }} <span class="badge bg-secondary">new item</span>{% endif %}
@@ -205,7 +207,7 @@
               <tr data-search="{{ o.search_blob }}"{% if o.days_late %} class="table-danger"{% endif %}>
                 <td style="width:40%" data-label="">{{ item_cell(o) }}</td>
                 <td data-label="Qty">{{ '%g'|format(o.qty_ordered) }}</td>
-                <td data-label="Project">{% if o.project_name %}<a href="{{ url_for('project_detail', project_id=o.project_id) }}">{{ o.project_code }}</a>{% else %}-{% endif %}</td>
+                <td data-label="Project">{{ project_cell(o) }}</td>
                 <td data-label="Expected"><small>{{ o.expected_date|usdate if o.expected_date else '-' }}</small>{% if o.days_late %}<div class="small fw-bold text-danger">{{ o.days_late }} day{{ 's' if o.days_late != 1 }} late</div>{% endif %}</td>
                 <td data-label="Cost">${{ '%.2f'|format((o.unit_cost or 0) * o.qty_ordered) }}</td>
                 <td class="text-end" data-label="">{{ order_actions(o) }}</td>
@@ -234,7 +236,7 @@
               <tr data-search="{{ o.search_blob }}"{% if o.days_late %} class="table-danger"{% endif %}>
                 <td data-label="">{{ o.vendor_name }}{% if o.note %}<br><small class="text-muted">{{ o.note }}</small>{% endif %}{{ tracking_cell(o.shipments) }}</td>
                 <td data-label="Qty">{{ '%g'|format(o.qty_ordered) }}</td>
-                <td data-label="Project">{% if o.project_name %}<a href="{{ url_for('project_detail', project_id=o.project_id) }}">{{ o.project_code }}</a>{% else %}-{% endif %}</td>
+                <td data-label="Project">{{ project_cell(o) }}</td>
                 <td data-label="Ordered"><small>{{ o.ordered_date|usdate }}</small></td>
                 <td data-label="Expected"><small>{{ o.expected_date|usdate if o.expected_date else '-' }}</small>{% if o.days_late %}<div class="small fw-bold text-danger">{{ o.days_late }} day{{ 's' if o.days_late != 1 }} late</div>{% endif %}</td>
                 <td data-label="Cost">${{ '%.2f'|format((o.unit_cost or 0) * o.qty_ordered) }}</td>
