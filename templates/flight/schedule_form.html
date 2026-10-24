@@ -210,6 +210,10 @@
            right below it instead of only appearing when a browser's native
            picker icon is clicked. #}
         <div id="date-calendar" class="mt-2"></div>
+        {#- Open planes for the picked day, filled in by the script at the bottom
+           of the page, so you can see what is free without leaving the form.
+           Tapping a time picks that plane and time. #}
+        <div id="day-open-box" class="mt-2 border rounded p-2 small d-none" aria-live="polite"></div>
         </div>
       </div>
       {#- Time gets its own wide column (was squeezed into a third of the
@@ -1508,6 +1512,57 @@
   var completeToggle = document.getElementById('complete-check');
   if (completeToggle) { completeToggle.addEventListener('change', render); }
   render();
+})();
+
+// Open planes for the picked day, under the calendar: one row per plane
+// with a button per free time. Tapping one picks that plane and time.
+(function () {
+  var input = document.querySelector('input[name="scheduled_date"]');
+  var box = document.getElementById('day-open-box');
+  var planeSel = document.getElementById('plane-select');
+  if (!input || !box) { return; }
+  var seq = 0;
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+  function load() {
+    var d = input.value, n = ++seq;
+    var complete = document.getElementById('complete-check');
+    if (!d || (complete && complete.checked)) { box.classList.add('d-none'); return; }
+    fetch({{ url_for('flight.schedule_open_slots')|tojson }} + '?date=' + encodeURIComponent(d), { credentials: 'same-origin' })
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (data) {
+        if (n !== seq || !data) { return; }
+        var pretty = new Date(d + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+        var html = '<div class="fw-semibold mb-1">Open ' + esc(pretty) + '</div>';
+        if (!data.planes.length) {
+          html += '<div class="text-muted">Nothing open this day.</div>';
+        }
+        data.planes.forEach(function (p) {
+          html += '<div class="d-flex flex-wrap align-items-center gap-1 mb-1"><strong class="me-1">' + esc(p.tag) + '</strong>';
+          p.slots.forEach(function (s) {
+            html += '<button type="button" class="btn btn-sm py-0 px-1 ' + (s.requests_only ? 'btn-outline-secondary' : 'btn-outline-success') + '"'
+              + ' data-plane="' + esc(p.id) + '" data-time="' + esc(s.time) + '"'
+              + (s.requests_only ? ' title="Outside normal hours: a request until an instructor confirms it"' : '') + '>' + esc(s.label) + '</button>';
+          });
+          html += '</div>';
+        });
+        box.innerHTML = html;
+        box.classList.remove('d-none');
+      })
+      .catch(function () {});
+  }
+  box.addEventListener('click', function (e) {
+    var b = e.target.closest('button[data-time]');
+    if (!b) { return; }
+    if (planeSel && planeSel.value !== b.dataset.plane) {
+      planeSel.value = b.dataset.plane;
+      planeSel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    if (window.setSchedTime) { window.setSchedTime(b.dataset.time); }
+  });
+  input.addEventListener('change', load);
+  var completeToggle = document.getElementById('complete-check');
+  if (completeToggle) { completeToggle.addEventListener('change', load); }
+  load();
 })();
 </script>
 {% endblock %}

@@ -5347,6 +5347,31 @@ def schedule_live():
     return render_template("flight/_schedule_live.html", **_schedule_calendar_context())
 
 
+@flight_bp.route("/schedule/open-slots")
+@login_required
+def schedule_open_slots():
+    """Open plane slots for one day as JSON, for the box under the date
+    calendar on the schedule form (schedule_form.html), so the person
+    booking can see what is free without leaving the form. Same data as the
+    Availability page's day grid (_build_availability_day): only slots that
+    are still bookable (not booked, not past, plane not grounded)."""
+    day_str = request.args.get("date", "").strip()
+    try:
+        datetime.strptime(day_str, "%Y-%m-%d")
+    except ValueError:
+        return jsonify({"date": day_str, "planes": []})
+    day = _build_availability_day(get_db(), day_str)
+    planes = []
+    for row in day["grid"]:
+        slots = [{"time": "%02d:%02d" % (c["start_min"] // 60, c["start_min"] % 60),
+                  "label": c["label"], "requests_only": bool(c["requests_only"])}
+                 for c in row["cells"]
+                 if not c["booked"] and not c["is_past"] and not c["down"]]
+        if slots:
+            planes.append({"id": row["plane"]["id"], "tag": row["plane"]["tag"], "slots": slots})
+    return jsonify({"date": day_str, "planes": planes})
+
+
 @flight_bp.route("/schedule/availability")
 @login_required
 def schedule_availability():
