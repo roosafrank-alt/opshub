@@ -189,6 +189,8 @@ def customer_dashboard():
             "SELECT * FROM maintenance_items WHERE asset_id = ? AND active = 1", (a["id"],)).fetchall()
         due_count = sum(1 for m in items
                          if maintenance_status(m, asset_meter(a, m["hour_type"]))["urgency"] in ("overdue", "due_soon"))
+        hours_needed = any(maintenance_status(m, asset_meter(a, m["hour_type"]))["urgency"] == "unknown"
+                           for m in items)
         upcoming_count = conn.execute("""
             SELECT COUNT(*) c FROM projects WHERE asset_id = ? AND deleted_at IS NULL
                 AND scheduled_date IS NOT NULL AND status NOT IN ('completed', 'archived')
@@ -200,7 +202,7 @@ def customer_dashboard():
             WHERE p.asset_id = ? AND p.deleted_at IS NULL AND fi.status = 'waiting'
         """, (a["id"],)).fetchone()["c"]
         summaries.append({"asset": a, "due_count": due_count, "needs_response_count": upcoming_count,
-                          "found_waiting_count": found_waiting})
+                          "found_waiting_count": found_waiting, "hours_needed": hours_needed})
     conn.close()
     # A single-plane owner is dropped straight into their plane instead of
     # a list-of-one; anyone with more than one plane picks first.
