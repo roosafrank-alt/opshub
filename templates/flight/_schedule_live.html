@@ -718,6 +718,19 @@ data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == '
   {% if not avail_day.planes %}
   <p class="text-muted mb-0">No active planes to show.</p>
   {% else %}
+  {#- Instructor buttons, same as the Availability page: tap names to see
+     which of them are free in each open slot. The click handling is in
+     schedule.html (this region is swapped by the live refresh). #}
+  <div class="avail-with-cfis">
+  {% if avail_day.cfis %}
+  <div class="avail-cfi-side" id="availCfiSide" aria-label="Instructors" data-free="{{ avail_day.cfi_free|tojson|forceescape }}">
+    <span class="avail-cfi-label">Instructors</span>
+    {% for c in avail_day.cfis %}
+    <button type="button" class="btn btn-outline-primary" data-cfi="{{ c.id }}" data-first="{{ c.name.split()[0] }}" aria-pressed="false" title="Show when {{ c.name }} is free">{{ c.name.split()[0] }}</button>
+    {% endfor %}
+    <span class="avail-cfi-note">note: click name to view availability</span>
+  </div>
+  {% endif %}
   <div class="avail-fit">
     <table class="table table-bordered avail-grid avail-grid-v mb-0">
       <thead>
@@ -736,7 +749,7 @@ data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == '
           {% if cell.show %}
           <td class="avail-slot-flight">
             {% for f in cell.show %}{{ schedule_block(f, false) }}{% endfor %}
-            {% if not cell.booked and not cell.is_past and not cell.down %}<a class="avail-slot-open-link" href="{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(cell.start_min // 60, cell.start_min % 60), asset_id=row.plane.id) }}">Open</a>{% endif %}
+            {% if not cell.booked and not cell.is_past and not cell.down %}<a class="avail-slot-open-link" href="{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(cell.start_min // 60, cell.start_min % 60), asset_id=row.plane.id) }}">Open</a><span class="avail-cfi-chips" data-slot="{{ cell.start_min }}"></span>{% endif %}
           </td>
           {% elif cell.booked %}
           {% if i > 0 and row.cells[i - 1].flight and row.cells[i - 1].flight.id == cell.flight.id %}
@@ -753,6 +766,7 @@ data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == '
               onclick="window.location.href='{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(cell.start_min // 60, cell.start_min % 60), asset_id=row.plane.id) }}'"
               title="{{ row.plane.tag }} open {{ cell.label }} - click to schedule a flight{{ ' (requests only: not confirmed until an instructor confirms it)' if cell.requests_only }}">
             {{ 'Requests only' if cell.requests_only else 'Open' }}
+            <span class="avail-cfi-chips" data-slot="{{ cell.start_min }}"></span>
           </td>
           {% endif %}
           {% endfor %}
@@ -760,6 +774,7 @@ data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == '
         {% endfor %}
       </tbody>
     </table>
+  </div>
   </div>
   {% endif %}
   {% if day_untimed or day_extra %}

@@ -33,3 +33,9 @@ class ScheduleDayGridTest(OpsHubTestCase):
         html = self.day()
         self.assertIn('data-plane="N300DG"', html)
         self.assertIn("avail-slot-cont", html)
+
+    def test_day_view_lists_instructor_buttons_like_availability(self):
+        html = self.day()
+        self.assertIn('id="availCfiSide"', html)
+        self.assertIn(f'data-cfi="{self.cfi}"', html)
+        self.assertIn("avail-cfi-chips", html)
