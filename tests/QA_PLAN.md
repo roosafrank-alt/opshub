@@ -70,7 +70,7 @@ Shop / inventory
 - [ ] Labor: two scans of the same badge at the same instant (needs a threaded test; today's check-then-insert isn't atomic)
 - [ ] Pi health / System page (`/admin/system`, `pi_health.py`) once it's live: temperature parsing, alert thresholds, no duplicate alerts
 - [ ] Project lifecycle: new, intake, edit, status, trash/restore/purge, renumber after delete
-- [ ] Project sub-areas: add, rename (history follows), complete, then inspector confirm or send back
+- [x] Project sub-areas: add, rename (history follows), complete, then inspector confirm or send back
 - [ ] Squawks: new, acknowledge, assign, repair, worker acknowledge (both `kind`s)
 - [ ] Assets: new, quick new, edit, hours update (can hours go backwards?), trash/restore/purge
 - [ ] Maintenance items: new, edit, complete, due/overdue math around hours and dates
@@ -105,3 +105,11 @@ approved.
 ## Oct 24 sync
 
 This branch had fallen behind `main`'s own tests (new roles in the harness, fixed-finding markers). The tests folder was merged forward from `main` file by file (QA-only files kept), the two tests for the dismissed card `qa-logbook-bad-hours` were removed, and the stale part-page title check was updated (the title now carries `class="mb-0"`). Run the health check by copying this branch's `tests/` over each branch **after** a sync like this one, or older harness files will break the newer app tests.
+
+## Oct 25 note
+
+Health check on main from a cloud run at ~04:20 UTC: about 23 tests in the
+dashboard / next-lesson / running-late / fly-preview / resource-scan files fail
+because they depend on the time of day (they seed bookings relative to "now" or
+use fixed clock times) or on the network; they are not app bugs. Worth making them
+clock-independent. The schedule-part2 fixes went live, so their markers were removed.
