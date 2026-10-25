@@ -146,15 +146,6 @@
     {% if f.end_state %}
     <button type="button" class="btn {{ 'btn-outline-info' if f.acs_planned_at else 'btn-success' }} fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#end-flight-modal-{{ f.id }}"{% if not f.acs_planned_at %} onclick="fetch('{{ url_for('flight.log_end_flight_started', flight_id=f.id) }}', {method: 'POST', credentials: 'same-origin'})"{% endif %}><i class="bi {{ 'bi-list-check' if f.acs_planned_at else 'bi-airplane' }}"></i> {{ 'ACS planning' if f.acs_planned_at else 'End Flight' }}</button>
     {% endif %}
-    {#- Idea "if end session is clicked before end flight": while the ending Hobbs/Tach haven't been confirmed
-       in End Flight, End Session pops up a reminder instead of stopping the clock. #}
-    {% if f.end_state and f.end_state.step == 'times' %}
-    <button type="button" class="btn btn-danger fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#end-first-modal-{{ f.id }}"><i class="bi bi-stop-fill"></i> End Session</button>
-    {% else %}
-    <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-flex flex-fill mb-0">
-      <button type="submit" class="btn btn-danger fw-bold flex-fill"><i class="bi bi-stop-fill"></i> End Session</button>
-    </form>
-    {% endif %}
   </div>
   {% if f.end_state and f.end_state.step == 'times' %}
   <div class="modal fade" id="end-first-modal-{{ f.id }}" tabindex="-1" aria-hidden="true">
@@ -395,6 +386,21 @@
     <div class="form-text">No scheduled duration on file for this flight - showing progress against the default 1.5-hr block.</div>
     {% endif %}
   </div>
+
+  {#- Idea "end session button": End Session sits at the bottom, under Scheduled Progress (flights, sims and ground
+     sessions alike). Idea "if end session is clicked before end flight": while the ending Hobbs/Tach haven't been
+     confirmed in End Flight, it pops up a reminder instead of stopping the clock. #}
+  {% if f.can_end and not f.stopped_at %}
+  <div class="d-flex mb-2">
+    {% if f.end_state and f.end_state.step == 'times' %}
+    <button type="button" class="btn btn-danger fw-bold flex-fill" data-bs-toggle="modal" data-bs-target="#end-first-modal-{{ f.id }}"><i class="bi bi-stop-fill"></i> End Session</button>
+    {% else %}
+    <form method="post" action="{{ url_for('flight.log_stop', flight_id=f.id) }}" class="d-flex flex-fill mb-0">
+      <button type="submit" class="btn btn-danger fw-bold flex-fill"><i class="bi bi-stop-fill"></i> End Session</button>
+    </form>
+    {% endif %}
+  </div>
+  {% endif %}
 
   {% endif %}{# not stopped #}
 
