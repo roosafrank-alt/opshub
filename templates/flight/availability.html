@@ -419,10 +419,11 @@ b.addEventListener('click',function(){var open=n.hidden;n.hidden=!open;b.setAttr
 <script>
 // "Student..." picker inside a Booked slot: the cell is narrow and clips
 // its contents, so on a mouse the list opens as a pop-up over the page
-// (outside the cell) instead of the cramped native one. Touch screens keep
-// the phone's own picker, which already opens full size.
+// (outside the cell) instead of the cramped native one. Laptops with a
+// touch screen count too (any-pointer); phones keep their own picker, which
+// already opens full size.
 (function () {
-  if (!window.matchMedia || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) { return; }
+  if (!window.matchMedia || !window.matchMedia('(any-hover: hover) and (any-pointer: fine)').matches) { return; }
   var pop = null;
   function close() { if (pop) { pop.remove(); pop = null; } }
   document.addEventListener('mousedown', function (e) {
