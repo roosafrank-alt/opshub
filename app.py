@@ -6088,10 +6088,17 @@ def asset_oil(asset_id):
         oil_filed = conn.execute(
             "SELECT reported_by, reported_at FROM plane_squawks WHERE asset_id = ? AND notes = ? ORDER BY id DESC LIMIT 1",
             (asset_id, "Oil: " + oil_burn["text"])).fetchone()
+    # The quarts-added count restarts at 0 after each recorded oil change.
+    last_change = conn.execute(
+        """SELECT MAX(l.completed_at) AS d FROM maintenance_log l JOIN maintenance_items i ON i.id = l.item_id
+           WHERE i.asset_id = ? AND i.category = 'oil_change'""", (asset_id,)).fetchone()
+    oil_changed_on = (last_change["d"] or "")[:10] or None
     conn.close()
 
     total_hours = sum(_flight_hours(f) for f in flights)
     oil_events = [f for f in flights if f["oil_added_qt"]]
+    qts_since_change = sum(f["oil_added_qt"] or 0 for f in oil_events
+                           if not oil_changed_on or (f["flight_date"] or "") > oil_changed_on)
     total_oil = sum(f["oil_added_qt"] or 0 for f in oil_events)
     num_events = len(oil_events)
     qts_per_change = (total_oil / num_events) if num_events else None
@@ -6102,9 +6109,13 @@ def asset_oil(asset_id):
     cumulative_qt = 0.0
     hours_cursor = 0.0
     last_event_hours = 0.0
+    reset_done = not oil_changed_on
     for f in flights:
         hours_cursor += _flight_hours(f)
         if f["oil_added_qt"]:
+            if not reset_done and (f["flight_date"] or "") > oil_changed_on:
+                cumulative_qt = 0.0
+                reset_done = True
             cumulative_qt += f["oil_added_qt"]
             events_detail.append({
                 "flight_date": f["flight_date"], "qty": f["oil_added_qt"], "added_by": f["oil_added_by"],
@@ -6120,7 +6131,8 @@ def asset_oil(asset_id):
                            total_oil=total_oil, num_events=num_events, qts_per_change=qts_per_change,
                            hours_per_qt=hours_per_qt, events_detail=events_detail,
                            chart_labels=chart_labels, chart_cumulative=chart_cumulative,
-                           oil_burn=oil_burn, oil_filed=oil_filed)
+                           oil_burn=oil_burn, oil_filed=oil_filed,
+                           qts_since_change=qts_since_change, oil_changed_on=oil_changed_on)
 
 
 @app.route("/assets/<int:asset_id>/oil/discrepancy", methods=["POST"])

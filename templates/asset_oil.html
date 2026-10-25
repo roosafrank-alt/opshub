@@ -36,9 +36,9 @@
   </div>
   <div class="col-12 col-md-4">
     <div class="card stat-card p-3">
-      <div class="text-muted small">Total Oil Added</div>
-      <div class="display-6">{{ '%g'|format(total_oil) }}</div>
-      <div class="text-muted small">quarts in {{ num_events }} top-offs, {{ '%.0f'|format(total_hours) }} hrs flown</div>
+      <div class="text-muted small">Oil Added Since Oil Change</div>
+      <div class="display-6" id="oil-since-change">{{ '%g'|format(qts_since_change) }}</div>
+      <div class="text-muted small">quarts{% if oil_changed_on %} since the oil change on {{ oil_changed_on|usdate }}{% endif %} ({{ '%g'|format(total_oil) }} qt in {{ num_events }} top-offs overall, {{ '%.0f'|format(total_hours) }} hrs flown)</div>
     </div>
   </div>
 </div>

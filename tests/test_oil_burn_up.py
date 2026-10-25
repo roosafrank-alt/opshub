@@ -70,3 +70,19 @@ class OilBurnUp(OpsHubTestCase):
         for _ in range(3):
             self.flight(2, 1)
         self.assertNotIn('id="oil-note"', self.oil())
+
+    def test_count_restarts_after_oil_change(self):
+        self.flight(5, 1)
+        self.flight(5, 2)
+        self.assertIn('id="oil-since-change">3<', self.oil())
+        item = self.exec(
+            "INSERT INTO maintenance_items (asset_id, name, type, category, hour_type, interval_hours, active, created_at, updated_at) "
+            "VALUES (?, 'Oil change', 'hours', 'oil_change', 'tach', 50, 1, ?, ?)",
+            (self.aid, db.now_iso(), db.now_iso()))
+        self.exec("INSERT INTO maintenance_log (item_id, completed_at) VALUES (?, ?)", (item, "2026-01-03T10:00:00"))
+        self.flight(5, 1)  # a later top-off
+        html = self.oil()
+        self.assertIn('id="oil-since-change">1<', html)
+        self.assertIn("3 qt", html)  # earlier history rows stay
+        self.exec("INSERT INTO maintenance_log (item_id, completed_at) VALUES (?, ?)", (item, "2030-01-01T10:00:00"))
+        self.assertIn('id="oil-since-change">0<', self.oil())
