@@ -4370,6 +4370,17 @@ def _note_visibility(r):
     return notes_visible, private_notes_visible
 
 
+# Cancelled bookings the calendar views keep, drawn with an X. They never block
+# time: Plane Availability and the conflict checks only look at live statuses.
+_CALENDAR_CANCEL_SQL = ("COALESCE(sf.cancel_reason, '') NOT IN ('No-show', 'Flight cancellation') "
+                        "AND COALESCE(sf.cancel_reason, '') NOT LIKE 'Balance hold%'")
+
+
+def _cancel_shows_on_calendar(reason):
+    reason = (reason or "").strip()
+    return reason not in ("No-show", "Flight cancellation") and not reason.startswith("Balance hold")
+
+
 def _decorate_schedule_row(r, own_plane_color=None):
     """Common per-row computed fields (instructor color, 12h time labels)
     shared by every schedule view - day/month/year/list/custom all
@@ -4418,8 +4429,11 @@ def _decorate_schedule_row(r, own_plane_color=None):
     # (see check_balance_hold) - same "not a real confirmed slot right now"
     # treatment as is_pending_approval above, with its own badge/label.
     r["is_balance_hold"] = r["status"] == "balance_hold"
-    # Called off for weather: the calendar views keep the block, drawn with an X over it.
-    r["is_wx_cancelled"] = r["status"] == "cancelled" and r.get("cancel_reason") == "Weather cancellation"
+    # Called off by the school, an instructor or the student: the calendar views keep
+    # the block, drawn with an X over it (a no-show, a balance-hold release and a
+    # plain Flight cancellation without the weather box are left off the calendar).
+    r["is_wx_cancelled"] = r["status"] == "cancelled" and _cancel_shows_on_calendar(r.get("cancel_reason"))
+    r["is_weather_cancel"] = r["is_wx_cancelled"] and r.get("cancel_reason") == "Weather cancellation"
     # Hover pop-up on the X'd-out block, same card as the waitlist chips
     # (see data-late-tip in _schedule_live.html): a header line, then
     # "Label: value" lines - the student, plane, instructor, who cancelled
@@ -4428,7 +4442,9 @@ def _decorate_schedule_row(r, own_plane_color=None):
     if r["is_wx_cancelled"]:
         by = (r.get("cancelled_by") or "").strip()
         student = (r.get("student_name") or "").strip()
-        lines = ["Cancelled for weather"]
+        lines = ["Cancelled for weather" if r["is_weather_cancel"] else "Cancelled"]
+        if not r["is_weather_cancel"] and r.get("cancel_reason"):
+            lines.append("Reason: " + r["cancel_reason"])
         if student:
             lines.append("Student: " + student)
         if r.get("plane_tag"):
@@ -4526,7 +4542,7 @@ def _schedule_rows(conn, date_from, date_to, plane_id=None, cfi_id=None, include
     if include_pending:
         sql = sql.replace("WHERE sf.status IN ('scheduled', 'in_progress', 'completed', 'balance_hold')",
                            "WHERE (sf.status IN ('scheduled', 'in_progress', 'completed', 'balance_hold', 'pending_approval') "
-                           "OR (sf.status = 'cancelled' AND sf.cancel_reason = 'Weather cancellation'))")
+                           "OR (sf.status = 'cancelled' AND " + _CALENDAR_CANCEL_SQL + "))")
     sql += " AND sf.scheduled_date BETWEEN ? AND ?"
     params = [date_from, date_to]
     if plane_id:

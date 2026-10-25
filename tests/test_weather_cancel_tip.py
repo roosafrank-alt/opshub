@@ -47,3 +47,27 @@ class WeatherCancelTipTest(OpsHubTestCase):
 
     def test_other_cancellations_have_no_tip(self):
         self.assertIsNone(self._tip(cancel_reason="Flight cancellation"))
+
+    def test_student_or_instructor_cancellations_show_with_x(self):
+        tip = self._tip(cancel_reason="Sick", cancelled_by="Flight Student")
+        lines = tip.split("\n")
+        self.assertEqual(lines[0], "Cancelled")
+        self.assertIn("Reason: Sick", lines)
+        self.assertIn("Cancelled by: the student (Flight Student)", lines)
+
+    def test_no_shows_stay_off_the_calendar(self):
+        self.assertIsNone(self._tip(cancel_reason="No-show"))
+
+    def test_cancelled_flight_shows_on_month_view_without_blocking_the_plane(self):
+        tip = self._tip(cancel_reason="Sick", cancelled_by="Kate CFI")
+        self.assertIsNotNone(tip)
+        day = (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
+        c = self.login("cfi")
+        month = c.get("/flight/schedule?view=month&date=" + day).get_data(as_text=True)
+        self.assertIn("schedule-block-wx", month)
+        rows = db.get_db().execute(
+            "SELECT COUNT(*) c FROM scheduled_flights WHERE status IN ('scheduled', 'in_progress', 'completed', 'balance_hold')"
+            " AND scheduled_date = ?", (day,)).fetchone()["c"]
+        self.assertEqual(rows, 0)
+        avail = c.get("/flight/schedule/availability?view=day&date=" + day + "&mode=calendar").get_data(as_text=True)
+        self.assertNotIn("schedule-block-wx", avail)
