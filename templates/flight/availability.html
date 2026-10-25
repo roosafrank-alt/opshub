@@ -414,6 +414,7 @@ b.addEventListener('click',function(){var open=n.hidden;n.hidden=!open;b.setAttr
   .wl-pop { position: fixed; z-index: 3000; background: #fff; color: #212529; border: 1px solid #adb5bd; border-radius: .5rem; box-shadow: 0 6px 20px rgba(0,0,0,.3); min-width: 12rem; max-width: calc(100vw - 16px); overflow-y: auto; }
   .wl-pop button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: .45rem .75rem; font-size: .9rem; }
   .wl-pop button:hover, .wl-pop button:focus { background: #e7f1ff; }
+  .wl-pop input { display: block; width: 100%; border: 0; border-bottom: 1px solid #adb5bd; padding: .45rem .75rem; font-size: .9rem; position: sticky; top: 0; background: #fff; outline: none; }
 </style>
 <script>
 // "Student..." picker inside a Booked slot: the cell is narrow and clips
@@ -433,6 +434,22 @@ b.addEventListener('click',function(){var open=n.hidden;n.hidden=!open;b.setAttr
     close();
     pop = document.createElement('div');
     pop.className = 'wl-pop';
+    var find = document.createElement('input');
+    find.type = 'text';
+    find.placeholder = 'Type a name...';
+    find.autocomplete = 'off';
+    pop.appendChild(find);
+    var items = [];
+    find.addEventListener('input', function () {
+      var q = find.value.trim().toLowerCase();
+      items.forEach(function (b) { b.style.display = b.textContent.toLowerCase().indexOf(q) === -1 ? 'none' : ''; });
+    });
+    find.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter') { return; }
+      e.preventDefault();
+      var first = items.filter(function (b) { return b.style.display !== 'none'; })[0];
+      if (first) { first.click(); }
+    });
     Array.prototype.forEach.call(sel.options, function (o) {
       if (!o.value) { return; }
       var b = document.createElement('button');
@@ -444,6 +461,7 @@ b.addEventListener('click',function(){var open=n.hidden;n.hidden=!open;b.setAttr
         close();
       });
       pop.appendChild(b);
+      items.push(b);
     });
     document.body.appendChild(pop);
     var r = sel.getBoundingClientRect();
@@ -452,6 +470,7 @@ b.addEventListener('click',function(){var open=n.hidden;n.hidden=!open;b.setAttr
     var below = window.innerHeight - r.bottom, top = below >= h + 8 || below >= r.top ? r.bottom + 2 : r.top - h - 2;
     pop.style.top = Math.max(8, top) + 'px';
     pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
+    find.focus();
   });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { close(); } });
   window.addEventListener('scroll', close, true);
