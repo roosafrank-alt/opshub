@@ -43,7 +43,8 @@
         {% else %}
         <input type="{{ 'text' if kind == 'text' else 'number' }}" {% if kind == 'hrs' %}step="0.1" min="0"{% elif kind == 'int' %}step="1" min="0"{% endif %}
                name="{{ f }}" value="{{ e[f] if e[f] is not none else '' }}" class="form-control form-control-sm"
-               {% if f in ('route_from','route_to') %}placeholder="{{ 'e.g. KABC' if f == 'route_from' else 'e.g. KDEF, KGHI' }}"{% endif %}>
+               {% if f in ('route_from','route_to') %}placeholder="{{ 'e.g. KABC' if f == 'route_from' else 'e.g. KDEF, KGHI' }}" data-apt="{{ 'from' if f == 'route_from' else 'to' }}" autocomplete="off" autocapitalize="characters"{% endif %}
+               {% if f == 'route' %}placeholder="e.g. V213 SAX J80 - leave empty for a straight line" data-apt="route" autocomplete="off" autocapitalize="characters"{% endif %}>
         {% endif %}
       </div>
       {% endfor %}
@@ -66,4 +67,19 @@
     </div>
   </form>
 </div>
+
+<div class="card academy-card p-3 mt-3" id="route-card" data-student="{{ e.student_id }}">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h6 class="mb-0"><i class="bi bi-map"></i> Flight path</h6>
+    <div id="route-nm" class="fw-bold" style="color:#8a1c7c"></div>
+  </div>
+  <div id="route-map" style="height:300px; border-radius:.5rem; background:#e8e4d8"></div>
+  <div id="route-note" class="small text-muted mt-1"></div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="{{ url_for('static', filename='js/airport-pick.js') }}"></script>
 {% endblock %}

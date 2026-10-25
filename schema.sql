@@ -779,6 +779,7 @@ CREATE TABLE IF NOT EXISTS pilot_logbook (
     make_model TEXT,
     route_from TEXT,
     route_to TEXT,
+    route TEXT, -- optional: waypoints / airways flown
     total REAL NOT NULL DEFAULT 0, -- Tach time (else Hobbs)
     dual REAL NOT NULL DEFAULT 0, -- dual received (= the instructor's dual given)
     solo REAL NOT NULL DEFAULT 0,

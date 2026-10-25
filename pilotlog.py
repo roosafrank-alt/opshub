@@ -20,7 +20,7 @@ import re
 import io
 from datetime import date
 
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, abort, Response
+from flask import jsonify, Blueprint, render_template, request, redirect, url_for, session, flash, abort, Response
 
 from db import get_db, now_iso
 
@@ -30,6 +30,7 @@ pilotlog_bp = Blueprint("pilotlog", __name__, url_prefix="/academy")
 STUDENT_FIELDS = [
     # (field, label, kind)
     ("route_from", "From", "text"), ("route_to", "To / via", "text"),
+    ("route", "Route (optional): waypoints, navaids, airways", "text"),
     ("xc", "Cross-country", "hrs"), ("night", "Night", "hrs"),
     ("actual_inst", "Actual instrument", "hrs"), ("sim_inst", "Simulated instrument (hood)", "hrs"),
     ("approaches", "Instrument approaches", "int"),
@@ -717,6 +718,9 @@ def _lookup_airports(conn, codes):
     codes = sorted(set(codes))
     if not codes:
         return {}
+    local = _lookup_local(codes)
+    if local and len(local) == len(codes):
+        return local
     marks = ",".join("?" * len(codes))
     have = {r["code"]: r for r in conn.execute(f"SELECT * FROM airport_coords WHERE code IN ({marks})", codes)}
     week_ago = (datetime.now() - timedelta(days=7)).isoformat(timespec="seconds")
@@ -759,6 +763,82 @@ def _lookup_airports(conn, codes):
         out[_HOME_AIRPORT] = {"code": _HOME_AIRPORT, "lat": 41.72778, "lon": -74.37722,
                               "name": "Joseph Y. Resnick (Ellenville)", "found": 1}
     return out
+
+
+def _lookup_local(codes):
+    """Airports from the local nav database (instance/navdata.db), no internet needed.
+    Returns {code: {"code","lat","lon","name"}} for the codes it knows."""
+    import navdb
+    if not navdb.available():
+        return {}
+    conn = navdb.connect()
+    try:
+        out = {}
+        for c in codes:
+            a = navdb.lookup_airport(conn, c)
+            if a:
+                out[c] = {"code": c, "lat": a["lat"], "lon": a["lon"], "name": a["name"], "found": 1}
+        return out
+    finally:
+        conn.close()
+
+
+def _visit_counts(conn, student_id):
+    """{airport code: times it shows up in this student's From / To boxes}."""
+    counts = {}
+    for e in conn.execute("SELECT route_from, route_to FROM pilot_logbook WHERE student_id = ? AND status != 'denied'", (student_id,)):
+        for c in _airport_codes(e["route_from"]) + _airport_codes(e["route_to"]):
+            counts[c] = counts.get(c, 0) + 1
+    return counts
+
+
+@pilotlog_bp.route("/api/airports")
+def api_airports():
+    """Type-ahead for the From / To boxes. ?q=typed&role=from|to&dep=KPOU&student_id=
+    Frequented airports first, then closest to home (or to the departure airport
+    when filling in the destination)."""
+    denied = _require_access()
+    if denied:
+        return jsonify([])
+    import navdb
+    if not navdb.available():
+        return jsonify([dict(navdb.HOME, nm=0)] if request.args.get("q", "").upper() in ("N", "N8", "N89") else [])
+    conn = get_db()
+    student, _students = _pick_student(conn)
+    freq = _visit_counts(conn, student["id"]) if student else {}
+    conn.close()
+    nav = navdb.connect()
+    try:
+        near = (navdb.HOME["lat"], navdb.HOME["lon"])
+        if request.args.get("role") == "to":
+            dep = navdb.lookup_airport(nav, request.args.get("dep", ""))
+            if dep:
+                near = (dep["lat"], dep["lon"])
+        return jsonify(navdb.search_airports(nav, request.args.get("q", ""), limit=8, near=near, freq=freq))
+    finally:
+        nav.close()
+
+
+@pilotlog_bp.route("/api/route")
+def api_route():
+    """Points + distance (nm) for the entry map: ?from=&to=&route=
+    No route -> straight line. With a route -> follows its waypoints and airways."""
+    denied = _require_access()
+    if denied:
+        return jsonify({"points": [], "nm": 0})
+    import navdb
+    if not navdb.available():
+        return jsonify({"points": [], "nm": 0, "unresolved": [], "error": "Airport database not loaded yet."})
+    frm = _airport_codes(request.args.get("from", ""))
+    to = _airport_codes(request.args.get("to", ""))
+    dep = frm[0] if frm else _HOME_AIRPORT
+    dest = to[-1] if to else ""
+    via = " ".join(to[:-1])
+    nav = navdb.connect()
+    try:
+        return jsonify(navdb.parse_route(nav, dep, dest, (via + " " + request.args.get("route", "")).strip()))
+    finally:
+        nav.close()
 
 
 @pilotlog_bp.route("/map")

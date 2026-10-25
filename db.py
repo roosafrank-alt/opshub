@@ -1895,7 +1895,7 @@ def _migrate(conn):
     if "instructor_signature" not in [r["name"] for r in conn.execute("PRAGMA table_info(pilot_logbook)").fetchall()]:
         conn.execute("ALTER TABLE pilot_logbook ADD COLUMN instructor_signature TEXT")
     _lb_cols = [r["name"] for r in conn.execute("PRAGMA table_info(pilot_logbook)").fetchall()]
-    for _c in ("denied_at", "denied_by", "deny_reason"):    # a pending entry the student/CFI can deny
+    for _c in ("denied_at", "denied_by", "deny_reason", "route"):    # deny_*: a pending entry can be denied; route: optional waypoints/airways
         if _c not in _lb_cols:
             conn.execute(f"ALTER TABLE pilot_logbook ADD COLUMN {_c} TEXT")
     conn.execute("""CREATE TABLE IF NOT EXISTS academy_milestones (
