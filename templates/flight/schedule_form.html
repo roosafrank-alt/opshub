@@ -1092,6 +1092,13 @@
 })();
 
 (function () {
+  // Instructor drop-down: once a name is picked, drop the focus so the
+  // mouse wheel scrolls the page instead of quietly changing the name.
+  var cfi = document.getElementById('cfi-select');
+  if (cfi) { cfi.addEventListener('change', function () { cfi.blur(); }); }
+})();
+
+(function () {
   // Student picker: one box that is both the search and the drop-down.
   // Typing filters the list shown right under it (match anywhere in the
   // name); tap a name, or use the arrow keys and Enter. The hidden
@@ -1159,6 +1166,7 @@
     input.value = selectedText();
     input.classList.remove('is-invalid');
     close();
+    input.blur();  // leave the box un-highlighted once a name is picked
   }
   input.addEventListener('focus', function () { input.select(); open(''); });
   input.addEventListener('click', function () { if (!list.classList.contains('open')) { input.select(); open(''); } });
