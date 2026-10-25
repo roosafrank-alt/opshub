@@ -253,7 +253,7 @@ data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == '
 {#- Idea "Availability button" (revision): small button next to a date that
    opens the Availability page for that day (flight.schedule_availability).
    Icon only in the tiny Year-view cells (title says what it is). #}
-{% macro avail_btn(date_str, compact=false) %}<a href="{{ url_for('flight.schedule_availability', date=date_str, plane_id=plane_id) }}" class="btn btn-outline-success avail-day-btn" title="Availability on {{ date_str|usdate }}"><i class="bi bi-calendar2-check"></i>{% if not compact %} Availability{% endif %}</a>{% endmacro %}
+{% macro avail_btn(date_str, compact=false) %}<a href="{{ url_for('flight.schedule_availability', date=date_str, plane_id=plane_id) }}" class="btn btn-outline-success avail-day-btn" title="Availability on {{ date_str|usdate }}" aria-label="Availability on {{ date_str|usdate }}"><i class="bi bi-calendar2-check avail-full"></i><span class="avail-full">{% if not compact %} Availability{% endif %}</span><i class="bi bi-plus-circle-fill avail-plus"></i></a>{% endmacro %}
 
 {% macro month_table(md, row_height, compact, max_blocks=99, layout_full=false) %}
 <div class="table-responsive{% if compact %} mb-3{% endif %}">
