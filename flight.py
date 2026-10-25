@@ -9010,6 +9010,7 @@ def log_end(flight_id):
                 note += f" - {payment_detail}"
             if card_last4:
                 note += f" - simulated charge ending in {card_last4}"
+            note = _paid_at_flight_note(note, cost["total"], credit_applied, payment_amount)
             _ledger_entry(conn, ended_row["student_id"], "payment", payment_amount, note=note,
                           flight_id=flight_id, created_by=session.get("user_name"))
             if flight_payments.needs_confirmation(payment_method, bool(is_flight_admin())):
@@ -9077,6 +9078,11 @@ def log_end(flight_id):
         flash("Session ended and logged. The squawk you flagged will show up on the Maintenance side until it's acknowledged.", "success")
     else:
         flash("Session ended and logged.", "success")
+    if paid_choice == "1" and cost is not None and payment_amount > 0.005:
+        _to_lesson, _to_credit = _overpayment_split(cost["total"], credit_applied, payment_amount)
+        if _to_credit > 0.005:
+            flash(f"${_to_lesson:,.2f} of the ${payment_amount:,.2f} payment went to this session; "
+                  f"${_to_credit:,.2f} was added to the student's credit.", "success")
     if card_req_msg:
         flash(card_req_msg, "success" if card_req_msg.startswith("Your request") else "warning")
     if wave_invoice_msg:
@@ -9117,6 +9123,25 @@ def _quick_wave_check(local_id):
             conn.close()
 
 
+def _overpayment_split(cost_total, credit_applied, payment_amount):
+    """(to_lesson, to_credit): how much of a payment taken at the end of a
+    session went to that session and how much was extra, which stays on the
+    student's account as credit. E.g. a $100 session, no credit applied and
+    $500 paid -> (100.00, 400.00). to_credit is 0.0 when nothing was left over."""
+    owed = max(0.0, cost_total - credit_applied)
+    to_lesson = round(min(payment_amount, owed), 2)
+    to_credit = round(max(0.0, payment_amount - owed), 2)
+    return to_lesson, to_credit
+
+
+def _paid_at_flight_note(note, cost_total, credit_applied, payment_amount):
+    """Adds the overpayment split to the 'Paid at flight' ledger note."""
+    to_lesson, to_credit = _overpayment_split(cost_total, credit_applied, payment_amount)
+    if to_credit > 0.005:
+        note += f" - ${to_lesson:,.2f} paid this session, ${to_credit:,.2f} added to credit"
+    return note
+
+
 def _send_flight_receipt_email(conn, ended_row, cost, paid, payment_method, payment_amount, credit_applied, payment_detail=None):
     """Emails the student a receipt for a just-ended flight, if they have an
     email on file - opt-out toggle on End Session (send_receipt_email),
@@ -9144,6 +9169,9 @@ def _send_flight_receipt_email(conn, ended_row, cost, paid, payment_method, paym
     if paid:
         if payment_amount > 0.005:
             lines.append(f"Paid: ${payment_amount:.2f}" + (f" ({payment_method}{': ' + payment_detail if payment_detail else ''})" if payment_method else ""))
+        _to_lesson, _to_credit = _overpayment_split(cost["total"], credit_applied, payment_amount)
+        if _to_credit > 0.005:
+            lines.append(f"${_to_lesson:.2f} of the payment covered this session; ${_to_credit:.2f} was added to your credit.")
         lines.append("Status: Paid in full")
     else:
         lines.append(f"Status: Unpaid - ${cost['total'] - credit_applied:.2f} owed")
@@ -9402,6 +9430,7 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
         _deduct_flight_cost(conn, cost, created_by=session.get("user_name"))
         if paid and payment_amount > 0.005:
             note = f"Paid at flight ({payment_method})" if payment_method else "Paid at flight"
+            note = _paid_at_flight_note(note, cost["total"], credit_applied, payment_amount)
             _ledger_entry(conn, new_row["student_id"], "payment", payment_amount, note=note,
                           flight_id=new_flight_id, created_by=session.get("user_name"))
             if flight_payments.needs_confirmation(payment_method, bool(is_flight_admin())):
