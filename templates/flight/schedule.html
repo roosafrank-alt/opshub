@@ -802,7 +802,7 @@ var START_EARLY_BUFFER_MIN = {{ start_early_buffer_min|default(0) }};
 // Click anywhere in a day cell's open space (not on a flight block, and not
 // on a real link like the day-number "+" or the "+N more" overflow link -
 // those already go to their own destination and must not get hijacked) to
-// jump straight to "Schedule Flight" with that date pre-filled. Checked
+// jump straight to that day's Availability page. Checked
 // last, after the .schedule-block delegated handler above already returned
 // early on its own clicks, so a click on a block never also triggers this.
 document.addEventListener('click', function (evt) {
@@ -939,6 +939,7 @@ document.addEventListener('click', function (e) {
     if (!b) return;
     var hh = Math.floor(b.slotStart / 60), mm = b.slotStart % 60;
     var time = (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm;
+    if (track.dataset.availUrl) { window.location.href = track.dataset.availUrl; return; }   // Month view: a day opens its Availability page
     window.location.href = SCHEDULE_NEW_URL + '?date=' + encodeURIComponent(track.dataset.trackDate) + '&time=' + time;
   });
 })();

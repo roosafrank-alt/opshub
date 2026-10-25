@@ -191,18 +191,14 @@
            using day.date (the overflow day's own real date, computed in
            _build_schedule_month) so clicking one opens Schedule Flight
            pre-filled with that actual date instead of doing nothing. #}
-        <td class="bg-light text-muted{{ ' calendar-day-cell-add' if session.get('cfi_id') or session.get('student_id') }}"
-            {% if session.get('cfi_id') or session.get('student_id') %}data-add-url="{{ url_for('flight.schedule_new', date=day.date) }}"{% endif %}
+        <td class="bg-light text-muted calendar-day-cell-add"
+            data-add-url="{{ url_for('flight.schedule_availability', date=day.date, plane_id=plane_id) }}"
             style="min-height:{{ row_height }};">
           <div class="calendar-day-head d-flex align-items-center gap-1">
-          {% if session.get('cfi_id') or session.get('student_id') %}
-          <a href="{{ url_for('flight.schedule_new', date=day.date) }}" class="small d-flex align-items-center gap-1 flex-grow-1 text-decoration-none calendar-day-add text-muted" title="{{ 'Schedule a flight' if session.get('cfi_id') else 'Request a flight' }} on {{ day.date|usdate }}">
+          <a href="{{ url_for('flight.schedule_availability', date=day.date, plane_id=plane_id) }}" class="small d-flex align-items-center gap-1 flex-grow-1 text-decoration-none calendar-day-add text-muted" title="See what's open on {{ day.date|usdate }}">
             {{ day.day }}
             {% if not compact %}<i class="bi bi-plus-circle calendar-day-add-icon"></i>{% endif %}
           </a>
-          {% else %}
-          <div class="small flex-grow-1">{{ day.day }}</div>
-          {% endif %}
           {{ avail_btn(day.date, compact) }}
           </div>
           {% if layout_full %}
@@ -213,7 +209,7 @@
              just no flight blocks since none are looked up for these
              days. #}
           <div class="calendar-timeline calendar-timeline-gutter{{ ' day-timeline-track-clickable' if session.get('cfi_id') or session.get('student_id') }}"
-               {% if session.get('cfi_id') or session.get('student_id') %}data-track-date="{{ day.date }}" data-start-min="{{ month_timeline_start_min }}" data-end-min="{{ month_timeline_end_min }}"{% endif %}
+               {% if session.get('cfi_id') or session.get('student_id') %}data-track-date="{{ day.date }}" data-avail-url="{{ url_for('flight.schedule_availability', date=day.date, plane_id=plane_id) }}" data-start-min="{{ month_timeline_start_min }}" data-end-min="{{ month_timeline_end_min }}"{% endif %}
                style="position:relative; height:{{ ((month_timeline_end_min - month_timeline_start_min) * month_timeline_px_per_min) | round(1) }}px; overflow:visible;">
             {% for h in range(month_timeline_start_min // 60, month_timeline_end_min // 60 + 1) %}
             {% set hour12 = h % 12 %}
@@ -235,21 +231,15 @@
            out early on any real link or flight block inside the cell so
            this never swallows a click meant for the day-number link or
            "+N more". #}
-        <td class="calendar-day-cell{{ ' calendar-day-cell-add' if session.get('cfi_id') or session.get('student_id') }}{{ ' calendar-day-cell-past' if is_past_day }}"
-            {% if session.get('cfi_id') or session.get('student_id') %}data-add-url="{{ url_for('flight.schedule_new', date=cell_date) }}"{% endif %}
+        <td class="calendar-day-cell calendar-day-cell-add{{ ' calendar-day-cell-past' if is_past_day }}"
+            data-add-url="{{ url_for('flight.schedule_availability', date=cell_date, plane_id=plane_id) }}"
             {% if is_today %}data-is-today="1"{% endif %}
             style="min-height:{{ row_height }}; vertical-align:top; {% if is_today %}background:#fff8e1; box-shadow:inset 0 0 0 2px #ffc107;{% elif is_past_day %}background:#e9ecef;{% endif %}">
           <div class="calendar-day-head d-flex align-items-center gap-1">
-          {% if session.get('cfi_id') or session.get('student_id') %}
-          <a href="{{ url_for('flight.schedule_new', date=cell_date) }}" class="small fw-bold d-flex align-items-center gap-1 flex-grow-1 text-decoration-none calendar-day-add {{ 'text-primary' if is_today else 'text-body' }}" title="{{ 'Schedule a flight' if session.get('cfi_id') else 'Request a flight' }} on {{ cell_date|usdate }}">
+          <a href="{{ url_for('flight.schedule_availability', date=cell_date, plane_id=plane_id) }}" class="small fw-bold d-flex align-items-center gap-1 flex-grow-1 text-decoration-none calendar-day-add {{ 'text-primary' if is_today else 'text-body' }}" title="See what's open on {{ cell_date|usdate }}">
             {{ day }}{% if is_today %}<span class="badge bg-warning text-dark d-none d-sm-inline-block badge-micro">TODAY</span>{% endif %}
             {% if not compact %}<i class="bi bi-plus-circle calendar-day-add-icon"></i>{% endif %}
           </a>
-          {% else %}
-          <div class="small fw-bold d-flex align-items-center gap-1 flex-grow-1 {{ 'text-primary' if is_today }}">
-            {{ day }}{% if is_today %}<span class="badge bg-warning text-dark d-none d-sm-inline-block badge-micro">TODAY</span>{% endif %}
-          </div>
-          {% endif %}
           {{ avail_btn(cell_date, compact) }}
           </div>
           {{ wl_chips(cell_date) }}
@@ -272,7 +262,7 @@
              with that date AND time pre-filled, not just the date the
              whole-cell click below falls back to. #}
           <div class="calendar-timeline calendar-timeline-gutter{{ ' day-timeline-track-clickable' if session.get('cfi_id') or session.get('student_id') }}"
-               {% if session.get('cfi_id') or session.get('student_id') %}data-track-date="{{ cell_date }}" data-start-min="{{ month_timeline_start_min }}" data-end-min="{{ month_timeline_end_min }}"{% endif %}
+               {% if session.get('cfi_id') or session.get('student_id') %}data-track-date="{{ cell_date }}" data-avail-url="{{ url_for('flight.schedule_availability', date=cell_date, plane_id=plane_id) }}" data-start-min="{{ month_timeline_start_min }}" data-end-min="{{ month_timeline_end_min }}"{% endif %}
                style="position:relative; height:{{ day_layout.container_h }}px; overflow:visible;">
             {#- Idea "Calendar": one reference mark per hour, same density as
                the Day/Week timeline (see day-timeline-hours above) instead
