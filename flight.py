@@ -7886,8 +7886,6 @@ def log_active():
             import groundschool
             end_picks[r["id"]] = groundschool.end_flight_picker(conn, stu)
             end_states[r["id"]] = _end_flight_state(r, conn)
-    writeups = {r["asset_id"]: _plane_open_writeups(conn, r["asset_id"])
-                for r in rows}
     conn.close()
     flights = []
     for r in rows:
@@ -7924,8 +7922,7 @@ def log_active():
                             sim_elapsed_label=sim_elapsed_label, end_pick=end_picks.get(r["id"]),
                             end_state=end_states.get(r["id"]),
                             receipt_email=receipt_emails.get(r["id"]),
-                            next_focus_tasks=_next_focus_tasks(r),
-                            open_writeups=[] if r["asset_is_owner_placeholder"] or r["asset_is_simulator"] else writeups.get(r["asset_id"], [])))
+                            next_focus_tasks=_next_focus_tasks(r)))
     # Still-flying flights above ones whose clock has already been stopped
     # and are just waiting on End Session's form to be filled in and
     # submitted - those two states used to interleave by start time, mixing
@@ -7949,35 +7946,6 @@ def log_active():
                            open_end_id=request.args.get("open_end", type=int),
                            eta_saved_id=request.args.get("eta_saved", type=int),
                            can_bill=can_manage_billing(), wave_connected=bool(wave_accounts))
-
-
-def _plane_open_writeups(conn, asset_id):
-    """Open write-ups (squawks from flights and from the shop) on one plane that
-    aren't repaired yet, oldest first, for the yellow box on Active Flight.
-    Each: {"text", "days", "seen"} (seen = the shop has acknowledged it)."""
-    if not asset_id:
-        return []
-    rows = conn.execute(
-        """SELECT f.notes AS notes, f.flight_date AS d, f.squawk_acknowledged_at AS ack
-           FROM flights f WHERE f.asset_id = ? AND f.squawk = 1 AND f.squawk_repaired_at IS NULL
-           UNION ALL
-           SELECT q.notes, q.reported_at, q.acknowledged_at
-           FROM plane_squawks q WHERE q.asset_id = ? AND q.repaired_at IS NULL
-           ORDER BY 2""", (asset_id, asset_id)).fetchall()
-    out = []
-    today = date.today()
-    for r in rows:
-        text = " ".join((r["notes"] or "").split())
-        if not text:
-            continue
-        if len(text) > 120:
-            text = text[:117].rstrip() + "..."
-        try:
-            days = max(0, (today - date.fromisoformat((r["d"] or "")[:10])).days)
-        except ValueError:
-            days = None
-        out.append({"text": text, "days": days, "seen": bool(r["ack"])})
-    return out
 
 
 def _next_focus_tasks(f):
