@@ -2293,7 +2293,8 @@ def _dashboard_context(conn, cfi, student):
         # Chips for this day are further grouped by time slot (see
         # _group_by_time) so simultaneous bookings share one line.
         upcoming_future_days.append(dict(date=day, weekday=weekday_label, flights=day_flights,
-                                          time_groups=_group_by_time(day_flights)))
+                                          time_groups=_group_by_time(day_flights),
+                                          grid=_dashboard_day_grid(conn, day, {f["id"] for f in day_flights})))
 
     # Today's Schedule chip list only shows what's still upcoming (scheduled
     # or in progress) - a completed flight has nothing left to act on, and
@@ -2306,6 +2307,7 @@ def _dashboard_context(conn, cfi, student):
     # Naive local time, same as everywhere else in this file (the Pi's
     # clock is the shop's local time).
     today_now_time = datetime.now().strftime("%H:%M")
+    today_grid = _dashboard_day_grid(conn, today_str, {t["id"] for t in today_flights}) if cfi else None
 
     # Idea "todays view": same-time chip rows used to give every plane in
     # the fleet its own fixed grid column, so a plane that wasn't first
@@ -2332,7 +2334,7 @@ def _dashboard_context(conn, cfi, student):
                 today_flights=today_flights, today_flights_total=today_flights_total,
                 today_flights_completed=today_flights_completed, today_str=today_str,
                 today_time_groups=today_time_groups, today_now_time=today_now_time,
-                upcoming_future_days=upcoming_future_days,
+                upcoming_future_days=upcoming_future_days, today_grid=today_grid,
                 plane_color=plane_color,
                 dashboard_wx=dashboard_wx, dashboard_notams=dashboard_notams,
                 sun_times=sun.get_sun_times(), dash_scope=dash_scope, next_scope=next_scope)
@@ -4855,6 +4857,35 @@ AVAILABILITY_DAY_START_MIN = 6 * 60 + 30
 AVAILABILITY_DAY_LAST_START_MIN = 20 * 60
 
 
+def _fill_day_cells(avail_day, day_flights):
+    """Put each flight in the availability grid cell where it STARTS
+    (cell["show"]) and return the set of flight ids placed. Shared by the
+    Schedule Day view and the home page's schedule sections."""
+    shown = set()
+    for row in avail_day["grid"]:
+        pid = row["plane"]["id"]
+        mine = [f for f in day_flights if f["asset_id"] == pid and _time_window(f["scheduled_time"], f["duration_hours"])]
+        for ci, cell in enumerate(row["cells"]):
+            slot_end = cell["start_min"] + AVAILABILITY_SLOT_MIN
+            cell["show"] = []
+            for f in mine:
+                start = _time_window(f["scheduled_time"], f["duration_hours"])[0]
+                first = (ci == 0 and start < slot_end) or (cell["start_min"] <= start < slot_end)
+                if first:
+                    cell["show"].append(f)
+                    shown.add(f["id"])
+    return shown
+
+
+def _dashboard_day_grid(conn, day_str, ids):
+    """The Availability-style day grid for one home page day. Booked slots
+    always show as booked, but only the flights in ids (what this person's
+    Whole school / Just mine view lists) are drawn inside them."""
+    ad = _build_availability_day(conn, day_str, None)
+    _fill_day_cells(ad, [f for f in _build_schedule_day(conn, day_str, None, None) if f["id"] in ids])
+    return ad
+
+
 def _build_availability_day(conn, date_str, plane_id=None):
     """Plane availability for one day: every active plane (or just one,
     when plane_id narrows it) x every 8am-8pm slot, each marked booked or
@@ -5273,19 +5304,7 @@ def _schedule_calendar_context():
         # nothing the old timeline showed is lost; a plane-less break goes
         # in day_extra.
         avail_day = _build_availability_day(conn, day_str, plane_id or None)
-        shown = set()
-        for row in avail_day["grid"]:
-            pid = row["plane"]["id"]
-            mine = [f for f in day_flights if f["asset_id"] == pid and _time_window(f["scheduled_time"], f["duration_hours"])]
-            for ci, cell in enumerate(row["cells"]):
-                slot_end = cell["start_min"] + AVAILABILITY_SLOT_MIN
-                cell["show"] = []
-                for f in mine:
-                    start = _time_window(f["scheduled_time"], f["duration_hours"])[0]
-                    first = (ci == 0 and start < slot_end) or (cell["start_min"] <= start < slot_end)
-                    if first:
-                        cell["show"].append(f)
-                        shown.add(f["id"])
+        shown = _fill_day_cells(avail_day, day_flights)
         untimed_ids = {f["id"] for f in day_untimed}
         day_extra = [f for f in day_flights if f["id"] not in shown and f["id"] not in untimed_ids]
         day_prev = (day_date - timedelta(days=1)).strftime("%Y-%m-%d")

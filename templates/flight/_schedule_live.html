@@ -1,27 +1,3 @@
-{% macro late_tip(f) -%}
-Running late {{ f.late.minutes }} min - ETA {{ f.late.eta_label }}{% if f.late.note %} - {{ f.late.note }}{% endif %}
-{%- endmacro %}
-{#- Hover pop-up for a late flight: same styled card as the waitlist chips (script in schedule.html reads data-late-tip, lines separated by &#10;). #}
-{% macro late_attr(f, with_notes=False) -%}
-data-late-tip="Running late&#10;Late: {{ f.late.minutes }} min&#10;ETA: {{ f.late.eta_label }}{% if f.late.note %}&#10;Instructor note: {{ f.late.note }}{% endif %}{% if with_notes and f.notes_visible and f.notes %}&#10;Booking note: {{ f.notes }}{% endif %}"
-{%- endmacro %}
-
-{#- Hover pop-up for a booked flight block (same card as the late and waitlist ones): says what the block's state/icons mean, plus who/what/when. Students never see names or money, same as the block itself. #}
-{% macro flight_tip_attr(f) -%}
-{%- set staff = session.get('cfi_id') or flight_admin -%}
-{%- if f.status != 'cancelled' -%}
-data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == 'completed' %}Flown{% elif f.status == 'balance_hold' %}Pending - Balance Hold{% elif f.is_pending_approval %}Waiting for an instructor's OK{% else %}Scheduled{% endif %}
-{%- if f.time_label %}&#10;Time: {{ f.time_label }}{% if f.end_time_label %} - {{ f.end_time_label }}{% endif %}{% endif %}
-{%- if f.plane_tag %}&#10;Plane: {{ f.plane_tag }}{% endif %}
-{%- if staff %}&#10;Student: {{ f.student_name }}&#10;Instructor: {{ f.cfi_name if f.cfi_name else ('Solo' if f.solo else 'None yet') }}{% if f.student_owed %}&#10;Owes: ${{ '%.0f'|format(f.student_owed) }}{% endif %}{% endif %}
-{%- if f.needs_review_flag %}&#10;Flagged: {{ 'Needs review - not acknowledged yet' if f.needs_review_active else 'Needs review - acknowledged, not fixed yet' }}{% if staff and f.review_reason %}&#10;Reason: {{ f.review_reason }}{% endif %}{% endif %}
-{%- if f.status == 'balance_hold' %}&#10;Hold: The student owes more than the school's limit{% endif %}
-{%- if f.eta_delay %}&#10;Late start: May start late - {{ f.eta_delay.reason }}{% endif %}
-{%- if f.confirm_required and not f.confirmed_at %}&#10;Student OK: Booked for the student, waiting for their OK{% elif f.confirm_required %}&#10;Student OK: Confirmed by the student{% endif %}
-{%- if f.notes_visible and f.notes %}&#10;Note: {{ f.notes }}{% endif %}"
-{%- endif -%}
-{%- endmacro %}
-
 {#- Waitlist chips: students waiting for this date; click = Schedule Flight pre-filled. #}
 {% macro wl_chips(day_str) %}{% if wl_for is defined %}{% set wl = wl_for(day_str|string) %}{% if wl %}<div class="d-flex flex-wrap gap-1 wl-chips">{% for w in wl %}<a href="{{ w.url }}" class="badge bg-info text-dark text-decoration-none" data-wl-tip="{{ w.tip }}"><i class="bi bi-hourglass-split"></i> {{ w.name.split(' ')[0] }}</a>{% endfor %}</div>{% endif %}{% endif %}{% endmacro %}
 {#
@@ -42,78 +18,8 @@ data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == '
   scripts block, which keeps working on freshly-swapped-in blocks/rows.
 #}
 {% from "flight/_pilot_badge.html" import pilot_badge, schedule_pilot_badge %}
-{% macro schedule_block(f, compact=False, extra_style='', extra_class='') %}
-{% set is_hl = highlight_ids is defined and highlight_ids and f.id in highlight_ids %}
-{% set is_dim = highlight_ids is defined and highlight_ids and not is_hl %}
-{% set is_new = new_ids is defined and new_ids and f.id in new_ids %}
-{% set is_mine = session.get('student_id') and f.student_id == session.get('student_id') %}
-{% set today_str_pb = today.strftime('%Y-%m-%d') if today is defined and today else '' %}
-{% set is_past_block = today_str_pb and f.scheduled_date < today_str_pb %}
-{% set hide_past_detail = is_past_block and not is_mine and not (session.get('cfi_id') or flight_admin) %}
-{#- Students never get to see what a PAST slot held (booked or not, whose
-   it was, what plane) - only that it's in the past - so the shop's
-   historical busyness isn't visible to them. A student's OWN past flight
-   is the one exception (see is_mine above): idea "past views" wants those
-   kept on the calendar exactly as normal, not anonymized - the other
-   student's past bookings this same query might still include have
-   already been dropped entirely before this macro ever runs (see
-   _hide_other_students_past_flights in flight.py), so this hide_past_detail
-   branch below is really only reached for CFI breaks and any other
-   student's flight that slipped through on a non-Schedule-calendar view.
-   See the matching block in day_timeline_block()/month_lane_block()/
-   schedule_row(). CFI/admin viewers are unaffected. #}
-{% if hide_past_detail %}
-<div class="d-block small mb-1 px-1 rounded text-center {{ extra_class }}"
-     style="background:#e9ecef; color:#6c757d; {{ extra_style }}">
-  <div class="text-truncate sb-line1">Past</div>
-</div>
-{% else %}
-<div class="d-block small mb-1 px-1 rounded {{ 'schedule-block' if not f.is_time_off else 'schedule-time-off-block' }} {{ 'schedule-block-new' if is_new }} {{ extra_class }} {{ 'schedule-block-solo' if f.solo }} {{ 'schedule-block-done' if f.status == 'completed' }} {{ 'schedule-block-active' if f.status == 'in_progress' }} {{ 'schedule-block-flagged' if f.needs_review_active and f.status == 'scheduled' }} {{ 'schedule-block-highlight' if is_hl }} {{ 'schedule-block-dimmed' if is_dim }} {{ 'schedule-block-mine' if is_mine }} {{ 'schedule-block-pending' if f.is_pending_approval }} {{ 'schedule-block-wx' if f.is_wx_cancelled }}"
-     {% if not f.is_time_off %}role="button"{% endif %}
-     {% if f.is_time_off and f.notes_visible and f.notes %}title="Break note: {{ f.notes }}"{% elif f.cancel_tip %}data-late-tip="{{ f.cancel_tip }}"{% elif f.late %}{{ late_attr(f, True) }}{% else %}{{ flight_tip_attr(f) }}{% endif %}
-     style="background:{{ f.display_color }}; color:{{ f.display_text_color }}; {% if f.cfi_display_color %}border-left:6px solid {{ f.cfi_display_color }};{% endif %} {{ 'cursor:pointer;' if not f.is_time_off }} {{ extra_style }} {{ 'opacity:0.55; filter:grayscale(55%);' if f.status == 'completed' }} {{ 'outline:2px solid #ffc107; outline-offset:-2px;' if f.status == 'in_progress' }} {{ 'outline:2px dashed #fd7e14; outline-offset:-2px;' if f.eta_delay and not f.needs_review_active }}"
-     data-id="{{ f.id }}"
-     data-status="{{ f.status }}"
-     data-plane="{{ f.plane_tag }}"
-     {% if session.get('cfi_id') or flight_admin %}data-student="{{ f.student_name }}" data-cfi="{{ f.cfi_name or '' }}"{% endif %}
-     data-solo="{{ '1' if f.solo else '' }}"
-     data-needs-review="{{ '1' if f.needs_review_flag else '' }}"
-     data-review-reason="{{ f.review_reason or '' }}"
-     data-date="{{ f.scheduled_date }}"
-     data-time="{{ f.time_label or '' }}"
-     data-time24="{{ f.scheduled_time or '' }}"
-     data-endtime="{{ f.end_time_label or '' }}"
-     data-duration="{{ f.duration_hours if f.duration_hours is not none else '' }}"
-     {% if not f.is_time_off %}data-student-id="{{ f.student_id }}"{% endif %}
-     {% if f.notes_visible %}data-notes="{{ f.notes or '' }}"{% endif %}
-     {% if f.private_notes_visible %}data-private-notes="{{ f.private_notes or '' }}"{% endif %}
-     {% if not f.is_time_off %}
-     {% if session.get('cfi_id') or flight_admin %}data-created_by="{{ f.created_by or '' }}" data-deny-url="{{ url_for('flight.schedule_deny', scheduled_id=f.id) }}" data-approve-url="{{ url_for('flight.schedule_approve', scheduled_id=f.id) }}"
-     data-change-request-note="{{ f.change_request_note or '' }}"{% endif %}
-     data-edit-url="{{ url_for('flight.schedule_edit', scheduled_id=f.id) }}"
-     data-reschedule-url="{{ url_for('flight.schedule_reschedule', scheduled_id=f.id) }}"
-     data-cancel-url="{{ url_for('flight.schedule_cancel', scheduled_id=f.id) }}"
-     data-request-change-url="{{ url_for('flight.schedule_request_change', scheduled_id=f.id) }}"
-     data-student-cancel-url="{{ url_for('flight.schedule_student_cancel', scheduled_id=f.id) }}"
-     data-start-url="{{ url_for('flight.schedule_start', scheduled_id=f.id) }}"
-     data-log-url="{{ url_for('flight.log_new', asset_id=f.asset_id, student_id=f.student_id, cfi_id=f.cfi_id or '', solo='on' if f.solo else '', flight_date=f.scheduled_date, scheduled_flight_id=f.id) }}"
-     {% endif %}>
-  {#- One tidy line: short time + plane (status as a small icon), then the
-     people on a second line in the full-size month grid only
-     (hidden on phones, see schedule.html). #}
-  <div class="text-truncate sb-line1">
-    {%- if f.needs_review_flag %}<i class="bi bi-exclamation-triangle-fill {{ 'text-danger' if f.needs_review_active else 'text-warning' }}" title="{{ 'Needs review' if f.needs_review_active else 'Needs review (acknowledged, not resolved yet)' }}"></i> {% endif -%}
-    {%- if f.eta_delay %}<i class="bi bi-hourglass-split text-warning" title="{{ f.eta_delay.reason }}"></i> {% endif -%}
-    {%- if f.confirm_required and not f.confirmed_at %}<i class="bi bi-patch-question-fill text-warning" title="Awaiting the student's confirmation"></i> {% elif f.confirm_required %}<i class="bi bi-patch-check-fill text-success" title="Confirmed by the student"></i> {% endif -%}
-    {%- if f.status == 'in_progress' %}<i class="bi bi-stopwatch" title="In progress"></i> {% elif f.status == 'completed' %}<i class="bi bi-check-circle" title="Completed"></i> {% elif f.status == 'balance_hold' %}<i class="bi bi-pause-circle" title="Pending - Balance Hold"></i> {% endif -%}
-    <span class="sb-time">{{ f.short_time or '--' }}</span>{%- if f.late %} <span class="badge bg-warning text-dark late-chip" style="font-size:.62rem;padding:1px 3px;" {{ late_attr(f) }}><i class="bi bi-hourglass-split"></i> {{ f.late.minutes }}m</span>{% endif -%} {{ f.plane_tag }}
-  </div>
-  {% if not compact and (session.get('cfi_id') or flight_admin) %}
-  <div class="text-truncate sb-line2">{{ f.student_name }} {{ schedule_pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}{% if f.student_owed %} &middot; <span class="text-danger fw-bold">${{ '%.0f'|format(f.student_owed) }} owed</span>{% endif %}</div>
-  {% endif %}
-</div>
-{% endif %}
-{% endmacro %}
+{% from "flight/_schedule_block.html" import late_tip, late_attr, flight_tip_attr, schedule_block with context %}
+{% from "flight/_day_grid.html" import day_grid %}
 
 {#
   A single flight block for the Day view's hour-by-hour timeline (modeled
@@ -721,61 +627,7 @@ data-late-tip="{% if f.status == 'in_progress' %}Flying now{% elif f.status == '
   {#- Instructor buttons, same as the Availability page: tap names to see
      which of them are free in each open slot. The click handling is in
      schedule.html (this region is swapped by the live refresh). #}
-  <div class="avail-with-cfis">
-  {% if avail_day.cfis %}
-  <div class="avail-cfi-side" id="availCfiSide" aria-label="Instructors" data-free="{{ avail_day.cfi_free|tojson|forceescape }}">
-    <span class="avail-cfi-label">Instructors</span>
-    {% for c in avail_day.cfis %}
-    <button type="button" class="btn btn-outline-primary" data-cfi="{{ c.id }}" data-first="{{ c.name.split()[0] }}" aria-pressed="false" title="Show when {{ c.name }} is free">{{ c.name.split()[0] }}</button>
-    {% endfor %}
-    <span class="avail-cfi-note">note: click name to view availability</span>
-  </div>
-  {% endif %}
-  <div class="avail-fit">
-    <table class="table table-bordered avail-grid avail-grid-v mb-0">
-      <thead>
-        <tr>
-          <th class="avail-time-col">Time</th>
-          {% for row in avail_day.grid %}<th class="text-center avail-plane-head">{{ row.plane.tag }}</th>{% endfor %}
-        </tr>
-      </thead>
-      <tbody>
-        {% for slot in avail_day.slots %}
-        {% set i = loop.index0 %}
-        <tr>
-          <th class="avail-time-col">{{ slot.label }}</th>
-          {% for row in avail_day.grid %}
-          {% set cell = row.cells[i] %}
-          {% if cell.show %}
-          <td class="avail-slot-flight">
-            {% for f in cell.show %}{{ schedule_block(f, false) }}{% endfor %}
-            {% if not cell.booked and not cell.is_past and not cell.down %}<a class="avail-slot-open-link" href="{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(cell.start_min // 60, cell.start_min % 60), asset_id=row.plane.id) }}">Open</a><span class="avail-cfi-chips" data-slot="{{ cell.start_min }}"></span>{% endif %}
-          </td>
-          {% elif cell.booked %}
-          {% if i > 0 and row.cells[i - 1].flight and row.cells[i - 1].flight.id == cell.flight.id %}
-          <td class="avail-slot-booked avail-slot-cont" title="{{ row.plane.tag }} - same flight as the slot above">cont.</td>
-          {% else %}
-          <td class="avail-slot-booked avail-slot-cont">{{ 'Past' if cell.is_past else 'Booked' }}</td>
-          {% endif %}
-          {% elif cell.is_past %}
-          <td class="avail-slot-past" title="{{ cell.label }} has already passed">Past</td>
-          {% elif cell.down %}
-          <td class="avail-slot-past" title="{{ row.plane.tag }} is down for maintenance ({{ cell.down_reason }}) and can't be booked">Grounded</td>
-          {% else %}
-          <td class="{{ 'avail-slot-req' if cell.requests_only else 'avail-slot-open' }}" role="button"
-              onclick="window.location.href='{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(cell.start_min // 60, cell.start_min % 60), asset_id=row.plane.id) }}'"
-              title="{{ row.plane.tag }} open {{ cell.label }} - click to schedule a flight{{ ' (requests only: not confirmed until an instructor confirms it)' if cell.requests_only }}">
-            {{ 'Requests only' if cell.requests_only else 'Open' }}
-            <span class="avail-cfi-chips" data-slot="{{ cell.start_min }}"></span>
-          </td>
-          {% endif %}
-          {% endfor %}
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  </div>
+  {{ day_grid(avail_day, day_str, schedule_block, true) }}
   {% endif %}
   {% if day_untimed or day_extra %}
   <div class="mt-3">

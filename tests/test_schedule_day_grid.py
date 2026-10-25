@@ -39,3 +39,10 @@ class ScheduleDayGridTest(OpsHubTestCase):
         self.assertIn('id="availCfiSide"', html)
         self.assertIn(f'data-cfi="{self.cfi}"', html)
         self.assertIn("avail-cfi-chips", html)
+
+    def test_home_page_upcoming_uses_the_same_grid(self):
+        self.client.post("/flight/schedule/new", data=dict(asset_id=self.plane, student_id=self.student, cfi_id=self.cfi,
+                                                         scheduled_date=future(), scheduled_time="08:00", duration_hours="1.5"))
+        html = self.client.get("/flight/", follow_redirects=True).get_data(as_text=True)
+        self.assertIn("avail-grid-v", html)
+        self.assertIn('data-plane="N300DG"', html)

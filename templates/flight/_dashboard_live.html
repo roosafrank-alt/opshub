@@ -7,6 +7,8 @@
 {%- endif %}
 {% endmacro %}
 {% from "flight/_pilot_badge.html" import pilot_badge, schedule_pilot_badge %}
+{% from "flight/_day_grid.html" import day_grid %}
+{% from "flight/_schedule_block.html" import schedule_block with context %}
 {#- Header for the collapsible alert cards at the top (notifications, flights
    needing the student's OK, Needs Review, medicals): same dash-collapse-toggle
    mechanism and count badge as Unconfirmed below, open by default. #}
@@ -1010,22 +1012,8 @@
     </span>
   </button>
   <div class="dash-collapse-body" data-collapse-body="today">
-    {% if today_time_groups %}
-    {% set ns = namespace(now_line_shown=false) %}
-    {% for group in today_time_groups %}
-    {% set grp_time = group.flights[0].scheduled_time %}
-    {% set is_past = grp_time is not none and grp_time < today_now_time %}
-    {% if not is_past and not ns.now_line_shown %}
-    <div class="dash-now-line" title="Current time - {{ today_now_time }}"><span>Now</span></div>
-    {% set ns.now_line_shown = true %}
-    {% endif %}
-    {{ time_group_row(group, cfi, plane_color, today_now_time) }}
-    {% endfor %}
-    {% if not ns.now_line_shown %}
-    <div class="dash-now-line" title="Current time - {{ today_now_time }}"><span>Now</span></div>
-    {% endif %}
-    {% elif today_flights_total %}
-    <p class="text-muted small mb-0">All of today's flights are complete.</p>
+    {% if today_flights_total %}
+    {{ day_grid(today_grid, today_str, schedule_block) }}
     {% else %}
     <p class="text-muted small mb-0">Nothing on the board for today.</p>
     {% endif %}
@@ -1060,9 +1048,7 @@
       </h6>
       <span class="badge bg-secondary fs-6">{{ day.flights|length }} flight{{ 's' if day.flights|length != 1 }} booked</span>
     </div>
-    {% for group in day.time_groups %}
-    {{ time_group_row(group, cfi, plane_color) }}
-    {% endfor %}
+    {{ day_grid(day.grid, day.date, schedule_block) }}
     {% else %}
     <p class="text-muted small mb-0">Nothing else on the books yet.</p>
     {% endfor %}

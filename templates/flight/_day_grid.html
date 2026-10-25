@@ -1,0 +1,85 @@
+{#- The Availability page's plane x time-slot grid for one day. Used by the Schedule Day view and the home page's
+   Today's Schedule / Upcoming sections so they all look the same. block is the schedule_block macro (passed in because
+   it lives in _schedule_live.html); with_cfis adds the instructor buttons (Schedule Day view only, one per page). -#}
+{% macro day_grid_css() %}
+  /* Day view: the Availability page's plane x time-slot grid (same look). */
+  .avail-grid { border-collapse: separate; border-spacing: 2px; }
+  .avail-grid th, .avail-grid td { vertical-align: middle; }
+  .avail-grid thead th { background: #fff; }
+  .avail-fit { max-width: 100%; overflow-x: hidden; }
+  .avail-grid-v { width: 100%; table-layout: fixed; }
+  .avail-grid-v th, .avail-grid-v td { white-space: normal; overflow: hidden; text-overflow: ellipsis; overflow-wrap: anywhere; }
+  .avail-grid-v .avail-time-col { width: 6rem; background: #fff; font-weight: 700; font-size: .78rem; text-align: left; white-space: nowrap; }
+  .avail-grid-v .avail-plane-head { font-weight: 700; }
+  .avail-grid-v td.avail-slot-open, .avail-grid-v td.avail-slot-req, .avail-grid-v td.avail-slot-past, .avail-grid-v td.avail-slot-cont { text-align: center; font-size: .72rem; padding: .4rem .3rem; border-radius: 4px; }
+  .avail-grid-v td.avail-slot-open { --bs-table-bg: #d1f7dd; --bs-table-color: #0a3d1f; background: #d1f7dd; border: 2px solid #a9e6bb; cursor: pointer; }
+  .avail-grid-v td.avail-slot-open:hover { --bs-table-bg: #a9e6bb; background: #a9e6bb; }
+  .avail-grid-v td.avail-slot-req { --bs-table-bg: #e9ecef; --bs-table-color: #6c757d; background: #e9ecef; border: 2px dashed #ced4da; cursor: pointer; }
+  .avail-grid-v td.avail-slot-req:hover { background: #dee2e6; }
+  .avail-grid-v td.avail-slot-past, .avail-grid-v td.avail-slot-cont { --bs-table-bg: #e9ecef; --bs-table-color: #adb5bd; background: #e9ecef; border: 2px dashed #dee2e6; }
+  .avail-grid-v td.avail-slot-flight { padding: 2px; vertical-align: top; }
+  .avail-slot-open-link { display: block; text-align: center; font-size: .7rem; background: #d1f7dd; color: #0a3d1f; border-radius: 4px; text-decoration: none; margin-top: 2px; }
+  .avail-grid-v td.avail-slot-flight .schedule-block { margin: 0; }
+  @media (max-width: 575.98px) {
+    .avail-grid-v th, .avail-grid-v td { font-size: .75rem; }
+    .avail-grid-v .avail-time-col { width: 4.6rem; white-space: nowrap; }
+  }
+{% endmacro %}
+
+{% macro day_grid(ad, day_str, block, with_cfis=false) %}
+  <div class="avail-with-cfis">
+  {% if with_cfis and ad.cfis %}
+  <div class="avail-cfi-side" id="availCfiSide" aria-label="Instructors" data-free="{{ ad.cfi_free|tojson|forceescape }}">
+    <span class="avail-cfi-label">Instructors</span>
+    {% for c in ad.cfis %}
+    <button type="button" class="btn btn-outline-primary" data-cfi="{{ c.id }}" data-first="{{ c.name.split()[0] }}" aria-pressed="false" title="Show when {{ c.name }} is free">{{ c.name.split()[0] }}</button>
+    {% endfor %}
+    <span class="avail-cfi-note">note: click name to view availability</span>
+  </div>
+  {% endif %}
+  <div class="avail-fit">
+    <table class="table table-bordered avail-grid avail-grid-v mb-0">
+      <thead>
+        <tr>
+          <th class="avail-time-col">Time</th>
+          {% for row in ad.grid %}<th class="text-center avail-plane-head">{{ row.plane.tag }}</th>{% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for slot in ad.slots %}
+        {% set i = loop.index0 %}
+        <tr>
+          <th class="avail-time-col">{{ slot.label }}</th>
+          {% for row in ad.grid %}
+          {% set cell = row.cells[i] %}
+          {% if cell.show %}
+          <td class="avail-slot-flight">
+            {% for f in cell.show %}{{ block(f, false) }}{% endfor %}
+            {% if not cell.booked and not cell.is_past and not cell.down %}<a class="avail-slot-open-link" href="{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(cell.start_min // 60, cell.start_min % 60), asset_id=row.plane.id) }}">Open</a><span class="avail-cfi-chips" data-slot="{{ cell.start_min }}"></span>{% endif %}
+          </td>
+          {% elif cell.booked %}
+          {% if i > 0 and row.cells[i - 1].flight and row.cells[i - 1].flight.id == cell.flight.id %}
+          <td class="avail-slot-booked avail-slot-cont" title="{{ row.plane.tag }} - same flight as the slot above">cont.</td>
+          {% else %}
+          <td class="avail-slot-booked avail-slot-cont">{{ 'Past' if cell.is_past else 'Booked' }}</td>
+          {% endif %}
+          {% elif cell.is_past %}
+          <td class="avail-slot-past" title="{{ cell.label }} has already passed">Past</td>
+          {% elif cell.down %}
+          <td class="avail-slot-past" title="{{ row.plane.tag }} is down for maintenance ({{ cell.down_reason }}) and can't be booked">Grounded</td>
+          {% else %}
+          <td class="{{ 'avail-slot-req' if cell.requests_only else 'avail-slot-open' }}" role="button"
+              onclick="window.location.href='{{ url_for('flight.schedule_new', date=day_str, time='%02d:%02d'|format(cell.start_min // 60, cell.start_min % 60), asset_id=row.plane.id) }}'"
+              title="{{ row.plane.tag }} open {{ cell.label }} - click to schedule a flight{{ ' (requests only: not confirmed until an instructor confirms it)' if cell.requests_only }}">
+            {{ 'Requests only' if cell.requests_only else 'Open' }}
+            <span class="avail-cfi-chips" data-slot="{{ cell.start_min }}"></span>
+          </td>
+          {% endif %}
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  </div>
+{% endmacro %}

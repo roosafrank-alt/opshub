@@ -14,6 +14,7 @@
    which the live-refresh poll below swaps wholesale) so it survives every
    poll instead of needing to be re-added each time. #}
 {% from "flight/_pilot_badge.html" import pilot_badge_css %}{{ pilot_badge_css() }}
+{% from "flight/_day_grid.html" import day_grid_css %}
 <style>
   #wlPop { position: fixed; z-index: 2000; display: none; width: max-content; max-width: min(320px, calc(100vw - 16px)); padding: .6rem .8rem; border-radius: .6rem; background: #212529; color: #fff; font-size: .9rem; line-height: 1.35; box-shadow: 0 6px 20px rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.12); pointer-events: none; }
   #wlPop .wl-row { display: flex; gap: .75rem; padding: .15rem 0; }
@@ -143,28 +144,7 @@
   /* Empty space on the Day/Week timeline is clickable to schedule a new
      flight at that time (see the click handler below) - cursor says so. */
   .day-timeline-track-clickable { cursor: pointer; }
-  /* Day view: the Availability page's plane x time-slot grid (same look). */
-  .avail-grid { border-collapse: separate; border-spacing: 2px; }
-  .avail-grid th, .avail-grid td { vertical-align: middle; }
-  .avail-grid thead th { background: #fff; }
-  .avail-fit { max-width: 100%; overflow-x: hidden; }
-  .avail-grid-v { width: 100%; table-layout: fixed; }
-  .avail-grid-v th, .avail-grid-v td { white-space: normal; overflow: hidden; text-overflow: ellipsis; overflow-wrap: anywhere; }
-  .avail-grid-v .avail-time-col { width: 6rem; background: #fff; font-weight: 700; font-size: .78rem; text-align: left; white-space: nowrap; }
-  .avail-grid-v .avail-plane-head { font-weight: 700; }
-  .avail-grid-v td.avail-slot-open, .avail-grid-v td.avail-slot-req, .avail-grid-v td.avail-slot-past, .avail-grid-v td.avail-slot-cont { text-align: center; font-size: .72rem; padding: .4rem .3rem; border-radius: 4px; }
-  .avail-grid-v td.avail-slot-open { --bs-table-bg: #d1f7dd; --bs-table-color: #0a3d1f; background: #d1f7dd; border: 2px solid #a9e6bb; cursor: pointer; }
-  .avail-grid-v td.avail-slot-open:hover { --bs-table-bg: #a9e6bb; background: #a9e6bb; }
-  .avail-grid-v td.avail-slot-req { --bs-table-bg: #e9ecef; --bs-table-color: #6c757d; background: #e9ecef; border: 2px dashed #ced4da; cursor: pointer; }
-  .avail-grid-v td.avail-slot-req:hover { background: #dee2e6; }
-  .avail-grid-v td.avail-slot-past, .avail-grid-v td.avail-slot-cont { --bs-table-bg: #e9ecef; --bs-table-color: #adb5bd; background: #e9ecef; border: 2px dashed #dee2e6; }
-  .avail-grid-v td.avail-slot-flight { padding: 2px; vertical-align: top; }
-  .avail-slot-open-link { display: block; text-align: center; font-size: .7rem; background: #d1f7dd; color: #0a3d1f; border-radius: 4px; text-decoration: none; margin-top: 2px; }
-  .avail-grid-v td.avail-slot-flight .schedule-block { margin: 0; }
-  @media (max-width: 575.98px) {
-    .avail-grid-v th, .avail-grid-v td { font-size: .75rem; }
-    .avail-grid-v .avail-time-col { width: 4.6rem; white-space: nowrap; }
-  }
+  {{ day_grid_css() }}
   .day-timeline-track-clickable .schedule-block { cursor: pointer; }
   /* Clicking a day cell (CFIs/admins only) jumps straight to "Schedule
      Flight" with that date pre-filled, instead of the generic toolbar
