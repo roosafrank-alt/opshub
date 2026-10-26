@@ -101,7 +101,9 @@ def _norm(code):
 
 
 def _row_airport(r):
-    return {"code": r["ident"], "icao": r["icao"], "iata": r["iata"], "name": r["name"] or "",
+    # Show the code pilots use: the ICAO code if it has one (KPOU), else the FAA/local code (N89).
+    # OurAirports' own id for a field without an ICAO code is a made-up K+local (KN89).
+    return {"code": r["icao"] or r["local"] or r["ident"], "icao": r["icao"], "iata": r["iata"], "name": r["name"] or "",
             "city": r["city"] or "", "region": r["region"] or "", "country": r["country"] or "",
             "lat": r["lat"], "lon": r["lon"], "kind": "airport"}
 

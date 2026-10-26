@@ -44,7 +44,7 @@ def import_ourairports(conn, d):
         if lat is None or lon is None or r.get("TYPE") == "closed":
             continue
         conn.execute("INSERT OR REPLACE INTO airports VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
-                     (r["IDENT"].upper(), (r.get("GPS_CODE") or "").upper() or None, (r.get("IATA_CODE") or "").upper() or None,
+                     (r["IDENT"].upper(), (r.get("ICAO_CODE") or "").upper() or None, (r.get("IATA_CODE") or "").upper() or None,
                       (r.get("LOCAL_CODE") or "").upper() or None, r.get("NAME"), r.get("MUNICIPALITY"),
                       r.get("ISO_REGION"), r.get("ISO_COUNTRY"), r.get("TYPE"), lat, lon,
                       int(_f(r.get("ELEVATION_FT")) or 0)))

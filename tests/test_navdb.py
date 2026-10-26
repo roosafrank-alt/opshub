@@ -22,11 +22,11 @@ def _build(d):
     with open(os.path.join(d, "airports.csv"), "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["id", "ident", "type", "name", "latitude_deg", "longitude_deg", "elevation_ft", "iso_country", "iso_region",
-                    "municipality", "gps_code", "iata_code", "local_code"])
+                    "municipality", "gps_code", "iata_code", "local_code", "icao_code"])
         for i in range(1100):  # importer refuses suspiciously small files
-            w.writerow([i, f"X{i:04d}", "small_airport", f"Filler {i}", 10 + i * 0.01, 10, 0, "ZZ", "ZZ-X", "Nowhere", "", "", ""])
+            w.writerow([i, f"X{i:04d}", "small_airport", f"Filler {i}", 10 + i * 0.01, 10, 0, "ZZ", "ZZ-X", "Nowhere", "", "", "", ""])
         for a in AIRPORTS:
-            w.writerow([0, a[0], "small_airport", a[4], a[6], a[7], 100, "US", "US-NY", a[5], a[1], a[2], a[3]])
+            w.writerow([0, a[0], "small_airport", a[4], a[6], a[7], 100, "US", "US-NY", a[5], a[1], a[2], a[3], a[1]])
     with open(os.path.join(d, "navaids.csv"), "w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["id", "ident", "name", "type", "frequency_khz", "latitude_deg", "longitude_deg", "iso_country"])
@@ -67,6 +67,7 @@ class NavDbTests(OpsHubTestCase):
     def test_name_from_code_and_code_from_name(self):
         self.assertEqual(navdb.lookup_airport(self.nav, "pou")["name"], "Hudson Valley Regional")
         self.assertEqual(navdb.lookup_airport(self.nav, "KPOU")["code"], "KPOU")
+        self.assertEqual(navdb.lookup_airport(self.nav, "N89")["code"], "N89")   # no ICAO code -> local code, not KN89
         self.assertEqual(navdb.search_airports(self.nav, "stewart")[0]["code"], "KSWF")
 
     def test_filters_per_character(self):
