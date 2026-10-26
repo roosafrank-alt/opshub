@@ -184,10 +184,12 @@
     <div class="modal-footer py-2"><button type="button" class="btn btn-primary" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#end-flight-modal-{{ f.id }}"><i class="bi bi-pencil"></i> Edit plan</button></div>
   </div></div></div>
   {% endif %}
+  {#- No ACS course: the box has only the Hobbs/Tach step, so once confirmed it stays closed (green line above End Session, Edit reopens it). #}
+  {% set times_saved = f.end_confirmed_at and not f.end_pick and f.hobbs_end is not none and f.tach_end is not none %}
   {% if f.end_state %}
   {% set es = f.end_state %}
   {% set step = es.step if (f.end_pick or es.step == 'times') else 'times' %}
-  <div class="modal fade end-flight-modal" id="end-flight-modal-{{ f.id }}" tabindex="-1" aria-hidden="true"{% if open_end_id == f.id or (f.end_started_at and not f.acs_planned_at) %} data-auto-open="1"{% endif %}>
+  <div class="modal fade end-flight-modal" id="end-flight-modal-{{ f.id }}" tabindex="-1" aria-hidden="true"{% if not times_saved and (open_end_id == f.id or (f.end_started_at and not f.acs_planned_at)) %} data-auto-open="1"{% endif %}>
     <div class="modal-dialog modal-dialog-scrollable">
       {% if step == 'times' %}
       <form method="post" action="{{ url_for('flight.log_end_flight', flight_id=f.id) }}" class="modal-content">
@@ -397,6 +399,9 @@
   {#- Idea "end session button": End Session sits at the bottom, under Scheduled Progress (flights, sims and ground
      sessions alike). Idea "if end session is clicked before end flight": while the ending Hobbs/Tach haven't been
      confirmed in End Flight, it pops up a reminder instead of stopping the clock. #}
+  {% if times_saved and not f.stopped_at %}
+  <div class="small text-success mb-1"><i class="bi bi-check-circle"></i> Flight ended &middot; Hobbs {{ '%.1f'|format(f.hobbs_end) }} &middot; Tach {{ '%.1f'|format(f.tach_end) }} <a href="#" class="ms-1" data-bs-toggle="modal" data-bs-target="#end-flight-modal-{{ f.id }}">Edit</a></div>
+  {% endif %}
   {% if f.can_end and not f.stopped_at %}
   <div class="d-flex mb-2">
     {% if f.end_state and f.end_state.step == 'times' %}
