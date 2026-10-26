@@ -276,13 +276,11 @@
                 {#- Idea "project sheet": the description used to be hidden until
                    you expanded the area AND opened its own Notes & Description
                    toggle - now a one-line preview shows right in the header, and
-                   this pencil jumps straight to editing it (openSectionNotes
-                   below expands the area and opens the notes form in one click,
-                   instead of dropdown-then-notes-toggle). #}
+                   the one Edit button next to the QR icon opens name, description
+                   and notes together (openSectionEdit below). #}
                 {% if data.description or data.notes %}
                 <span class="text-muted small text-truncate narrow-field" title="{{ data.description or data.notes }}">{{ data.description or data.notes }}</span>
                 {% endif %}
-                <button type="button" class="btn btn-link btn-sm p-0" onclick="event.stopPropagation(); openSectionNotes('{{ loop.index }}');" title="Edit description/notes"><i class="bi bi-pencil-square"></i></button>
                 {% endif %}
                 {% if data.sent_back_at %}
                 {#- Kept even once it's later confirmed, so a completed area
@@ -310,7 +308,7 @@
                 {% endif %}
                 {% endif %}
                 {% if section != 'General' and data.id %}
-                <button type="button" class="btn btn-link btn-sm p-0" onclick="event.stopPropagation(); var r=document.getElementById('sec-rename-{{ loop.index }}'); r.style.display = r.style.display==='none' ? 'flex' : 'none'; if (r.style.display!=='none') { r.querySelector('input').focus(); r.querySelector('input').select(); }" title="Rename this discrepancy" data-change="JOBS-11"><i class="bi bi-pencil"></i></button>
+                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2" onclick="event.stopPropagation(); openSectionEdit('{{ loop.index }}');" title="Edit this discrepancy: name, description and shop notes" data-change="JOBS-11"><i class="bi bi-pencil"></i> Edit</button>
                 <a href="{{ url_for('project_section_label', project_id=project.id, section_id=data.id) }}" class="btn btn-link btn-sm p-0" target="_blank" onclick="event.stopPropagation();" title="Print this discrepancy's QR code"><i class="bi bi-qr-code"></i></a>
                 {% endif %}
               </div>
@@ -328,8 +326,19 @@
             </div>
             {% endif %}
             {% if section != 'General' and data.id %}
-            <form method="post" action="{{ url_for('project_section_rename', project_id=project.id, section_id=data.id) }}" id="sec-rename-{{ loop.index }}" class="input-group input-group-sm mt-2" style="display:none; max-width:280px;" onclick="event.stopPropagation();">
-              <input type="text" name="name" class="form-control form-control-sm" value="{{ section }}" required>
+            <form method="post" action="{{ url_for('project_section_edit', project_id=project.id, section_id=data.id) }}" id="sec-edit-{{ loop.index }}" class="mt-2 p-2 border rounded bg-light" style="display:none;" onclick="event.stopPropagation();">
+              <div class="mb-2">
+                <label class="form-label small mb-0" for="sec-edit-name-{{ loop.index }}">Name</label>
+                <input type="text" name="name" id="sec-edit-name-{{ loop.index }}" class="form-control form-control-sm" value="{{ section }}" required>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small mb-0">Description <span class="text-muted">(shown to the aircraft owner in My Aircraft)</span></label>
+                <textarea name="description" class="form-control form-control-sm" rows="2">{{ data.description or '' }}</textarea>
+              </div>
+              <div class="mb-2">
+                <label class="form-label small mb-0">Shop notes <span class="text-muted">(shop only - never shown to the owner or on the invoice)</span></label>
+                <textarea name="notes" class="form-control form-control-sm" rows="2">{{ data.notes or '' }}</textarea>
+              </div>
               <button type="submit" class="btn btn-dark btn-sm" data-change="DESIGN-1">Save</button>
             </form>
             {% endif %}
@@ -395,22 +404,6 @@
             {% else %}
             <p class="text-muted small p-2 mb-0">No parts assigned to this discrepancy yet.</p>
             {% endif %}
-            {% if section != 'General' and data.id %}
-            <div class="p-2 border-top">
-              <button type="button" class="btn btn-link btn-sm p-0 mb-1" onclick="event.stopPropagation(); var f=document.getElementById('sec-notes-{{ loop.index }}'); f.style.display = f.style.display==='none' ? 'block' : 'none';"><i class="bi bi-card-text"></i> Notes &amp; Description</button>
-              <form method="post" action="{{ url_for('project_section_notes', project_id=project.id, section_id=data.id) }}" id="sec-notes-{{ loop.index }}" style="display:{{ 'block' if data.notes or data.description else 'none' }};">
-                <div class="mb-2">
-                  <label class="form-label small mb-0">Description <span class="text-muted">(shown to the aircraft owner in My Aircraft)</span></label>
-                  <textarea name="description" class="form-control form-control-sm" rows="2">{{ data.description or '' }}</textarea>
-                </div>
-                <div class="mb-2">
-                  <label class="form-label small mb-0">Internal Notes <span class="text-muted">(shop only - never shown to the owner or on the invoice)</span></label>
-                  <textarea name="notes" class="form-control form-control-sm" rows="2">{{ data.notes or '' }}</textarea>
-                </div>
-                <button type="submit" class="btn btn-secondary btn-sm">Save</button>
-              </form>
-            </div>
-            {% endif %}
           </div>
         </div>
         {% endfor %}
@@ -422,19 +415,15 @@
             panel.style.display = open ? 'none' : 'block';
             if (chev) chev.className = open ? 'bi bi-chevron-down' : 'bi bi-chevron-up';
           }
-          function openSectionNotes(idx) {
-            var panel = document.getElementById('sec-' + idx);
-            var chev = document.getElementById('sec-chev-' + idx);
-            if (panel.style.display === 'none') {
-              panel.style.display = 'block';
-              if (chev) chev.className = 'bi bi-chevron-up';
+          function openSectionEdit(idx) {
+            var box = document.getElementById('sec-edit-' + idx);
+            if (!box) return;
+            var show = box.style.display === 'none';
+            box.style.display = show ? 'block' : 'none';
+            if (show) {
+              var name = box.querySelector('input[name="name"]');
+              if (name) { name.focus(); name.select(); }
             }
-            var notes = document.getElementById('sec-notes-' + idx);
-            if (!notes) return;
-            notes.style.display = 'block';
-            notes.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            var textarea = notes.querySelector('textarea[name="description"]');
-            if (textarea) textarea.focus();
           }
         </script>
       {% else %}

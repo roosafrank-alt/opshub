@@ -67,3 +67,30 @@ class DiscrepancyNotesAndDescriptionTest(OpsHubTestCase):
         self.assertEqual(r.status_code, 302)
         row = self.q1("SELECT * FROM project_sections WHERE id = ?", (self.section_id,))
         self.assertIsNone(row["notes"])
+
+
+class DiscrepancyOneEditBoxTest(DiscrepancyNotesAndDescriptionTest):
+    """One Edit box saves name, description and shop notes together."""
+
+    def test_edit_saves_name_description_and_notes(self):
+        c = self.login("shop_admin")
+        r = c.post(f"/projects/{self.project_id}/sections/{self.section_id}/edit",
+                   data={"name": "Brakes and wheels", "description": "Owner write-up", "notes": "Shop only"})
+        self.assertEqual(r.status_code, 302)
+        row = self.q1("SELECT * FROM project_sections WHERE id = ?", (self.section_id,))
+        self.assertEqual((row["name"], row["description"], row["notes"]),
+                         ("Brakes and wheels", "Owner write-up", "Shop only"))
+
+    def test_edit_keeps_name_when_only_notes_change(self):
+        c = self.login("shop_admin")
+        c.post(f"/projects/{self.project_id}/sections/{self.section_id}/edit",
+               data={"name": "Brakes", "description": "", "notes": "Only notes"})
+        row = self.q1("SELECT * FROM project_sections WHERE id = ?", (self.section_id,))
+        self.assertEqual((row["name"], row["notes"]), ("Brakes", "Only notes"))
+
+    def test_page_has_one_edit_button_and_no_notes_link(self):
+        body = self.login("shop_admin").get(f"/projects/{self.project_id}").get_data(as_text=True)
+        self.assertIn("Edit this discrepancy", body)
+        self.assertNotIn("Rename this discrepancy", body)
+        self.assertNotIn("Notes &amp; Description</button>", body)
+        self.assertIn("Print this discrepancy's QR code", body)

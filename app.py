@@ -2825,6 +2825,49 @@ def project_section_notes(project_id, section_id):
     return redirect(url_for("project_detail", project_id=project_id))
 
 
+@app.route("/projects/<int:project_id>/sections/<int:section_id>/edit", methods=["POST"])
+@shop_role_required('admin', 'tech')
+def project_section_edit(project_id, section_id):
+    """The one Edit box on a discrepancy: name, description (owner-facing)
+    and shop notes saved together. Same rules as project_section_rename and
+    project_section_notes, which stay for older links."""
+    conn = get_db()
+    blocked = _deleted_job_block(conn, project_id)
+    if blocked:
+        return blocked
+    section = conn.execute("SELECT id, name FROM project_sections WHERE id = ? AND project_id = ?",
+                           (section_id, project_id)).fetchone()
+    if not section:
+        conn.close()
+        abort(404)
+    new_name = request.form.get("name", "").strip()
+    if not new_name:
+        flash("Enter a name for the discrepancy.", "danger")
+        conn.close()
+        return redirect(url_for("project_detail", project_id=project_id))
+    old_name = section["name"]
+    if new_name != old_name:
+        clash = conn.execute("SELECT id FROM project_sections WHERE project_id = ? AND name = ? AND id != ?",
+                             (project_id, new_name, section_id)).fetchone()
+        if clash:
+            flash(f"A discrepancy named '{new_name}' already exists.", "danger")
+            conn.close()
+            return redirect(url_for("project_detail", project_id=project_id))
+        conn.execute("UPDATE project_sections SET name = ? WHERE id = ?", (new_name, section_id))
+        # Carries through to everything tagged with the old name, so history
+        # and totals stay grouped under the new name.
+        conn.execute("UPDATE transactions SET section = ? WHERE project_id = ? AND section = ?",
+                     (new_name, project_id, old_name))
+        conn.execute("UPDATE labor_sessions SET section = ? WHERE project_id = ? AND section = ?",
+                     (new_name, project_id, old_name))
+    conn.execute("UPDATE project_sections SET notes = ?, description = ? WHERE id = ?",
+                 (request.form.get("notes", "").strip(), request.form.get("description", "").strip(), section_id))
+    conn.commit()
+    conn.close()
+    flash("Saved.", "success")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
 @app.route("/api/scan", methods=["POST"])
 @shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def api_scan():

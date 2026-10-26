@@ -395,7 +395,7 @@ class DiscrepancyTest(OpsHubTestCase):
         self.exec("INSERT INTO labor_sessions (laborer_id, project_id, section, started_at, ended_at, hours, rate, cost) "
                   "VALUES (?, ?, 'Brakes', ?, ?, 1, 10, 10)", (lab, self.pid, db.now_iso(), db.now_iso()))
         body = get(self.login("tech"), f"/projects/{self.pid}")
-        for new in ("Rename this discrepancy", "Print this discrepancy's QR code", "+ Add new discrepancy...",
+        for new in ("Edit this discrepancy", "Print this discrepancy's QR code", "+ Add new discrepancy...",
                     ">Discrepancy</th>"):
             self.assertIn(new, body, new)
         for old in ("Rename this area", "Area / Sub-System", "Add new area", ">Area</th>", ">Task</th>"):
