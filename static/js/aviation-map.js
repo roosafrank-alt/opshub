@@ -34,13 +34,14 @@ window.AviationMap = (function () {
 
   function create(el, opts) {
     var onPick = opts.onPick || function () {};
-    var map = L.map(el, { zoomControl: true, preferCanvas: false }).setView([41.72778, -74.37722], 8);
+    // minZoom 1: all the way out to the whole world; the symbols only load once you are zoomed in (see navdb.in_view).
+    var map = L.map(el, { zoomControl: true, preferCanvas: false, minZoom: 1, worldCopyJump: true }).setView([41.72778, -74.37722], 8);
     // Sharp by design: the street map is requested at double resolution on phones (detectRetina), and every aviation
     // symbol / airway is drawn as vector graphics from our own database, so nothing here depends on how sharp
     // someone else's chart tiles are. The FAA sectional is only an optional overlay (see the layers button).
     var osm = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-    var street = L.tileLayer(osm, { maxZoom: 18, maxNativeZoom: 18, detectRetina: true, attribution: '&copy; OpenStreetMap', className: 'avm-grey' }).addTo(map);
-    var streetPlain = L.tileLayer(osm, { maxZoom: 18, maxNativeZoom: 18, detectRetina: true, attribution: '&copy; OpenStreetMap' });
+    var street = L.tileLayer(osm, { minZoom: 0, maxZoom: 18, maxNativeZoom: 18, detectRetina: true, attribution: '&copy; OpenStreetMap', className: 'avm-grey' }).addTo(map);
+    var streetPlain = L.tileLayer(osm, { minZoom: 0, maxZoom: 18, maxNativeZoom: 18, detectRetina: true, attribution: '&copy; OpenStreetMap' });
     var sectional = L.tileLayer('https://tiles.arcgis.com/tiles/ssFJjBXIUyZDrSYZ/arcgis/rest/services/VFR_Sectional/MapServer/tile/{z}/{y}/{x}', {
       minZoom: 8, minNativeZoom: 8, maxNativeZoom: 12, maxZoom: 18, opacity: .85, attribution: 'FAA VFR Sectional' });
     var airwayLayer = L.layerGroup().addTo(map);

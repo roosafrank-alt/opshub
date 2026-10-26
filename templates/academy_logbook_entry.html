@@ -22,9 +22,10 @@
       {% for f, label in [('total','Total (Hobbs)'),('dual','Dual received'),('solo','Solo')] %}
       <div class="col-4 col-md-2">
         <label class="form-label small mb-0">{{ label }}</label>
-        <input type="number" step="0.1" min="0" name="{{ f }}" value="{{ e[f] if e[f] is not none else '' }}" class="form-control form-control-sm" {{ '' if staff else 'readonly' }}>
+        <input type="number" step="0.1" min="0" name="{{ f }}" value="{{ e[f] if e[f] is not none else '' }}" class="form-control form-control-sm" {{ 'readonly' if times_locked else '' }}>
       </div>
       {% endfor %}
+      {% if e.flight_id %}<div class="col-12"><div class="small text-muted"><i class="bi bi-lock-fill"></i> Locked: these times come from the billed flight. Nobody can type them in here; if they're wrong, the flight has to be corrected.</div></div>{% endif %}
       <div class="col-12 col-md-6">
         <label class="form-label small mb-0">Instructor</label>
         <div class="form-control form-control-sm bg-light">{% if e.instructor_name %}{{ e.instructor_name }}{% if e.instructor_cert %} &middot; CFI #{{ e.instructor_cert }}{% endif %}{% if e.instructor_cert_exp %} exp {{ e.instructor_cert_exp|usdate }}{% endif %}{% else %}- (solo){% endif %}</div>

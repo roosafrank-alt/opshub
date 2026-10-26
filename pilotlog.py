@@ -326,6 +326,15 @@ def ensure_entry(conn, flight_id):
                      (flight_id, f["student_id"], f["cfi_id"], f["asset_id"], f["flight_date"], f["tag"], make_model,
                       total, dual, solo, pic, day_ldg, night_ldg, f["night_landings_fs"] or 0, *instructor,
                       now_iso(), now_iso()))
+    elif existing["status"] != "pending":
+        # LOCK: the times come from the billed flight and nothing else, even once the student approved the
+        # entry. A correction made on the flight flows through; the student's own sub-times (cross-country,
+        # night, instrument, PIC) can never exceed the flight's total.
+        conn.execute("""UPDATE pilot_logbook SET total=?, dual=?, solo=?,
+                        pic=MIN(pic, ?), xc=MIN(xc, ?), night=MIN(night, ?), actual_inst=MIN(actual_inst, ?), sim_inst=MIN(sim_inst, ?),
+                        updated_at=? WHERE id=?""",
+                     (total, dual, solo, total, total, total, total, total, now_iso(), existing["id"]))
+        _cap_instrument(conn, existing["id"], total)
     elif existing["status"] == "pending":
         conn.execute("""UPDATE pilot_logbook SET student_id=?, cfi_id=?, asset_id=?, entry_date=?, tail=?, make_model=?,
                         total=?, dual=?, solo=?, pic=?, day_ldg=?, night_ldg=?, night_fs=?, instructor_name=?,
@@ -333,6 +342,13 @@ def ensure_entry(conn, flight_id):
                      (f["student_id"], f["cfi_id"], f["asset_id"], f["flight_date"], f["tag"], make_model,
                       total, dual, solo, pic, day_ldg, night_ldg, f["night_landings_fs"] or 0, *instructor,
                       now_iso(), existing["id"]))
+
+
+def _cap_instrument(conn, entry_id, total):
+    """Actual + simulated instrument together can't be more than the flight's total."""
+    r = conn.execute("SELECT actual_inst, sim_inst FROM pilot_logbook WHERE id = ?", (entry_id,)).fetchone()
+    if r and (r["actual_inst"] or 0) + (r["sim_inst"] or 0) > total + 1e-9:
+        conn.execute("UPDATE pilot_logbook SET sim_inst=? WHERE id=?", (round(max(0.0, total - (r["actual_inst"] or 0)), 1), entry_id))
 
 
 def remove_for_flight(conn, flight_id):
@@ -559,11 +575,22 @@ def entry(entry_id):
                 val = _num(raw, kind)
             sets.append(f"{field}=?")
             args.append(val)
-        # Times that come from the flight itself - only staff can correct them.
-        if _is_staff():
+        # LOCK: the times of a school flight come from the billed flight, for everyone (admins too):
+        # correct the flight itself and the entry follows. Only an entry with no flight behind it
+        # (not one the school billed) can have its times typed in, and only by staff.
+        total_val = e["total"] or 0
+        if e["flight_id"] is None and _is_staff():
+            total_val = _num(request.form.get("total")) or 0
             for field in ("total", "dual", "solo"):
                 sets.append(f"{field}=?")
                 args.append(_num(request.form.get(field)) or 0)
+        # A student can't log more of anything than the flight itself lasted.
+        for i, (field, _label, kind) in enumerate(STUDENT_FIELDS):
+            if field in ("pic", "xc", "night", "actual_inst", "sim_inst") and args[i] is not None:
+                args[i] = min(args[i], total_val)
+        ai, si = [i for i, f in enumerate(STUDENT_FIELDS) if f[0] == "actual_inst"][0], [i for i, f in enumerate(STUDENT_FIELDS) if f[0] == "sim_inst"][0]
+        if (args[ai] or 0) + (args[si] or 0) > total_val:
+            args[si] = round(max(0.0, total_val - (args[ai] or 0)), 1)
         approve = request.form.get("action") == "approve"
         if approve:
             sets += ["status='complete'", "approved_at=?", "approved_by=?"]
@@ -579,7 +606,8 @@ def entry(entry_id):
             return redirect(url_for("pilotlog.logbook", student_id=e["student_id"] if _is_staff() else None))
         return redirect(url_for("pilotlog.entry", entry_id=entry_id))
     conn.close()
-    return render_template("academy_logbook_entry.html", e=e, fields=STUDENT_FIELDS, staff=_is_staff(), can_edit=_can_edit(e), tab="logbook")
+    return render_template("academy_logbook_entry.html", e=e, fields=STUDENT_FIELDS, staff=_is_staff(), can_edit=_can_edit(e), tab="logbook",
+                           times_locked=e["flight_id"] is not None or not _is_staff())
 
 
 # ---------------------------------------------------------------- ForeFlight import
