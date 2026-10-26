@@ -520,26 +520,29 @@ b.addEventListener('click',function(){var open=n.hidden;n.hidden=!open;b.setAttr
       find.focus();
     }
   }
-  function pick(e) {
-    return e.target.closest && e.target.closest('.avail-slot-booked select');
+  // The browser's own list (clipped inside the narrow cell) must never open:
+  // each select gets a transparent cover, and a tap/click on the cover opens
+  // ours. Works the same for mouse and touch, in every browser.
+  function cover(sel) {
+    if (sel.dataset.wlCovered) { return; }
+    sel.dataset.wlCovered = '1';
+    sel.tabIndex = -1;
+    sel.style.pointerEvents = 'none';
+    var wrap = document.createElement('div');
+    wrap.style.position = 'relative';
+    sel.parentNode.insertBefore(wrap, sel);
+    wrap.appendChild(sel);
+    var c = document.createElement('div');
+    c.setAttribute('role', 'button');
+    c.setAttribute('aria-label', 'Choose student');
+    c.style.cssText = 'position:absolute;inset:0;cursor:pointer;z-index:1';
+    c.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); open(sel); });
+    wrap.appendChild(c);
   }
+  Array.prototype.forEach.call(document.querySelectorAll('.avail-slot-booked select'), cover);
   document.addEventListener('mousedown', function (e) {
-    var sel = pick(e);
     if (pop && !(e.target.closest && e.target.closest('.wl-pop'))) { close(); }
-    if (!sel) { return; }
-    e.preventDefault();
-    open(sel);
   });
-  // Phones: block the cramped native picker and open ours on a tap.
-  var moved = false;
-  document.addEventListener('touchstart', function () { moved = false; }, { passive: true });
-  document.addEventListener('touchmove', function () { moved = true; }, { passive: true });
-  document.addEventListener('touchend', function (e) {
-    var sel = pick(e);
-    if (!sel || moved) { return; }
-    e.preventDefault();
-    open(sel);
-  }, { passive: false });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { close(); } });
   window.addEventListener('scroll', function (e) {
     if (pop && pop.contains(e.target)) { return; }

@@ -31,5 +31,5 @@ class AvailabilityWaitlistPopupTest(OpsHubTestCase):
         c = self.login("flight_admin")
         html = c.get(f"/flight/schedule/availability?view=day&date={self.day.isoformat()}&mode=calendar").get_data(as_text=True)
         self.assertIn("wl-sheet", html)
-        self.assertIn("touchend", html)
+        self.assertIn("wlCovered", html)
         self.assertIn("Choose student", html)
