@@ -4012,20 +4012,22 @@ def plane_edit(asset_id):
         if not tag:
             flash("Tail number is required.", "danger")
             conn.close()
-            return render_template("flight/plane_form.html", plane=plane, form=request.form)
+            return render_template("flight/plane_form.html", plane=plane, form=request.form, ac_features=pilotlog.AC_FEATURES)
         dup = conn.execute("SELECT id FROM assets WHERE tag = ? AND id != ? AND deleted_at IS NULL", (tag, asset_id)).fetchone()
         if dup:
             flash(f"There is already an aircraft with the tail number {tag}.", "danger")
             conn.close()
-            return render_template("flight/plane_form.html", plane=plane, form=request.form)
-        conn.execute("UPDATE assets SET tag = ?, name = ?, make = ?, model = ?, is_flight_asset = ?, school_listed = MAX(school_listed, ?), updated_at = ? WHERE id = ?",
-                     (tag, name or tag, make, model, is_flight_asset, is_flight_asset, now_iso(), asset_id))
+            return render_template("flight/plane_form.html", plane=plane, form=request.form, ac_features=pilotlog.AC_FEATURES)
+        features = pilotlog.clean_features(request.form.getlist("ac_features"))
+        conn.execute("UPDATE assets SET tag = ?, name = ?, make = ?, model = ?, is_flight_asset = ?, school_listed = MAX(school_listed, ?), ac_features = ?, updated_at = ? WHERE id = ?",
+                     (tag, name or tag, make, model, is_flight_asset, is_flight_asset, features, now_iso(), asset_id))
+        pilotlog.apply_plane_features(conn, asset_id, features)
         conn.commit()
         conn.close()
         flash(f"{tag} saved." + ("" if is_flight_asset else f" {tag} is no longer used by the flight school (off the Schedule), but stays on the Planes list so you can turn it back on."), "success")
         return redirect(url_for("flight.planes_list"))
     conn.close()
-    return render_template("flight/plane_form.html", plane=plane, form=None)
+    return render_template("flight/plane_form.html", plane=plane, form=None, ac_features=pilotlog.AC_FEATURES)
 
 
 @flight_bp.route("/planes/simulator/new", methods=["GET", "POST"])

@@ -35,10 +35,14 @@
     </div>
     {% if not staff %}<div class="form-text mb-2">Times come from the plane's Hobbs meter and can only be corrected by an instructor.</div>{% endif %}
 
-    <div class="form-check mt-3">
-      <input class="form-check-input" type="checkbox" name="complex_tae" id="complex_tae" value="1" {{ 'checked' if e.complex_tae }}>
-      <label class="form-check-label small" for="complex_tae">This flight was training in a <strong>complex, turbine or technically advanced airplane</strong> (counts toward the commercial 10 hours on Progress)</label>
+    <h6 class="mt-3">The airplane</h6>
+    <div class="d-flex flex-wrap gap-3 mb-1">
+      {% for code, label in ac_features %}
+      <div class="form-check"><input class="form-check-input" type="checkbox" name="ac_features" value="{{ code }}" id="acf-{{ code }}" {{ 'checked' if code in (e.ac_features or '').split(',') }}>
+        <label class="form-check-label small" for="acf-{{ code }}">{{ label }}</label></div>
+      {% endfor %}
     </div>
+    <div class="form-text mb-2">Filled in from the plane's school profile for school flights; tick the right ones on anything else. Complex, technically advanced or turbine flights count toward the commercial 10 hours on Progress.</div>
 
     <h6 class="mt-3">Your details</h6>
     <div class="row g-2">

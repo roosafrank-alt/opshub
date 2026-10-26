@@ -29,6 +29,16 @@
         <input type="text" name="model" class="form-control" value="{{ F.get('model') if F is not none else (plane.model or '') }}" placeholder="172S">
       </div>
     </div>
+    <div class="mb-3">
+      <label class="form-label">This airplane is <span class="text-muted small">(shows on every student's logbook entry for flights in it)</span></label>
+      <div class="d-flex flex-wrap gap-3">
+        {% set chosen = F.getlist('ac_features') if F is not none else (plane.ac_features or '').split(',') %}
+        {% for code, label in ac_features %}
+        <div class="form-check"><input type="checkbox" class="form-check-input" name="ac_features" value="{{ code }}" id="ac-{{ code }}" {{ 'checked' if code in chosen }}>
+          <label class="form-check-label" for="ac-{{ code }}">{{ label }}</label></div>
+        {% endfor %}
+      </div>
+    </div>
     <div class="form-check mb-3">
       <input type="checkbox" class="form-check-input" name="is_flight_asset" id="is-flight-asset" {{ 'checked' if (F.get('is_flight_asset') if F is not none else plane.is_flight_asset) }}>
       <label class="form-check-label" for="is-flight-asset">Used by Flight School <span class="text-muted small">(untick to take it off the Planes list and the Schedule)</span></label>

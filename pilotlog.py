@@ -301,11 +301,36 @@ def flight_times(f):
     return total, dual, solo, solo
 
 
+# Aircraft features a plane can carry on its school profile; they copy onto every logbook entry flown in it.
+AC_FEATURES = [("tailwheel", "Tailwheel"), ("complex", "Complex"), ("high_performance", "High performance"),
+               ("taa", "Technically advanced (TAA)"), ("pressurized", "Pressurized"), ("turbine", "Turbine")]
+AC_CODES = [c for c, _ in AC_FEATURES]
+
+
+def clean_features(values):
+    """Comma string of the known feature codes, in a fixed order (None when none)."""
+    if isinstance(values, str):
+        values = values.split(",")
+    got = {v.strip() for v in (values or [])}
+    return ",".join(c for c in AC_CODES if c in got) or None
+
+
+def counts_as_complex(features):
+    """Complex, turbine or technically advanced: what the commercial 10 hours ask for."""
+    return 1 if set((features or "").split(",")) & {"complex", "taa", "turbine"} else 0
+
+
+def apply_plane_features(conn, asset_id, features):
+    """A plane's features changed: carry them onto the logbook entries of school flights in it."""
+    conn.execute("UPDATE pilot_logbook SET ac_features = ?, complex_tae = ? WHERE asset_id = ? AND flight_id IS NOT NULL",
+                 (features, counts_as_complex(features), asset_id))
+
+
 def ensure_entry(conn, flight_id):
     """Create (or, while still pending, refresh) the logbook entry for one
     finished flight. Called from flight.py wherever a flight is logged,
     ended or edited. A completed (student-approved) entry is left alone."""
-    f = conn.execute("""SELECT f.*, a.tag, a.make, a.model, c.name as cfi_name,
+    f = conn.execute("""SELECT f.*, a.tag, a.make, a.model, a.ac_features, c.name as cfi_name,
                                c.cfi_cert_number, c.cfi_cert_expires, c.signature as cfi_signature
                         FROM flights f JOIN assets a ON a.id = f.asset_id
                         LEFT JOIN cfis c ON c.id = f.cfi_id WHERE f.id = ?""", (flight_id,)).fetchone()
@@ -321,11 +346,11 @@ def ensure_entry(conn, flight_id):
     if existing is None:
         conn.execute("""INSERT INTO pilot_logbook (flight_id, student_id, cfi_id, asset_id, entry_date, tail, make_model,
                         total, dual, solo, pic, day_ldg, night_ldg, night_fs, instructor_name, instructor_cert,
-                        instructor_cert_exp, instructor_signature, status, created_at, updated_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?)""",
+                        instructor_cert_exp, instructor_signature, status, created_at, updated_at, ac_features, complex_tae)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)""",
                      (flight_id, f["student_id"], f["cfi_id"], f["asset_id"], f["flight_date"], f["tag"], make_model,
                       total, dual, solo, pic, day_ldg, night_ldg, f["night_landings_fs"] or 0, *instructor,
-                      now_iso(), now_iso()))
+                      now_iso(), now_iso(), f["ac_features"], counts_as_complex(f["ac_features"])))
     elif existing["status"] != "pending":
         # LOCK: the times come from the billed flight and nothing else, even once the student approved the
         # entry. A correction made on the flight flows through; the student's own sub-times (cross-country,
@@ -338,10 +363,10 @@ def ensure_entry(conn, flight_id):
     elif existing["status"] == "pending":
         conn.execute("""UPDATE pilot_logbook SET student_id=?, cfi_id=?, asset_id=?, entry_date=?, tail=?, make_model=?,
                         total=?, dual=?, solo=?, pic=?, day_ldg=?, night_ldg=?, night_fs=?, instructor_name=?,
-                        instructor_cert=?, instructor_cert_exp=?, instructor_signature=?, updated_at=? WHERE id=?""",
+                        instructor_cert=?, instructor_cert_exp=?, instructor_signature=?, updated_at=?, ac_features=?, complex_tae=? WHERE id=?""",
                      (f["student_id"], f["cfi_id"], f["asset_id"], f["flight_date"], f["tag"], make_model,
                       total, dual, solo, pic, day_ldg, night_ldg, f["night_landings_fs"] or 0, *instructor,
-                      now_iso(), existing["id"]))
+                      now_iso(), f["ac_features"], counts_as_complex(f["ac_features"]), existing["id"]))
 
 
 def _cap_instrument(conn, entry_id, total):
@@ -651,8 +676,9 @@ def entry(entry_id):
         ai, si = [i for i, f in enumerate(STUDENT_FIELDS) if f[0] == "actual_inst"][0], [i for i, f in enumerate(STUDENT_FIELDS) if f[0] == "sim_inst"][0]
         if (args[ai] or 0) + (args[si] or 0) > total_val:
             args[si] = round(max(0.0, total_val - (args[ai] or 0)), 1)
-        sets.append("complex_tae=?")
-        args.append(1 if request.form.get("complex_tae") else 0)
+        feats = clean_features(request.form.getlist("ac_features"))
+        sets += ["ac_features=?", "complex_tae=?"]
+        args += [feats, counts_as_complex(feats)]
         approve = request.form.get("action") == "approve"
         if approve:
             sets += ["status='complete'", "approved_at=?", "approved_by=?"]
@@ -668,7 +694,7 @@ def entry(entry_id):
             return redirect(url_for("pilotlog.logbook", student_id=e["student_id"] if _is_staff() else None))
         return redirect(url_for("pilotlog.entry", entry_id=entry_id))
     conn.close()
-    return render_template("academy_logbook_entry.html", e=e, fields=STUDENT_FIELDS, staff=_is_staff(), can_edit=_can_edit(e), tab="logbook",
+    return render_template("academy_logbook_entry.html", ac_features=AC_FEATURES, e=e, fields=STUDENT_FIELDS, staff=_is_staff(), can_edit=_can_edit(e), tab="logbook",
                            times_locked=e["flight_id"] is not None or not _is_staff())
 
 

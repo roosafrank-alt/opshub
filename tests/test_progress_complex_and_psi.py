@@ -53,3 +53,20 @@ class KnowledgeTestsTabTest(ComplexAndPsiTest):
         self.assertIn("Satisfactory", html)
         self.assertIn("View report", html)
         self.assertLess(html.index("Endorsements</a>"), html.index("Knowledge tests</a>"))
+
+
+class PlaneFeaturesTest(OpsHubTestCase):
+    def test_plane_features_carry_to_logbook_entries(self):
+        sid = self.q1("SELECT id FROM students WHERE user_id = ?", (self.users["flight_student"]["id"],))["id"]
+        aid = self.exec("INSERT INTO assets (tag, name, is_flight_asset, school_listed) VALUES ('N1TW', 'TW', 1, 1)")
+        fid = self.exec("INSERT INTO flights (student_id, asset_id, flight_date) VALUES (?, ?, '2026-10-01')", (sid, aid))
+        eid = self.exec("""INSERT INTO pilot_logbook (student_id, asset_id, flight_id, entry_date, total, dual, status)
+                           VALUES (?, ?, ?, '2026-10-01', 1.0, 1.0, 'pending')""", (sid, aid, fid))
+        r = self.login("flight_admin").post(f"/flight/planes/{aid}/edit", data={"tag": "N1TW", "make": "Cessna", "model": "T", "is_flight_asset": "on",
+                                                                                   "ac_features": ["tailwheel", "complex"]})
+        self.assertIn(r.status_code, (302, 303))
+        e = self.q1("SELECT ac_features, complex_tae FROM pilot_logbook WHERE id = ?", (eid,))
+        self.assertEqual(e["ac_features"], "tailwheel,complex")
+        self.assertEqual(e["complex_tae"], 1)
+        html = self.login("flight_admin").get(f"/flight/planes/{aid}/edit").get_data(as_text=True)
+        self.assertIn("Pressurized", html)
