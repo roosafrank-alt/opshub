@@ -21,3 +21,9 @@ class EndorsementsGoalChecklistTest(OpsHubTestCase):
     def test_other_goals_have_a_checklist_too(self):
         self.exec("UPDATE students SET pilot_certificate = 'private', training_goal = 'complex' WHERE id = ?", (self.sid,))
         self.assertIn("Needed for Complex Endorsement", self.page())
+
+    def test_atp_holder_with_no_goal_is_not_told_they_need_atp(self):
+        self.exec("UPDATE students SET pilot_certificate = 'atp', training_goal = NULL WHERE id = ?", (self.sid,))
+        html = self.page()
+        self.assertNotIn("Needed for Airline Transport Pilot", html)
+        self.assertNotIn("Still need", html.split("Needed for")[0] if "Needed for" in html else html)

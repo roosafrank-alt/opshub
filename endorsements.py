@@ -490,6 +490,8 @@ def _track_for(student, requested=None):
     if code in REQUIREMENTS:
         return code
     cert = student["pilot_certificate"] if student is not None and "pilot_certificate" in student.keys() else None
+    if cert == "atp":
+        return ""  # already holds the top certificate: nothing to "need" unless they pick a goal or a checklist
     return NEXT_TRACK.get(cert, "private")
 
 
