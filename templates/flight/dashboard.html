@@ -492,6 +492,7 @@
   </div>
 </div>
 <script>
+{% from "flight/_day_grid.html" import day_grid_cfi_js %}{{ day_grid_cfi_js() }}
 (function () {
   // Open: copy the current full weather (kept fresh by live-refresh) into the popup.
   function openWx() {
@@ -670,6 +671,7 @@
         if (html === null) return;
         region.innerHTML = html;
         restoreOpenState(openState);
+        if (window.schCfiApply) window.schCfiApply();
       })
       .catch(function () { /* network hiccup - just try again next tick */ })
       .finally(function () { inFlight = false; });
@@ -699,6 +701,7 @@
         if (html === null) { showDashFlag('Something went wrong - try again.', 'danger'); return; }
         region.innerHTML = html;
         restoreOpenState(openState);
+        if (window.schCfiApply) window.schCfiApply();
       })
       .catch(function () { showDashFlag('Something went wrong - try again.', 'danger'); })
       .finally(function () { inFlight = false; });

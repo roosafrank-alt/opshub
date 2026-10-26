@@ -36,7 +36,7 @@ class ScheduleDayGridTest(OpsHubTestCase):
 
     def test_day_view_lists_instructor_buttons_like_availability(self):
         html = self.day()
-        self.assertIn('id="availCfiSide"', html)
+        self.assertIn('class="avail-cfi-side"', html)
         self.assertIn(f'data-cfi="{self.cfi}"', html)
         self.assertIn("avail-cfi-chips", html)
 
