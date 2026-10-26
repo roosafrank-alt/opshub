@@ -8649,6 +8649,30 @@ def log_add_oil(flight_id):
     return _reply(True, "1 qt oil added (%g qt this flight)." % qt, qt=qt, by=by)
 
 
+@flight_bp.route("/log/<int:flight_id>/toggle_gauges", methods=["POST"])
+@login_required
+def log_toggle_gauges(flight_id):
+    """The "Hobbs/Tach match" button on the Active Flight board: like the oil
+    button, one tap saves right away; tapping again clears it."""
+    conn = get_db()
+    f = conn.execute("SELECT * FROM flights WHERE id = ?", (flight_id,)).fetchone()
+    if not f or not f["started_at"] or f["ended_at"]:
+        conn.close()
+        return jsonify({"ok": False, "message": "That flight isn't currently running."}), 400
+    if not _can_end_flight(f):
+        conn.close()
+        return jsonify({"ok": False, "message": "Only the assigned instructor, the student (on a solo flight), or a master admin can update this flight."}), 403
+    asset = conn.execute("SELECT is_owner_placeholder, is_simulator FROM assets WHERE id = ?", (f["asset_id"],)).fetchone()
+    if asset and (asset["is_owner_placeholder"] or asset["is_simulator"]):
+        conn.close()
+        return jsonify({"ok": False, "message": "Gauges aren't checked for this aircraft."}), 400
+    checked = None if f["gauges_checked_at"] else now_iso()
+    conn.execute("UPDATE flights SET gauges_checked_at=? WHERE id=?", (checked, flight_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True, "checked": bool(checked)})
+
+
 @flight_bp.route("/log/<int:flight_id>/update_progress", methods=["POST"])
 @login_required
 def log_update_progress(flight_id):
@@ -8705,14 +8729,10 @@ def log_update_progress(flight_id):
         squawk = 0
     else:
         squawk = f["squawk"]
-    # Hobbs/Tach check box and its "what is off" note (not for own-plane/sim sessions, which have no gauges here).
+    # The "what is off" note for Hobbs/Tach (the check button saves itself, see log_toggle_gauges) (not for own-plane/sim sessions, which have no gauges here).
     gauges_checked_at, gauges_note = f["gauges_checked_at"], f["gauges_note"]
     if not is_sim and not is_own_plane:
         gauges_note = request.form.get("gauges_note", "").strip() or None
-        if request.form.get("gauges_ok"):
-            gauges_checked_at = gauges_checked_at or now_iso()
-        else:
-            gauges_checked_at = None
     conn.execute("UPDATE flights SET hobbs_start=?, tach_start=?, oil_added_qt=?, oil_added_by=?, notes=?, squawk=?, gauges_checked_at=?, gauges_note=? WHERE id=?",
                  (hobbs_start, tach_start, oil_added_qt, oil_added_by, notes, squawk, gauges_checked_at, gauges_note, flight_id))
     conn.commit()

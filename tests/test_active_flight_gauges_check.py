@@ -1,4 +1,4 @@
-"""Idea "on an active flight page": a check box to confirm the Hobbs and Tach
+"""Idea "on an active flight page": a button to confirm the Hobbs and Tach
 start match the gauges, and a note for when they are off."""
 from harness import OpsHubTestCase
 import db
@@ -20,23 +20,25 @@ class ActiveFlightGaugesCheckTest(OpsHubTestCase):
     def row(self):
         return self.q1("SELECT gauges_checked_at, gauges_note FROM flights WHERE id = ?", (self.fid,))
 
-    def test_box_and_note_show_unchecked(self):
+    def test_button_and_note_show_unchecked(self):
         html = self.client.get("/flight/log/active").get_data(as_text=True)
-        self.assertIn('name="gauges_ok"', html)
+        self.assertIn('id="gauges_btn_%d"' % self.fid, html)
         self.assertIn('name="gauges_note"', html)
-        self.assertNotIn('name="gauges_ok" value="1" id="gauges_ok_%d" checked' % self.fid, html)
+        self.assertNotIn('btn-success" id="gauges_btn_%d"' % self.fid, html)
 
-    def test_ticking_saves_and_shows_checked(self):
-        self.client.post("/flight/log/%d/update_progress" % self.fid, data={"gauges_ok": "1"})
-        r = self.row()
-        self.assertTrue(r["gauges_checked_at"])
-        self.assertFalse(r["gauges_note"])
+    def test_button_toggles_and_shows_checked(self):
+        r = self.client.post("/flight/log/%d/toggle_gauges" % self.fid, headers={"X-Requested-With": "fetch"})
+        self.assertTrue(r.get_json()["checked"])
+        self.assertTrue(self.row()["gauges_checked_at"])
         html = self.client.get("/flight/log/active").get_data(as_text=True)
-        self.assertIn('id="gauges_ok_%d" checked' % self.fid, html)
+        self.assertIn('btn btn-sm btn-success" id="gauges_btn_%d"' % self.fid, html)
+        r = self.client.post("/flight/log/%d/toggle_gauges" % self.fid, headers={"X-Requested-With": "fetch"})
+        self.assertFalse(r.get_json()["checked"])
+        self.assertIsNone(self.row()["gauges_checked_at"])
 
-    def test_note_saves_and_untick_clears_check(self):
-        self.client.post("/flight/log/%d/update_progress" % self.fid, data={"gauges_ok": "1"})
+    def test_saving_note_keeps_check(self):
+        self.client.post("/flight/log/%d/toggle_gauges" % self.fid)
         self.client.post("/flight/log/%d/update_progress" % self.fid, data={"gauges_note": "Hobbs reads 1233.4"})
         r = self.row()
-        self.assertIsNone(r["gauges_checked_at"])
+        self.assertTrue(r["gauges_checked_at"])
         self.assertEqual(r["gauges_note"], "Hobbs reads 1233.4")
