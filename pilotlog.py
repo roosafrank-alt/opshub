@@ -456,30 +456,35 @@ def _totals(entries):
 
 
 def target_eta(entries, track):
-    """Weeks-to-go for a chosen target track's headline hours requirement
-    (the "totalizar" button's estimate), based on this student's own
-    average hours/week so far - not a generic rule of thumb. None if the
-    track has no hours requirement to project, or there isn't enough
-    logbook history yet (fewer than 2 distinct flight dates, or no hours
-    logged in that span)."""
-    hour_items = [i for i in track["items"] if i["kind"] == "hours"]
-    if not hour_items:
+    """Where a chosen target stands, requirement by requirement. Every unmet hours/count requirement gets
+    its own estimate from the student's own pace in THAT category (first logged flight to today); the
+    overall ETA is the slowest of them (the long pole). Requirements an instructor checks off (tests,
+    endorsements, checkrides) can't be paced and are only counted. None if there is no history."""
+    from datetime import date as _d
+    if not entries:
         return None
-    # The track's overall "total flight time" item if it has one, else
-    # whichever single item needs the most hours - the likely long pole.
-    headline = next((i for i in hour_items if i["col"] == "total"), None) or max(hour_items, key=lambda i: i["need"])
-    remaining = round(max(0.0, headline["need"] - headline["have"]), 1)
-    if remaining <= 0:
-        return {"headline": headline, "remaining": 0, "weeks": 0}
-    dates = sorted(set(e["entry_date"] for e in entries))
-    if len(dates) < 2:
+    first = min((e["entry_date"] or "")[:10] for e in entries)
+    try:
+        weeks_span = max(1.0, (_d.today() - _d.fromisoformat(first)).days / 7)
+    except ValueError:
         return None
-    days = max(1, (date.fromisoformat(dates[-1][:10]) - date.fromisoformat(dates[0][:10])).days)
-    hrs_per_week = sum((e["total"] or 0) for e in entries) / (days / 7)
-    if hrs_per_week <= 0:
-        return None
-    return {"headline": headline, "remaining": remaining, "weeks": round(remaining / hrs_per_week, 1),
-            "hrs_per_week": round(hrs_per_week, 1)}
+    rows, manual_left = [], 0
+    for it in track["items"]:
+        if it["done"]:
+            continue
+        if it["kind"] not in ("hours", "count"):
+            manual_left += 1
+            continue
+        remaining = round(max(0.0, it["need"] - it["have"]), 1)
+        got = sum(f["amount"] for f in it.get("flights", []))
+        pace = got / weeks_span if got else 0
+        rows.append({"label": it["label"], "need": it["need"], "have": it["have"], "remaining": remaining,
+                     "unit": "hrs" if it["kind"] == "hours" else "", "weeks": round(remaining / pace, 1) if pace else None,
+                     "pace": round(pace, 2)})
+    paced = [r["weeks"] for r in rows if r["weeks"] is not None]
+    return {"rows": rows, "manual_left": manual_left, "weeks": max(paced) if paced else 0,
+            "unpaced": [r for r in rows if r["weeks"] is None],
+            "hrs_per_week": round(sum((e["total"] or 0) for e in entries) / weeks_span, 1)}
 
 
 def _pick_student(conn):

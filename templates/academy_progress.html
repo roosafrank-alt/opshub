@@ -35,15 +35,26 @@
     </form>
   </div>
   {% if target %}
+  <div class="small text-muted mb-2">{{ target.done_count }} of {{ target['items']|length }} requirements met ({{ target.pct }}% overall, counting the instructor sign-offs).</div>
   {% if target.pct >= 100 %}
-  <div class="alert alert-success mb-0 py-2"><i class="bi bi-check-circle-fill"></i> Every requirement for {{ target.name }} is already met.</div>
+  <div class="alert alert-success mb-0 py-2"><i class="bi bi-check-circle-fill"></i> Every requirement for {{ target.name }} is met.</div>
   {% elif eta %}
-  <div class="alert alert-info mb-0 py-2"><i class="bi bi-graph-up-arrow"></i> At an average pace of <strong>{{ eta.hrs_per_week }} hrs/week</strong>,
-    {% if eta.weeks <= 0 %}the {{ eta.headline.label|lower }} requirement is already met.
-    {% else %}reaching <strong>{{ eta.headline.need }}{{ ' hrs' if eta.headline.kind == 'hours' }}</strong> ({{ eta.headline.label|lower }} - {{ eta.remaining }} to go) is about <strong>{{ eta.weeks }} week{{ 's' if eta.weeks != 1 }}</strong> away.{% endif %}</div>
+  {% if eta.rows %}
+  <div class="table-responsive"><table class="table table-sm align-middle mb-2">
+    <thead><tr class="small text-muted"><th>Still needed</th><th class="text-end">Have / need</th><th class="text-end">To go</th><th class="text-end">At your pace</th></tr></thead>
+    <tbody>{% for r in eta.rows %}
+      <tr><td>{{ r.label }}</td><td class="text-end">{{ r.have }} / {{ r.need }}</td><td class="text-end">{{ r.remaining }}{{ ' hrs' if r.unit }}</td>
+        <td class="text-end">{% if r.weeks is none %}<span class="text-muted">no pace yet</span>{% elif r.weeks < 1 %}under a week{% else %}~{{ r.weeks|round(0)|int }} wk{% endif %}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  {% if eta.weeks %}<div class="alert alert-info mb-2 py-2"><i class="bi bi-graph-up-arrow"></i> The slowest hours requirement sets the pace: about <strong>{{ eta.weeks|round(0)|int }} week{{ 's' if eta.weeks|round(0)|int != 1 }}</strong> of flying like you have been (each category is paced on its own flights).</div>{% endif %}
   {% else %}
-  <div class="small text-muted">Not enough logbook history yet to estimate a pace (need at least two different flight dates).</div>
+  <div class="alert alert-success mb-2 py-2"><i class="bi bi-check-circle"></i> All the hour and landing requirements for {{ target.name }} are met.</div>
   {% endif %}
+  {% if eta.manual_left %}<div class="small text-muted">{{ eta.manual_left }} more {{ 'is' if eta.manual_left == 1 else 'are' }} checked off by an instructor (tests, endorsements, checkride) - see the checklist below.</div>{% endif %}
+  {% else %}
+  <div class="small text-muted">Not enough logbook history yet to estimate a pace.</div>
+  {% endif %}
+  <a href="#t-{{ target.code }}" class="small d-inline-block mt-1">See the full requirements checklist &raquo;</a>
   {% endif %}
 </div>
 
