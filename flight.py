@@ -1199,12 +1199,12 @@ def _alert_fix_links(reason, scheduled_id, student_id):
     reason = reason or ""
     links = []
     edit_url = url_for("flight.schedule_edit", scheduled_id=scheduled_id)
-    # Picking an instructor starts on the Availability page for the booking's
-    # day, where each instructor shows as free or busy.
+    # Picking an instructor starts on the Schedule day view for the booking's
+    # day, with this booking highlighted.
     conn = get_db()
     sf = conn.execute("SELECT scheduled_date FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
     conn.close()
-    avail_url = (url_for("flight.schedule_availability", date=sf["scheduled_date"]) if sf and sf["scheduled_date"]
+    avail_url = (url_for("flight.schedule_calendar", view="day", date=sf["scheduled_date"], highlight=scheduled_id) if sf and sf["scheduled_date"]
                  else edit_url)
     if "medical" in reason and student_id:
         links.append(dict(label="Update medical", icon="bi-heart-pulse",
@@ -1227,7 +1227,7 @@ def _alert_fix_links(reason, scheduled_id, student_id):
     if not any(l["url"] in (edit_url, avail_url) for l in links):
         links.append(dict(label="Assign CFI" if not links else "Open booking", icon="bi-person-plus" if not links else "bi-pencil",
                           url=avail_url if not links else edit_url,
-                          hint="See which instructors are free that day" if not links else "Edit the booking"))
+                          hint="Open that day on the Schedule, with this lesson highlighted" if not links else "Edit the booking"))
     return links
 
 
