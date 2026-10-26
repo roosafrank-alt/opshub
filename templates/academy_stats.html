@@ -7,20 +7,7 @@
 <div class="card academy-card p-3 mb-3">
   <h4 class="mb-1"><i class="bi bi-graph-up"></i> Stats</h4>
   <div class="small text-muted mb-2">{{ student.name }} · {{ range_label }}{% if start or end %} ({{ start or 'start' }} to {{ end or 'today' }}){% endif %}</div>
-  <form method="get" class="d-flex gap-2 flex-wrap align-items-center" id="stats-form">
-    {% if staff %}<input type="hidden" name="student_id" value="{{ student.id }}">{% endif %}
-    <div class="btn-group btn-group-sm" role="group">
-      {% for k, l in [('all','All time'),('1','1 month'),('6','6 months'),('12','12 months'),('custom','Custom')] %}
-      <button name="range" value="{{ k }}" class="btn {{ 'btn-dark' if range_key == k else 'btn-outline-dark' }}">{{ l }}</button>
-      {% endfor %}
-    </div>
-    {% if range_key == 'custom' %}
-    <input type="date" name="from" value="{{ start }}" class="form-control form-control-sm" style="width:auto;" aria-label="From">
-    <span class="small text-muted">to</span>
-    <input type="date" name="to" value="{{ end }}" class="form-control form-control-sm" style="width:auto;" aria-label="To">
-    <button name="range" value="custom" class="btn btn-primary btn-sm">Apply</button>
-    {% endif %}
-  </form>
+  {% include "_range_filter.html" %}
 </div>
 
 {% macro tile(value, label, sub='') %}

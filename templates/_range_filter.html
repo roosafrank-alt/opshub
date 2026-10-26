@@ -1,0 +1,15 @@
+{#- Date-range filter (All time / 1 / 6 / 12 months / Custom) shared by Logbook and Stats. Needs range_key, start, end. #}
+<form method="get" class="d-flex gap-2 flex-wrap align-items-center mb-2">
+  {% if staff and student %}<input type="hidden" name="student_id" value="{{ student.id }}">{% endif %}
+  <div class="btn-group btn-group-sm" role="group" aria-label="Date range">
+    {% for k, l in [('all','All time'),('1','1 month'),('6','6 months'),('12','12 months'),('custom','Custom')] %}
+    <button name="range" value="{{ k }}" class="btn {{ 'btn-dark' if range_key == k else 'btn-outline-dark' }}">{{ l }}</button>
+    {% endfor %}
+  </div>
+  {% if range_key == 'custom' %}
+  <input type="date" name="from" value="{{ start }}" class="form-control form-control-sm" style="width:auto;" aria-label="From">
+  <span class="small text-muted">to</span>
+  <input type="date" name="to" value="{{ end }}" class="form-control form-control-sm" style="width:auto;" aria-label="To">
+  <button name="range" value="custom" class="btn btn-primary btn-sm">Apply</button>
+  {% endif %}
+</form>

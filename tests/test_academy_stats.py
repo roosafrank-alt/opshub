@@ -38,3 +38,14 @@ class AcademyStatsTest(OpsHubTestCase):
     def test_stats_is_first_subtab(self):
         html = self.get().get_data(as_text=True)
         self.assertLess(html.index("bi-graph-up\"></i> Stats"), html.index("bi-journal-text\"></i> Logbook"))
+
+
+class LogbookRangeFilterTest(AcademyStatsTest):
+    def test_logbook_filters_by_range(self):
+        c = self.login("flight_student")
+        all_html = c.get("/academy/logbook").get_data(as_text=True)
+        one = c.get("/academy/logbook", query_string={"range": "1"}).get_data(as_text=True)
+        self.assertIn("KALB", all_html)
+        self.assertNotIn("KALB", one)
+        self.assertIn("KPOU", one)
+        self.assertIn("this range only", one)

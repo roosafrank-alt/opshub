@@ -21,6 +21,7 @@
       <a href="{{ url_for('pilotlog.export_csv', student_id=student.id if staff else None) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-download"></i> Export (CSV)</a>
     </div>
   </div>
+  <div class="mt-3">{% include "_range_filter.html" %}{% if range_key != 'all' %}<div class="small text-muted">Showing {{ range_label|lower }}{% if start or end %} ({{ start or 'start' }} to {{ end or 'today' }}){% endif %} - totals and flights below are for this range only.</div>{% endif %}</div>
   <div class="row g-2 text-center mt-2">
     {% for key, label in [('total','Total'),('dual','Dual rcvd'),('solo','Solo'),('pic','PIC'),('xc','XC'),('night','Night'),('actual_inst','Actual inst'),('sim_inst','Sim inst')] %}
     <div class="col-3 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ '%.1f'|format(totals[key]) }}</div><div class="small text-muted">{{ label }}</div></div></div>

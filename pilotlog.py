@@ -516,8 +516,17 @@ def logbook():
         return denied
     conn = get_db()
     student, students = _pick_student(conn)
-    entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ? AND status != 'denied'
-                              ORDER BY entry_date DESC, id DESC""", (student["id"],)).fetchall() if student else []
+    range_key, start, end, range_label = _stats_range()
+    entries = []
+    if student:
+        sql, args = "SELECT * FROM pilot_logbook WHERE student_id = ? AND status != 'denied'", [student["id"]]
+        if start:
+            sql += " AND entry_date >= ?"
+            args.append(start)
+        if end:
+            sql += " AND entry_date <= ?"
+            args.append(end + "~")
+        entries = conn.execute(sql + " ORDER BY entry_date DESC, id DESC", args).fetchall()
     denied_entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ? AND status = 'denied'
                               ORDER BY entry_date DESC, id DESC""", (student["id"],)).fetchall() if student else []
     dual_given = None
@@ -536,7 +545,7 @@ def logbook():
     return render_template("academy_logbook.html", denied_entries=denied_entries, log_entries=log_entries, log_kinds=academy.ENTRY_KINDS,
                            log_kind_map=academy.ENTRY_KIND_MAP, log_today=date.today().isoformat(), student=student, students=students, entries=entries,
                            pending=pending, totals=_totals(entries), extra=extra, can_import=_can_import(student), staff=_is_staff(), dual_given=dual_given,
-                           goal_track=goal_track, tab="logbook")
+                           goal_track=goal_track, range_key=range_key, range_label=range_label, start=start or "", end=end or "", tab="logbook")
 
 
 @pilotlog_bp.route("/logbook/<int:entry_id>", methods=["GET", "POST"])
