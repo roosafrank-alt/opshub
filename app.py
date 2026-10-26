@@ -9209,9 +9209,13 @@ def _view_as_picker(kind):
                                  WHERE active = 1 AND COALESCE(is_station, 0) = 0
                                  AND COALESCE(user_id, 0) <> ? ORDER BY lower(name)""", (session.get("user_id") or 0,)).fetchall()
     conn.close()
+    back = _local_path(request.args.get("next")) or url_for("academy_page" if kind == "student" else "flight.dashboard")
+    in_academy = back.startswith("/academy")      # opened from Flight Academy: keep its look, not Fly with Kate!'s
     return render_template("view_as_student_picker.html", people=people, kind=kind,
+                           base_tpl="academy_base.html" if in_academy else "flight/base_flight.html",
+                           program_name="Flight Academy" if in_academy else "Fly with Kate!",
                            start_endpoint="view_as_student_start" if kind == "student" else "view_as_cfi_start",
-                           back=_local_path(request.args.get("next")) or url_for("academy_page" if kind == "student" else "flight.dashboard"))
+                           back=back)
 
 
 def _view_as_landing(next_path):

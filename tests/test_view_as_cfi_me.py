@@ -48,3 +48,13 @@ class AcademyStaysInAcademyTest(OpsHubTestCase):
         self.exec("INSERT INTO cfis (name, username, password_hash, active, user_id) VALUES ('Master CFI','mcfi','x',1,?)", (uid,))
         r = c.post("/view-as/flight/cfi/me", data={"next": "/academy"})
         self.assertTrue(r.headers["Location"].startswith("/academy"), r.headers["Location"])
+
+
+class PickerKeepsTheProgramThemeTest(OpsHubTestCase):
+    def test_picker_from_academy_uses_the_academy_page_not_flight_school(self):
+        c = self.login("flight_admin_cfi")
+        academy = c.get("/view-as/flight/cfi?next=/academy").get_data(as_text=True)
+        flight = c.get("/view-as/flight/cfi?next=/flight/").get_data(as_text=True)
+        self.assertIn("Flight Academy", academy.split("</title>")[0])
+        self.assertIn("Fly with Kate!", flight.split("</title>")[0])
+        self.assertNotIn("flight-nav-boxed", academy)
