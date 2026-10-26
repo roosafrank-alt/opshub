@@ -81,7 +81,7 @@
     {%- if f.eta_delay %}<i class="bi bi-hourglass-split text-warning" title="{{ f.eta_delay.reason }}"></i> {% endif -%}
     {%- if f.confirm_required and not f.confirmed_at %}<i class="bi bi-patch-question-fill text-warning" title="Awaiting the student's confirmation"></i> {% elif f.confirm_required %}<i class="bi bi-patch-check-fill text-success" title="Confirmed by the student"></i> {% endif -%}
     {%- if f.status == 'in_progress' %}<i class="bi bi-stopwatch" title="In progress"></i> {% elif f.status == 'completed' %}<i class="bi bi-check-circle" title="Completed"></i> {% elif f.status == 'balance_hold' %}<i class="bi bi-pause-circle" title="Pending - Balance Hold"></i> {% endif -%}
-    <strong>{{ f.short_time or '--' }}</strong> {{ f.plane_tag }}{%- if f.late %} <span class="badge bg-warning text-dark late-chip" style="font-size:.62rem;padding:1px 4px;" {{ late_attr(f) }}><i class="bi bi-hourglass-split"></i> {{ f.late.minutes }}m{% if view == 'day' %} late &middot; {{ f.late.eta_label }}{% endif %}</span>{% endif -%}
+    <strong>{{ f.short_time or '--' }}</strong> &middot; {{ f.plane_tag }}{%- if f.late %} <span class="badge bg-warning text-dark late-chip" style="font-size:.62rem;padding:1px 4px;" {{ late_attr(f) }}><i class="bi bi-hourglass-split"></i> {{ f.late.minutes }}m{% if view == 'day' %} late &middot; {{ f.late.eta_label }}{% endif %}</span>{% endif -%}
   </div>
   {% if session.get('cfi_id') or flight_admin %}<div class="text-truncate day-timeline-block-line2">{{ f.student_name }} {{ schedule_pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}{% if f.student_owed %} &middot; <span class="text-danger fw-bold">${{ '%.0f'|format(f.student_owed) }} owed</span>{% endif %}</div>{% endif %}
 </div>
@@ -146,7 +146,7 @@
     {%- if f.eta_delay %}<i class="bi bi-hourglass-split text-warning" title="{{ f.eta_delay.reason }}"></i> {% endif -%}
     {%- if f.confirm_required and not f.confirmed_at %}<i class="bi bi-patch-question-fill text-warning" title="Awaiting the student's confirmation"></i> {% elif f.confirm_required %}<i class="bi bi-patch-check-fill text-success" title="Confirmed by the student"></i> {% endif -%}
     {%- if f.status == 'in_progress' %}<i class="bi bi-stopwatch" title="In progress"></i> {% elif f.status == 'completed' %}<i class="bi bi-check-circle" title="Completed"></i> {% elif f.status == 'balance_hold' %}<i class="bi bi-pause-circle" title="Pending - Balance Hold"></i> {% endif -%}
-    <span class="sb-time">{{ f.short_time or '--' }}</span>{%- if f.late %} <span class="badge bg-warning text-dark late-chip" style="font-size:.62rem;padding:1px 3px;" {{ late_attr(f) }}><i class="bi bi-hourglass-split"></i> {{ f.late.minutes }}m</span>{% endif -%} {{ f.plane_tag }}
+    <span class="sb-time">{{ f.short_time or '--' }}</span>{%- if f.late %} <span class="badge bg-warning text-dark late-chip" style="font-size:.62rem;padding:1px 3px;" {{ late_attr(f) }}><i class="bi bi-hourglass-split"></i> {{ f.late.minutes }}m</span>{% endif %} &middot; {{ f.plane_tag }}
   </div>
   {% if session.get('cfi_id') or flight_admin %}<div class="text-truncate sb-line2">{{ f.student_name }} {{ schedule_pilot_badge(f) }}{% if f.cfi_name %} / {{ f.cfi_name }}{% elif f.solo %} (solo){% else %} (needs instructor){% endif %}{% if f.student_owed %} &middot; <span class="text-danger fw-bold">${{ '%.0f'|format(f.student_owed) }}</span>{% endif %}</div>{% endif %}
   {%- if style.height_px >= 38 %}

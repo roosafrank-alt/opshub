@@ -68,7 +68,7 @@
         {% for slot in ad.slots %}
         {% set i = loop.index0 %}
         <tr>
-          <th class="avail-time-col">{{ slot.label }}</th>
+          <th class="avail-time-col"><span class="d-sm-none">{{ slot.label.replace(' AM', 'a').replace(' PM', 'p') }}</span><span class="d-none d-sm-inline">{{ slot.label }}</span></th>
           {% for row in ad.grid %}
           {% set cell = row.cells[i] %}
           {% if cell.show %}
