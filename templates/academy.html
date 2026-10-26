@@ -244,7 +244,7 @@
   var el = document.getElementById('lb-map');
   if (!el) { return; }
   if (typeof L === 'undefined') { el.innerHTML = '<div class="p-3 text-muted small">The map could not load.</div>'; return; }
-  var map = L.map(el, { scrollWheelZoom: false, minZoom: 1, worldCopyJump: true }).setView([41.72778, -74.37722], 8);
+  var map = L.map(el, { scrollWheelZoom: false, minZoom: 1, worldCopyJump: true }).setView([41.72778, -74.37722], 9);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 14, attribution: '&copy; OpenStreetMap' }).addTo(map);
   function esc(t) { return String(t || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   var bounds = [];
@@ -255,7 +255,6 @@
       .bindPopup('<strong>' + esc(a.code) + '</strong> ' + esc(a.name) + '<br>' + a.pilots + ' pilot' + (a.pilots === 1 ? '' : 's') + ' landed here' + (a.mine ? '<br><b>You\'ve been here</b>' : ''));
     bounds.push([a.lat, a.lon]);
   });
-  if (bounds.length > 1) { map.fitBounds(bounds, { padding: [25, 25], maxZoom: 10 }); }
 })();
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
