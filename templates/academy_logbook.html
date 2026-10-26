@@ -20,6 +20,11 @@
       <a href="{{ url_for('pilotlog.export_csv', student_id=student.id if staff else None) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-download"></i> Export (CSV)</a>
     </div>
   </div>
+  {% if can_log %}
+  <button type="button" class="btn btn-success btn-lg w-100 fw-bold mt-3 py-3" data-bs-toggle="modal" data-bs-target="#logFlightModal" id="log-flight-btn">
+    <i class="bi bi-plus-circle-fill"></i> Log a flight
+  </button>
+  {% endif %}
   <div class="mt-3">{% include "_range_filter.html" %}{% if range_key != 'all' %}<div class="small text-muted">Showing {{ range_label|lower }}{% if start or end %} ({{ start or 'start' }} to {{ end or 'today' }}){% endif %} - totals and flights below are for this range only.</div>{% endif %}</div>
   <div class="row g-2 text-center mt-2">
     {% for key, label in [('total','Total'),('dual','Dual rcvd'),('solo','Solo'),('pic','PIC'),('xc','XC'),('night','Night'),('actual_inst','Actual inst'),('sim_inst','Sim inst')] %}
@@ -99,5 +104,56 @@
     </table>
   </div>
 </div>
+{% endif %}
+{% if can_log %}
+<div class="modal fade" id="logFlightModal" tabindex="-1" aria-labelledby="logFlightTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
+    <form method="post" action="{{ url_for('pilotlog.log_flight') }}" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="logFlightTitle"><i class="bi bi-journal-plus"></i> Log a flight</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="small text-muted mb-2">For flights the school didn't bill (another plane, another school). School flights appear on their own.</div>
+        <div class="row g-2">
+          <div class="col-6 col-md-3"><label class="form-label small mb-0">Date *</label><input type="date" name="entry_date" required class="form-control form-control-sm" value="{{ log_today }}"></div>
+          <div class="col-6 col-md-3"><label class="form-label small mb-0">Tail number</label><input name="tail" class="form-control form-control-sm" autocapitalize="characters"></div>
+          <div class="col-12 col-md-6"><label class="form-label small mb-0">Make / model</label><input name="make_model" class="form-control form-control-sm" placeholder="Cessna 172S"></div>
+          <div class="col-6 col-md-3"><label class="form-label small mb-0">From</label><input name="route_from" class="form-control form-control-sm" autocapitalize="characters" placeholder="N89"></div>
+          <div class="col-6 col-md-3"><label class="form-label small mb-0">To / via</label><input name="route_to" class="form-control form-control-sm" autocapitalize="characters" placeholder="KPOU"></div>
+          <div class="col-12 col-md-6"><label class="form-label small mb-0">Route (optional)</label><input name="route" class="form-control form-control-sm"></div>
+        </div>
+        <h6 class="mt-3 mb-1">Time</h6>
+        <div class="row g-2">
+          {% for k, l in [('total','Total *'),('dual','Dual received'),('solo','Solo'),('pic','PIC'),('xc','Cross-country'),('night','Night'),('actual_inst','Actual instrument'),('sim_inst','Simulated instrument')] %}
+          <div class="col-6 col-md-3"><label class="form-label small mb-0">{{ l }}</label><input type="number" step="0.1" min="0" name="{{ k }}" class="form-control form-control-sm" {{ 'required' if k == 'total' }}></div>
+          {% endfor %}
+        </div>
+        <h6 class="mt-3 mb-1">Landings and approaches</h6>
+        <div class="row g-2">
+          {% for k, l in [('day_ldg','Day landings'),('night_ldg','Night landings'),('night_fs','Night full-stop'),('approaches','Approaches')] %}
+          <div class="col-6 col-md-3"><label class="form-label small mb-0">{{ l }}</label><input type="number" step="1" min="0" name="{{ k }}" class="form-control form-control-sm"></div>
+          {% endfor %}
+        </div>
+        <h6 class="mt-3 mb-1">The airplane</h6>
+        <div class="d-flex flex-wrap gap-3">
+          {% for code, label in ac_features %}
+          <div class="form-check"><input class="form-check-input" type="checkbox" name="ac_features" value="{{ code }}" id="lf-{{ code }}"><label class="form-check-label small" for="lf-{{ code }}">{{ label }}</label></div>
+          {% endfor %}
+        </div>
+        <div class="row g-2 mt-2">
+          <div class="col-12 col-md-4"><label class="form-label small mb-0">Instructor (if any)</label><input name="instructor_name" class="form-control form-control-sm"></div>
+          <div class="col-12 col-md-8"><label class="form-label small mb-0">Remarks / maneuvers</label><input name="remarks" class="form-control form-control-sm"></div>
+        </div>
+        <div class="form-text mt-2">Hours can't be more than the total time. Entries you log yourself show as logged by you, not instructor-signed.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-success fw-bold"><i class="bi bi-check-lg"></i> Save flight</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% if request.args.get('log') %}<script>document.addEventListener('DOMContentLoaded', function(){ var m = document.getElementById('logFlightModal'); if (m && window.bootstrap) { new bootstrap.Modal(m).show(); } });</script>{% endif %}
 {% endif %}
 {% endblock %}

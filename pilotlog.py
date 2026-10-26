@@ -609,7 +609,7 @@ def logbook():
     return render_template("academy_logbook.html", denied_entries=denied_entries, log_entries=log_entries, log_kinds=academy.ENTRY_KINDS,
                            log_kind_map=academy.ENTRY_KIND_MAP, log_today=date.today().isoformat(), student=student, students=students, entries=entries,
                            pending=pending, totals=_totals(entries), extra=extra, can_import=_can_import(student), staff=_is_staff(), dual_given=dual_given,
-                           goal_track=goal_track, range_key=range_key, range_label=range_label, start=start or "", end=end or "", tab="logbook")
+                           goal_track=goal_track, can_log=_can_import(student), ac_features=AC_FEATURES, range_key=range_key, range_label=range_label, start=start or "", end=end or "", tab="logbook")
 
 
 @pilotlog_bp.route("/logbook/<int:entry_id>", methods=["GET", "POST"])
@@ -1410,3 +1410,51 @@ def knowledge_tests():
     return render_template("academy_knowledge_tests.html", student=student, students=students, reports=reports, tracks=tracks,
                            default_track=goal_track_code(student) if student else "", staff=_is_staff(),
                            tab="logbook", subtab="tests")
+
+
+@pilotlog_bp.route("/logbook/new", methods=["POST"])
+def log_flight():
+    """The big "Log a flight" button: a flight that wasn't billed by the school (another plane, another
+    school), typed in by the pilot themselves into their OWN logbook. Marked as logged by the pilot."""
+    denied = _require_access()
+    if denied:
+        return denied
+    conn = get_db()
+    student, _students = _pick_student(conn)
+    if not student or not _can_import(student):
+        conn.close()
+        flash("You can log a flight in your own logbook, from your own account.", "warning")
+        return redirect(url_for("pilotlog.logbook", student_id=student["id"] if (student and _is_staff()) else None))
+    f = request.form
+    d = (f.get("entry_date") or "")[:10]
+    try:
+        date.fromisoformat(d)
+    except ValueError:
+        conn.close()
+        flash("Enter the date of the flight.", "warning")
+        return redirect(url_for("pilotlog.logbook", log=1))
+    total = _num(f.get("total")) or 0
+    if total <= 0:
+        conn.close()
+        flash("Enter the total flight time.", "warning")
+        return redirect(url_for("pilotlog.logbook", log=1))
+    cap = lambda k: min(_num(f.get(k)) or 0, total)
+    dual, solo, pic, xc, night = cap("dual"), cap("solo"), cap("pic"), cap("xc"), cap("night")
+    ai = cap("actual_inst")
+    si = min(_num(f.get("sim_inst")) or 0, round(max(0.0, total - ai), 1))
+    feats = clean_features(f.getlist("ac_features"))
+    ints = lambda k: _num(f.get(k), "int") or 0
+    conn.execute("""INSERT INTO pilot_logbook (student_id, entry_date, tail, make_model, route_from, route_to, route, total, dual, solo, pic,
+                    xc, night, actual_inst, sim_inst, approaches, day_ldg, night_ldg, night_fs, remarks, instructor_name,
+                    ac_features, complex_tae, status, approved_at, approved_by, source, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'complete', ?, ?, 'manual', ?, ?)""",
+                 (student["id"], d, (f.get("tail") or "").strip().upper()[:12] or None, (f.get("make_model") or "").strip()[:60] or None,
+                  (f.get("route_from") or "").strip()[:60] or None, (f.get("route_to") or "").strip()[:60] or None,
+                  (f.get("route") or "").strip()[:200] or None, total, dual, solo, pic, xc, night, ai, si, ints("approaches"),
+                  ints("day_ldg"), ints("night_ldg"), min(ints("night_fs"), ints("night_ldg")),
+                  (f.get("remarks") or "").strip()[:500] or None, (f.get("instructor_name") or "").strip()[:80] or None,
+                  feats, counts_as_complex(feats), now_iso(), "Logged by the pilot", now_iso(), now_iso()))
+    conn.commit()
+    conn.close()
+    flash("Flight logged.", "success")
+    return redirect(url_for("pilotlog.logbook"))

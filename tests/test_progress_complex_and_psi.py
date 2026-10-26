@@ -70,3 +70,29 @@ class PlaneFeaturesTest(OpsHubTestCase):
         self.assertEqual(e["complex_tae"], 1)
         html = self.login("flight_admin").get(f"/flight/planes/{aid}/edit").get_data(as_text=True)
         self.assertIn("Pressurized", html)
+
+
+class LogAFlightTest(OpsHubTestCase):
+    def setUp(self):
+        super().setUp()
+        self.sid = self.q1("SELECT id FROM students WHERE user_id = ?", (self.users["flight_student"]["id"],))["id"]
+        self.exec("UPDATE users SET academy_access = 1 WHERE username = 'flight_student'")
+
+    def test_big_button_and_popup_on_own_logbook(self):
+        html = self.login("flight_student").get("/academy/logbook").get_data(as_text=True)
+        self.assertIn("Log a flight", html)
+        self.assertIn('id="logFlightModal"', html)
+
+    def test_log_a_flight_saves_capped_entry(self):
+        c = self.login("flight_student")
+        r = c.post("/academy/logbook/new", data={"entry_date": "2026-10-20", "tail": "n123ab", "make_model": "Cessna 172", "route_from": "N89",
+                                                  "route_to": "KPOU", "total": "1.5", "xc": "9", "day_ldg": "3", "ac_features": ["complex", "tailwheel"]})
+        self.assertEqual(r.status_code, 302)
+        e = self.q1("SELECT * FROM pilot_logbook WHERE student_id = ? AND source = 'manual'", (self.sid,))
+        self.assertEqual((e["tail"], e["total"], e["xc"], e["day_ldg"], e["complex_tae"]), ("N123AB", 1.5, 1.5, 3, 1))
+        self.assertEqual(e["ac_features"], "tailwheel,complex")
+
+    def test_admin_cannot_log_into_someone_elses_logbook(self):
+        c = self.login("master")
+        c.post("/academy/logbook/new", data={"student_id": self.sid, "entry_date": "2026-10-20", "total": "1.0"})
+        self.assertIsNone(self.q1("SELECT id FROM pilot_logbook WHERE student_id = ? AND source = 'manual'", (self.sid,)))
