@@ -241,6 +241,15 @@ def _can_edit(entry):
     return bool(entry["student_id"] == session.get("student_id") or is_flight_admin())
 
 
+def _can_import(student):
+    """A ForeFlight import goes only into your OWN logbook: the signed-in account's own student
+    profile. Not an admin (or CFI) importing for somebody else, and not while looking at
+    someone's view."""
+    from auth import real_user_id
+    return bool(student and student["user_id"] and student["user_id"] == real_user_id()
+                and not session.get("_view_as_readonly"))
+
+
 def _require_access(what="your logbook"):
     """SCHOOL-36: the redirect to send back when this page can't be shown,
     or None. Nobody signed in (an old notification link after the session
@@ -498,7 +507,7 @@ def logbook():
     import academy
     return render_template("academy_logbook.html", denied_entries=denied_entries, log_entries=log_entries, log_kinds=academy.ENTRY_KINDS,
                            log_kind_map=academy.ENTRY_KIND_MAP, log_today=date.today().isoformat(), student=student, students=students, entries=entries,
-                           pending=pending, totals=_totals(entries), extra=extra, can_import=bool(student and _can_edit({'student_id': student['id']})), staff=_is_staff(), dual_given=dual_given,
+                           pending=pending, totals=_totals(entries), extra=extra, can_import=_can_import(student), staff=_is_staff(), dual_given=dual_given,
                            goal_track=goal_track, tab="logbook")
 
 
@@ -615,9 +624,9 @@ def import_foreflight():
         conn.close()
         flash("No student profile is linked to your account, so there's no logbook to import into.", "warning")
         return redirect(url_for("pilotlog.logbook"))
-    if not _can_edit({"student_id": student["id"]}):
+    if not _can_import(student):
         conn.close()
-        flash("Only the student (or a Flight Admin) can import into a logbook.", "warning")
+        flash("A ForeFlight import can only go into your own logbook, from your own account.", "warning")
         return redirect(url_for("pilotlog.logbook", student_id=student["id"] if _is_staff() else None))
     sid_arg = student["id"] if _is_staff() else None
     folder = _import_dir()

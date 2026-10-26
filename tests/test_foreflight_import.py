@@ -117,13 +117,21 @@ class ForeFlightImport(OpsHubTestCase):
         self.assertIn("doesn", self._upload(c, "a,b\n1,2\n").get_data(as_text=True))
         self.assertEqual(self.q("SELECT COUNT(*) n FROM pilot_logbook WHERE source='foreflight'")[0]["n"], 0)
 
-    def test_only_the_student_or_a_flight_admin_can_import(self):
+    def test_only_the_student_themselves_can_import(self):
         c = self.login("cfi")
         sid = self.q("SELECT id FROM students WHERE user_id = ?", (self.users["flight_student"]["id"],))[0]["id"]
         r = c.get("/academy/logbook/import", query_string={"student_id": sid})
         self.assertEqual(r.status_code, 302)                                                     # a CFI reads, never edits
         self.assertNotIn("Import from ForeFlight", c.get("/academy/logbook", query_string={"student_id": sid}).get_data(as_text=True))
         self.assertIn("Import from ForeFlight", self.login("flight_student").get("/academy/logbook").get_data(as_text=True))
+        # an admin (flight or master) can look at a student's logbook but never import into it
+        for who in ("flight_admin", "master"):
+            a = self.login(who)
+            self.assertEqual(a.get("/academy/logbook/import", query_string={"student_id": sid}).status_code, 302)
+            self.assertNotIn("Import from ForeFlight", a.get("/academy/logbook", query_string={"student_id": sid}).get_data(as_text=True))
+            r = a.post("/academy/logbook/import", data={"action": "confirm", "token": "x" * 20, "student_id": sid})
+            self.assertEqual(r.status_code, 302)
+            self.assertEqual(self.q("SELECT COUNT(*) n FROM pilot_logbook WHERE source='foreflight'")[0]["n"], 0)
 
     def test_someone_elses_preview_token_is_refused(self):
         c = self.login("flight_student")
