@@ -394,6 +394,8 @@ def build_progress(conn, student):
     ratings = [r.strip() for r in (student["pilot_ratings"] or "").split(",") if r.strip()]
     window_start = _two_cal_months_start()
     today = date.today().isoformat()
+    held_tracks = _held_tracks(student)
+    wanted = {cert, _row_get(student, "training_goal")}
     tracks = []
     for t in TRACKS:
         items = []
@@ -427,9 +429,37 @@ def build_progress(conn, student):
                 row["done"], row["pct"] = ok, 100 if ok else 0
                 row["have"] = student["solo_signoff_date"]
             items.append(row)
+        if t["code"] in ("sport", "recreational") and t["code"] not in wanted:
+            continue   # only shown to someone who holds or is training for that certificate
+        held_here = t["code"] in held_tracks
+        if held_here:   # the profile says they already have it: complete, whatever the logbook totals say
+            for row in items:
+                row["done"], row["pct"] = True, 100
         pct = int(sum(i["pct"] for i in items) / len(items)) if items else 0
-        tracks.append({**t, "items": items, "pct": pct, "done_count": sum(1 for i in items if i["done"])})
+        tracks.append({**t, "items": items, "pct": pct, "held": held_here,
+                       "done_count": sum(1 for i in items if i["done"])})
     return tracks
+
+
+def _held_tracks(student):
+    """Track codes the profile says the student already holds (certificate and added ratings)."""
+    cert = _row_get(student, "pilot_certificate") or ""
+    ratings = {r.strip() for r in (_row_get(student, "pilot_ratings") or "").split(",") if r.strip()}
+    held = set()
+    if cert in ("sport", "recreational"):
+        held.add(cert)
+    if cert in ("private", "commercial", "atp"):
+        held.update({"solo", "private"})
+    if cert in ("commercial", "atp"):
+        held.add("commercial")
+    if cert == "atp":
+        held.update({"atp", "instrument", "multi"})
+    held.update(ratings & {"instrument", "complex", "high_performance", "tailwheel", "cfi", "cfii", "mei"})
+    if "multi_engine" in ratings:
+        held.add("multi")
+    if ratings & {"cfi", "cfii", "mei"}:
+        held.update({"solo", "private", "commercial"})
+    return held
 
 
 def active_goal_track(conn, student):

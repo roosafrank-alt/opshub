@@ -62,7 +62,7 @@
 <div class="card academy-card mb-2" id="t-{{ t.code }}">
   <div class="p-3 track-head" data-bs-toggle="collapse" data-bs-target="#body-{{ t.code }}">
     <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
-      <div><i class="bi {{ t.icon }}"></i> <strong>{{ t.name }}</strong> <span class="req-ref">{{ t.ref }}</span></div>
+      <div><i class="bi {{ t.icon }}"></i> <strong>{{ t.name }}</strong> <span class="req-ref">{{ t.ref }}</span>{% if t.held %} <span class="badge bg-success">Held - on your profile</span>{% endif %}</div>
       <div class="small text-muted">{{ t.done_count }} of {{ t['items']|length }} met</div>
     </div>
     <div class="pg-bar pg-big"><div class="pg-fill {{ 'done' if t.pct >= 100 }}" style="width: {{ t.pct }}%;"></div><div class="pg-label">{{ t.pct }}%</div></div>
