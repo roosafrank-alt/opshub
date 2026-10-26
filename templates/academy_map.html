@@ -61,7 +61,7 @@
   if (typeof L === 'undefined') { document.getElementById('apt-map').innerHTML = '<div class="p-3 text-muted">The map could not load (no internet?).</div>'; return; }
   var airports = {{ airports|tojson }};
   var lines = {{ lines|tojson }};
-  var map = L.map('apt-map', { zoomControl: true, minZoom: 6 }).setView({{ center|tojson }}, 9);
+  var map = L.map('apt-map', { zoomControl: true, minZoom: 1, worldCopyJump: true }).setView({{ center|tojson }}, 9);
   // FAA's own VFR Sectional chart tiles (free, public) look sharp near N89
   // but the tile server hasn't cached every area at every zoom, so it comes
   // back soft/blurry elsewhere no matter how the zoom range is clamped -

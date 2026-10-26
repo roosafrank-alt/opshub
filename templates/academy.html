@@ -244,7 +244,7 @@
   var el = document.getElementById('lb-map');
   if (!el) { return; }
   if (typeof L === 'undefined') { el.innerHTML = '<div class="p-3 text-muted small">The map could not load.</div>'; return; }
-  var map = L.map(el, { scrollWheelZoom: false, minZoom: 5 }).setView([41.72778, -74.37722], 8);
+  var map = L.map(el, { scrollWheelZoom: false, minZoom: 1, worldCopyJump: true }).setView([41.72778, -74.37722], 8);
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 14, attribution: '&copy; OpenStreetMap' }).addTo(map);
   function esc(t) { return String(t || '').replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
   var bounds = [];
