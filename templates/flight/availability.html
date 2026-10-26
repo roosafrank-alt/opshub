@@ -411,35 +411,42 @@ b.addEventListener('click',function(){var open=n.hidden;n.hidden=!open;b.setAttr
 {% endif %}
 {% endif %}
 <style>
-  .wl-pop { position: fixed; z-index: 3000; background: #fff; color: #212529; border: 1px solid #adb5bd; border-radius: .5rem; box-shadow: 0 6px 20px rgba(0,0,0,.3); min-width: 12rem; max-width: calc(100vw - 16px); overflow-y: auto; }
-  .wl-pop button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: .45rem .75rem; font-size: .9rem; }
-  .wl-pop button:hover, .wl-pop button:focus { background: #e7f1ff; }
-  .wl-pop input { display: block; width: 100%; border: 0; border-bottom: 1px solid #adb5bd; padding: .45rem .75rem; font-size: .9rem; position: sticky; top: 0; background: #fff; outline: none; }
+  .wl-pop { position: fixed; z-index: 3000; background: #fff; color: #212529; border: 1px solid #adb5bd; border-radius: .5rem; box-shadow: 0 6px 20px rgba(0,0,0,.3); min-width: 12rem; max-width: calc(100vw - 16px); display: flex; flex-direction: column; overflow: hidden; }
+  .wl-pop .wl-list { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .wl-pop .wl-list button { display: block; width: 100%; text-align: left; border: 0; background: none; padding: .6rem .85rem; font-size: 1rem; border-bottom: 1px solid #f1f3f5; }
+  .wl-pop .wl-list button:hover, .wl-pop .wl-list button:focus { background: #e7f1ff; }
+  .wl-pop input { display: block; width: 100%; border: 0; border-bottom: 1px solid #adb5bd; padding: .6rem .85rem; font-size: 1rem; background: #fff; outline: none; }
+  .wl-pop .wl-head { display: none; align-items: center; justify-content: space-between; padding: .4rem .5rem .4rem .85rem; font-weight: 600; border-bottom: 1px solid #dee2e6; touch-action: none; }
+  .wl-pop .wl-head::before { content: ""; position: absolute; top: 5px; left: 50%; width: 2.5rem; height: 4px; margin-left: -1.25rem; border-radius: 2px; background: #ced4da; }
+  .wl-pop .wl-head button { border: 0; background: none; font-size: 1.5rem; line-height: 1; padding: .1rem .6rem; }
+  .wl-pop.wl-sheet { left: 0; right: 0; bottom: 0; top: auto; width: 100%; max-width: 100%; border-radius: 1rem 1rem 0 0; transition: transform .2s; }
+  .wl-pop.wl-sheet .wl-head { display: flex; padding-top: 1rem; }
+  .wl-back { position: fixed; inset: 0; z-index: 2999; background: rgba(0,0,0,.35); }
 </style>
 <script>
 // "Student..." picker inside a Booked slot: the cell is narrow and clips
-// its contents, so on a mouse the list opens as a pop-up over the page
-// (outside the cell) instead of the cramped native one. Laptops with a
-// touch screen count too (any-pointer); phones keep their own picker, which
-// already opens full size.
+// its contents, so the list opens as a pop-up over the page (outside the
+// cell, ok to overlap other cells). On a mouse it drops down next to the
+// select; on a phone it is a bottom sheet that closes with the x button, by
+// swiping down, or by tapping outside it.
 (function () {
-  if (!window.matchMedia || !window.matchMedia('(any-hover: hover) and (any-pointer: fine)').matches) { return; }
-  var pop = null;
-  function close() { if (pop) { pop.remove(); pop = null; } }
-  document.addEventListener('mousedown', function (e) {
-    var sel = e.target.closest && e.target.closest('.avail-slot-booked select');
-    if (pop && !(e.target.closest && e.target.closest('.wl-pop'))) { close(); }
-    if (!sel) { return; }
-    e.preventDefault();
-    sel.focus();
+  var touch = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+  var pop = null, back = null;
+  function close() {
+    if (pop) { pop.remove(); pop = null; }
+    if (back) { back.remove(); back = null; }
+  }
+  function open(sel) {
     close();
+    sel.blur();
     pop = document.createElement('div');
     pop.className = 'wl-pop';
     var find = document.createElement('input');
     find.type = 'text';
     find.placeholder = 'Type a name...';
     find.autocomplete = 'off';
-    pop.appendChild(find);
+    var list = document.createElement('div');
+    list.className = 'wl-list';
     var items = [];
     find.addEventListener('input', function () {
       var q = find.value.trim().toLowerCase();
@@ -461,21 +468,84 @@ b.addEventListener('click',function(){var open=n.hidden;n.hidden=!open;b.setAttr
         sel.dispatchEvent(new Event('change', { bubbles: true }));
         close();
       });
-      pop.appendChild(b);
+      list.appendChild(b);
       items.push(b);
     });
+    if (touch) {
+      pop.classList.add('wl-sheet');
+      back = document.createElement('div');
+      back.className = 'wl-back';
+      back.addEventListener('click', close);
+      document.body.appendChild(back);
+      var head = document.createElement('div');
+      head.className = 'wl-head';
+      head.appendChild(document.createTextNode('Choose student'));
+      var x = document.createElement('button');
+      x.type = 'button';
+      x.setAttribute('aria-label', 'Close');
+      x.innerHTML = '&times;';
+      x.addEventListener('click', close);
+      head.appendChild(x);
+      pop.appendChild(head);
+      // swipe down on the header (or on the list when it is scrolled to the top) to close
+      var y0 = null, dy = 0;
+      pop.addEventListener('touchstart', function (e) {
+        var inList = list.contains(e.target);
+        y0 = (!inList || list.scrollTop <= 0) ? e.touches[0].clientY : null; dy = 0;
+      }, { passive: true });
+      pop.addEventListener('touchmove', function (e) {
+        if (y0 === null) { return; }
+        dy = e.touches[0].clientY - y0;
+        if (dy > 0) { pop.style.transition = 'none'; pop.style.transform = 'translateY(' + dy + 'px)'; }
+      }, { passive: true });
+      pop.addEventListener('touchend', function () {
+        if (y0 === null) { return; }
+        if (dy > 70) { close(); } else { pop.style.transition = ''; pop.style.transform = ''; }
+        y0 = null;
+      });
+    }
+    pop.appendChild(find);
+    pop.appendChild(list);
     document.body.appendChild(pop);
-    var r = sel.getBoundingClientRect();
-    var h = Math.min(pop.scrollHeight, window.innerHeight * 0.6);
-    pop.style.maxHeight = h + 'px';
-    var below = window.innerHeight - r.bottom, top = below >= h + 8 || below >= r.top ? r.bottom + 2 : r.top - h - 2;
-    pop.style.top = Math.max(8, top) + 'px';
-    pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
-    find.focus();
+    var vh = window.innerHeight;
+    if (touch) {
+      list.style.maxHeight = Math.round(vh * 0.55) + 'px';
+    } else {
+      var r = sel.getBoundingClientRect();
+      var h = Math.min(pop.scrollHeight, vh * 0.6);
+      list.style.maxHeight = Math.max(80, h - find.offsetHeight) + 'px';
+      var below = vh - r.bottom, top = below >= h + 8 || below >= r.top ? r.bottom + 2 : r.top - h - 2;
+      pop.style.top = Math.max(8, top) + 'px';
+      pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - pop.offsetWidth - 8)) + 'px';
+      find.focus();
+    }
+  }
+  function pick(e) {
+    return e.target.closest && e.target.closest('.avail-slot-booked select');
+  }
+  document.addEventListener('mousedown', function (e) {
+    var sel = pick(e);
+    if (pop && !(e.target.closest && e.target.closest('.wl-pop'))) { close(); }
+    if (!sel) { return; }
+    e.preventDefault();
+    open(sel);
   });
+  // Phones: block the cramped native picker and open ours on a tap.
+  var moved = false;
+  document.addEventListener('touchstart', function () { moved = false; }, { passive: true });
+  document.addEventListener('touchmove', function () { moved = true; }, { passive: true });
+  document.addEventListener('touchend', function (e) {
+    var sel = pick(e);
+    if (!sel || moved) { return; }
+    e.preventDefault();
+    open(sel);
+  }, { passive: false });
   document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { close(); } });
-  window.addEventListener('scroll', close, true);
-  window.addEventListener('resize', close);
+  window.addEventListener('scroll', function (e) {
+    if (pop && pop.contains(e.target)) { return; }
+    if (!touch) { close(); }
+  }, true);
+  window.addEventListener('resize', function () { if (!touch) { close(); } });
 })();
 </script>
 {% endblock %}

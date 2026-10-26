@@ -27,7 +27,9 @@ class AvailabilityWaitlistPopupTest(OpsHubTestCase):
         self.assertIn("wl-pop", html)
         self.assertIn("Type a name...", html)
 
-    def test_popup_also_opens_on_touch_laptops(self):
+    def test_popup_also_opens_on_phones_as_closable_sheet(self):
         c = self.login("flight_admin")
         html = c.get(f"/flight/schedule/availability?view=day&date={self.day.isoformat()}&mode=calendar").get_data(as_text=True)
-        self.assertIn("any-pointer: fine", html)
+        self.assertIn("wl-sheet", html)
+        self.assertIn("touchend", html)
+        self.assertIn("Choose student", html)
