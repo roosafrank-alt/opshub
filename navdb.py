@@ -55,8 +55,28 @@ def connect(path=None):
     return conn
 
 
+SHIPPED_DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "navdata.db.gz")
+
+
+def _unpack_shipped(p):
+    """First run on a machine: unpack the database that ships in git (data/navdata.db.gz)
+    into instance/. instance/ is never touched by deploys, so a rebuilt db there is kept."""
+    import gzip
+    import shutil
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    tmp = p + ".part"
+    with gzip.open(SHIPPED_DB, "rb") as src, open(tmp, "wb") as dst:
+        shutil.copyfileobj(src, dst)
+    os.replace(tmp, p)
+
+
 def available(path=None):
     p = path or NAV_DB_PATH
+    if not os.path.exists(p) and p == NAV_DB_PATH and os.path.exists(SHIPPED_DB):
+        try:
+            _unpack_shipped(p)
+        except OSError:
+            return False
     if not os.path.exists(p):
         return False
     try:
@@ -131,7 +151,7 @@ def search_airports(conn, q, limit=8, near=None, freq=None):
         visits = freq.get(r["ident"], 0) + freq.get(r["icao"] or "", 0) + freq.get(r["local"] or "", 0)
         d = nm_between(near[0], near[1], r["lat"], r["lon"]) if near else 0
         # exact code match always first, then visited airports, then nearest
-        exact = 0 if qn in (r["ident"], r["icao"], r["iata"], r["local"]) else 1
+        exact = 0 if qn in (r["ident"], r["icao"], r["local"]) else 1   # (IATA codes like KPO = Pohang must not beat KPOU)
         return (tier, exact, 0 if visits else 1, -visits, d, r["ident"])
 
     out = []
@@ -144,14 +164,15 @@ def search_airports(conn, q, limit=8, near=None, freq=None):
 
 
 def _find_point(conn, ident, near=None):
-    """Airport, navaid or fix by identifier. If several share the name, the one nearest `near`."""
+    """Airport, navaid or fix by identifier. Several can share a name (SAX is a New Jersey
+    VOR and an airport in Mexico), so the one nearest `near` wins."""
     c = _norm(ident)
     if not c:
         return None
+    cands = []
     ap = lookup_airport(conn, c)
     if ap:
-        return ap
-    cands = []
+        cands.append(ap)
     for r in conn.execute("SELECT ident, type, name, lat, lon FROM navaids WHERE ident=?", (c,)):
         cands.append({"code": r["ident"], "name": r["name"] or "", "lat": r["lat"], "lon": r["lon"], "kind": "navaid"})
     for r in conn.execute("SELECT ident, lat, lon FROM fixes WHERE ident=?", (c,)):
