@@ -376,11 +376,13 @@ class AcademyTest(OpsHubTestCase):
         self.exec("UPDATE students SET pilot_certificate = 'student' WHERE id = ?", (sid,))
         html = self.login("master").get(f"/academy/logbook?student_id={sid}").get_data(as_text=True)
         self.assertIn(f"student_id={sid}", html.split("See full requirements")[0][-200:] + html.split("Your Next Goal")[0][-200:])
-        self.assertIn("Totalizer", html)
         self.assertNotIn("Totalizar", html)
-        html = self.login("master").get(f"/academy/totalizer?student_id={sid}").get_data(as_text=True)
-        self.assertIn('data-change="SCHOOL-35"><i class="bi bi-calculator"></i> Totalizer', html)
-        self.assertIn("nav-link active", html.split("Totalizer</a>")[0][-200:])
+        # The Totalizer tab became the "How long to a target?" card on Progress; the old address redirects there.
+        r = self.login("master").get(f"/academy/totalizer?student_id={sid}")
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/academy/progress", r.headers["Location"])
+        html = self.login("master").get(f"/academy/progress?student_id={sid}").get_data(as_text=True)
+        self.assertIn("How long to a target?", html)
 
     def test_academy_landing_entry_writes_a_manual_landing(self):  # SCHOOL-37
         sid = self.q1("SELECT id FROM students WHERE user_id = ?", (self.users["flight_student"]["id"],))["id"]

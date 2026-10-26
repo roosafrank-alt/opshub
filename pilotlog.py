@@ -785,9 +785,16 @@ def progress():
     flights = [dict(r) for r in conn.execute("""SELECT id, entry_date, tail, route_from, route_to, total FROM pilot_logbook
                                                 WHERE student_id = ? AND status != 'denied' ORDER BY entry_date DESC, id DESC""",
                                              (student["id"],)).fetchall()] if (student and _is_staff()) else []
+    entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ? AND status != 'denied' ORDER BY entry_date, id""",
+                           (student["id"],)).fetchall() if student else []
     conn.close()
     open_track = request.args.get("track") or goal_track_code(student)
+    # Target picker + ETA (was the Totalizer tab): any certificate/rating, paced by the student's own average.
+    target_code = request.args.get("target") or open_track or "atp"
+    target = next((t for t in tracks if t["code"] == target_code), None)
+    eta = target_eta(entries, target) if target else None
     return render_template("academy_progress.html", student=student, students=students, tracks=tracks, flights=flights,
+                           target=target, target_code=target_code, eta=eta,
                            open_track=open_track, staff=_is_staff(), pending_count=pending_count,
                            window_start=_two_cal_months_start(), tab="progress")
 
@@ -855,28 +862,9 @@ def milestone_flights():
 
 @pilotlog_bp.route("/totalizer")
 def totalizer():
-    """Totalizer (SCHOOL-35: one name everywhere) - a step past Progress's fixed next-track view: pick any
-    certificate/rating as your target (not just the next logical one) and
-    see an ETA for it based on your own average pace, not a generic
-    estimate. Totals-per-category are the same numbers already on the
-    Logbook tab, just given their own page alongside the target picker."""
-    denied = _require_access()
-    if denied:
-        return denied
-    conn = get_db()
-    student, students = _pick_student(conn)
-    entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ? AND status != 'denied' ORDER BY entry_date, id""",
-                           (student["id"],)).fetchall() if student else []
-    tracks = build_progress(conn, student) if student else []
-    conn.close()
-    target_code = request.args.get("target") or goal_track_code(student) or "atp"
-    target = next((t for t in tracks if t["code"] == target_code), None)
-    eta = target_eta(entries, target) if target else None
-    # SCHOOL-35: tab stays "logbook" (the Academy tab row and the sub-tab
-    # strip key on it); subtab lights the Totalizer sub-tab.
-    return render_template("academy_totalizer.html", student=student, students=students, totals=_totals(entries),
-                           tracks=tracks, target=target, target_code=target_code, eta=eta, tab="logbook",
-                           subtab="totalizer")
+    """The Totalizer tab was folded into Progress (target picker + ETA); old links land there."""
+    return redirect(url_for("pilotlog.progress", student_id=request.args.get("student_id", type=int),
+                            target=request.args.get("target")))
 
 
 @pilotlog_bp.app_template_global()

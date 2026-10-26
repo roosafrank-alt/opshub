@@ -9,6 +9,6 @@ class StaffStudentPickSticksTest(OpsHubTestCase):
         last = self.q1("SELECT id, name FROM students WHERE name = 'Zed Pick1'")
         c = self.login("flight_admin_cfi")
         c.get("/academy/logbook", query_string={"student_id": last["id"]})
-        for url in ("/academy/totalizer", "/academy/endorsements/", "/academy/map"):
+        for url in ("/academy/progress", "/academy/endorsements/", "/academy/map"):
             html = c.get(url).get_data(as_text=True)
             self.assertRegex(html, r'<option value="%d"\s+selected' % last["id"], url)

@@ -91,7 +91,7 @@ class TitlesTest(P2Base):
     def test_academy_pages_name_flight_academy(self):  # SEAM-15
         c = self.login("master")
         self.assertEqual(self.title(c, "/academy"), "Leaderboard · Flight Academy")
-        self.assertEqual(self.title(c, "/academy/totalizer"), "Totalizer · Flight Academy")
+        self.assertEqual(self.title(c, "/academy/progress"), "Progress · Flight Academy")
 
 
 class DeleteWordsTest(P2Base):

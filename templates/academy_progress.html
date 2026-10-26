@@ -23,6 +23,30 @@
   <div class="small text-muted">Aeronautical experience from 14 CFR Part 61, airplane single-engine land. Hours and landings are totalled from the logbook{% if pending_count %} (including {{ pending_count }} pending entr{{ 'y' if pending_count == 1 else 'ies' }}){% endif %}; the rest is checked off by an instructor. "Within 2 calendar months" items count flights since {{ window_start|usdate }}. Always confirm against the current regulations before a checkride.</div>
 </div>
 
+<div class="card academy-card p-3 mb-3" data-change="SCHOOL-35">
+  <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+    <h6 class="mb-0"><i class="bi bi-calculator"></i> How long to a target?</h6>
+    <form method="get" class="d-flex gap-2 align-items-center">
+      {% if staff and student %}<input type="hidden" name="student_id" value="{{ student.id }}">{% endif %}
+      <select name="target" class="form-select form-select-sm" style="width:auto;max-width:100%;" onchange="this.form.submit()" aria-label="Target">
+        {% for t in tracks %}<option value="{{ t.code }}" {{ 'selected' if t.code == target_code }}>{{ t.name }} ({{ t.pct }}%)</option>{% endfor %}
+      </select>
+      <noscript><button class="btn btn-outline-primary btn-sm">Go</button></noscript>
+    </form>
+  </div>
+  {% if target %}
+  {% if target.pct >= 100 %}
+  <div class="alert alert-success mb-0 py-2"><i class="bi bi-check-circle-fill"></i> Every requirement for {{ target.name }} is already met.</div>
+  {% elif eta %}
+  <div class="alert alert-info mb-0 py-2"><i class="bi bi-graph-up-arrow"></i> At an average pace of <strong>{{ eta.hrs_per_week }} hrs/week</strong>,
+    {% if eta.weeks <= 0 %}the {{ eta.headline.label|lower }} requirement is already met.
+    {% else %}reaching <strong>{{ eta.headline.need }}{{ ' hrs' if eta.headline.kind == 'hours' }}</strong> ({{ eta.headline.label|lower }} - {{ eta.remaining }} to go) is about <strong>{{ eta.weeks }} week{{ 's' if eta.weeks != 1 }}</strong> away.{% endif %}</div>
+  {% else %}
+  <div class="small text-muted">Not enough logbook history yet to estimate a pace (need at least two different flight dates).</div>
+  {% endif %}
+  {% endif %}
+</div>
+
 {% for t in tracks %}
 <div class="card academy-card mb-2" id="t-{{ t.code }}">
   <div class="p-3 track-head" data-bs-toggle="collapse" data-bs-target="#body-{{ t.code }}">

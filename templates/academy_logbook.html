@@ -16,7 +16,6 @@
       <div class="small text-muted">Each logged flight lands here pre-filled from the flight. Open a pending one, fill in the rest and approve it.</div>
     </div>
     <div class="d-flex gap-2">
-      <a href="{{ url_for('pilotlog.totalizer', student_id=student.id if staff else None) }}" class="btn btn-outline-success btn-sm" data-change="SCHOOL-35"><i class="bi bi-calculator"></i> Totalizer</a>
       {% if can_import %}<a href="{{ url_for('pilotlog.import_foreflight', student_id=student.id if staff else None) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-upload"></i> Import from ForeFlight</a>{% endif %}
       <a href="{{ url_for('pilotlog.export_csv', student_id=student.id if staff else None) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-download"></i> Export (CSV)</a>
     </div>
