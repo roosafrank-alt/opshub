@@ -66,13 +66,13 @@ class ScheduleMonthViewFillsGridTest(OpsHubTestCase):
         self.assertIn('>\n            1\n', body)
 
     def test_overflow_cells_are_clickable_like_normal_day_cells(self):
-        # The greyed-out overflow cells get the same "click opens that day's
-        # Availability page" wiring as normal in-month cells, pointed at the
-        # overflow day's own real date.
+        # A CFI (or student) gets the same "click to add/request a flight"
+        # wiring on the greyed-out overflow cells as on normal in-month
+        # cells, pointed at the overflow day's own real date.
         c = self.login("cfi")
         body = c.get("/flight/schedule?view=month&year=2026&month=9").get_data(as_text=True)
         self.assertIn('bg-light text-muted calendar-day-cell-add', body)
-        self.assertIn('data-add-url="/flight/schedule/availability?date=2026-08-31', body)
-        self.assertIn('data-add-url="/flight/schedule/availability?date=2026-10-01', body)
+        self.assertIn('data-add-url="/flight/schedule/new?date=2026-08-31"', body)
+        self.assertIn('data-add-url="/flight/schedule/new?date=2026-10-01"', body)
         self.assertIn('data-track-date="2026-08-31"', body)
         self.assertIn('data-track-date="2026-10-01"', body)

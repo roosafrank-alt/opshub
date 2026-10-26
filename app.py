@@ -2650,13 +2650,20 @@ def project_section_confirm(project_id, section_id):
     blocked = _deleted_job_block(conn, project_id)
     if blocked:
         return blocked
-    section = conn.execute("""SELECT id, linked_squawk_kind, linked_squawk_id, linked_todo_id
+    section = conn.execute("""SELECT id, linked_squawk_kind, linked_squawk_id, linked_todo_id, completed_at
                               FROM project_sections WHERE id = ? AND project_id = ?""",
                            (section_id, project_id)).fetchone()
     if not section:
         conn.close()
         abort(404)
     by = session.get("user_name")
+    if request.form.get("action") != "send_back" and section["completed_at"]:
+        # Already signed off: a second Confirm keeps the first sign-off.
+        conn.close()
+        flash("Already confirmed.", "info")
+        if request.form.get("return_to") == "dashboard":
+            return redirect(url_for("dashboard"))
+        return redirect(url_for("project_detail", project_id=project_id))
     if request.form.get("action") == "send_back":
         conn.execute("""UPDATE project_sections SET confirm_requested_at = NULL, confirm_requested_by = NULL,
                          completed_at = NULL, completed_by = NULL, sent_back_at = ?, sent_back_by = ? WHERE id = ?""",

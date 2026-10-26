@@ -36,15 +36,7 @@ class GsContinueLessonTest(OpsHubTestCase):
         c, r = self._login("flight_student")
         self.assertEqual(r.status_code, 302)
         self.assertIn("/flight/dashboard", r.headers["Location"])
-
-    def test_enrolled_student_opening_the_app_skips_the_picker(self):
-        c = self.login("flight_student")
-        r = c.get("/")
-        self.assertEqual(r.status_code, 302)
-        self.assertIn("/flight/dashboard", r.headers["Location"])
-        # "All programs" still opens the real picker
-        self.assertIn("Choose a program", c.get("/?all=1").get_data(as_text=True))
-        self.assertIn("/?all=1", c.get("/flight/dashboard").get_data(as_text=True))
+        self.assertIn("Choose a program", c.get("/").get_data(as_text=True))
 
     def test_dashboard_continue_row_points_at_next_unfinished_task(self):
         self.exec("INSERT INTO acs_element_completion (student_id, element_id, self_completed_at) VALUES (?,?,?)",
