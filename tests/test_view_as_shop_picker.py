@@ -87,3 +87,14 @@ class CustomerViewStaysInPortalTest(OpsHubTestCase):
         self.assertIn("/portal", r.headers["Location"])
         c.post("/portal/view-as/exit")
         self.assertEqual(c.get("/admin/users").status_code, 200)
+
+
+class NoStaffRolesInCustomerViewTest(OpsHubTestCase):
+    def test_switch_role_row_hidden_while_looking_at_customers(self):
+        c = self.login("master")
+        self.assertIn("Switch role", c.get("/shop").get_data(as_text=True))
+        body = c.get("/portal/view-as").get_data(as_text=True)
+        self.assertNotIn("Switch role", body)
+        cid = self.exec("INSERT INTO customers (name, email, password_hash, active) VALUES ('Cust B', 'b@example.com', 'x', 1)")
+        c.post(f"/portal/view-as/{cid}")
+        self.assertNotIn("Switch role", c.get("/portal/").get_data(as_text=True))

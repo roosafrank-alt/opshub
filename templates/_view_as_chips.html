@@ -8,8 +8,10 @@
    the chip for your normal role (Admin for a master admin) takes you
    straight back to your normal view. See auth.view_as_chips. This is the
    only way to look at the app as someone else. #}
-{% set chips = view_as_chip_rows.get(view_as_program, []) if view_as_chip_rows else [] %}
-{% set can_look_at_customers = view_as_program == 'shop' and session.get('user_id') and not session.get('_view_as_real') and (session.get('is_master_admin') or session.get('shop_role') == 'admin') %}
+{#- No Tech / Apprentice / Inspector (or any staff role) while looking at a customer's portal or picking one. #}
+{% set in_customer_view = session.get('customer_view_id') or request.endpoint == 'customer.portal_view_picker' %}
+{% set chips = view_as_chip_rows.get(view_as_program, []) if view_as_chip_rows and not in_customer_view else [] %}
+{% set can_look_at_customers = not in_customer_view and view_as_program == 'shop' and session.get('user_id') and not session.get('_view_as_real') and (session.get('is_master_admin') or session.get('shop_role') == 'admin') %}
 {% if chips or can_look_at_customers %}
 <div class="view-as-chips d-flex align-items-center flex-nowrap gap-1 text-nowrap" style="font-size:.68rem;" data-change="HUB-03">
   {#- Phones: just a switch icon (the words ate ~70px of a ~230px menu); the
