@@ -402,10 +402,7 @@ class AcademyTest(OpsHubTestCase):
         s.post(f"/academy/entry/{ml['academy_entry_id']}/delete")
         self.assertIsNone(self.q1("SELECT id FROM manual_landings WHERE student_id = ?", (sid,)))
 
-    def test_logbook_shows_log_your_flying_for_the_picked_student(self):  # SCHOOL-38 (moved off the Board)
+    def test_logbook_no_longer_shows_log_your_flying(self):  # replaced by the Log a flight popup
         sid = self.q1("SELECT id FROM students WHERE user_id = ?", (self.users["flight_student"]["id"],))["id"]
-        c = self.login("master")
-        c.post("/academy/entry", data={"student_id": sid, "kind": "landings", "value": "2"})
-        html = c.get(f"/academy/logbook?student_id={sid}").get_data(as_text=True)
-        self.assertIn("Log Your Flying", html)
-        self.assertIn("Landings", html)
+        html = self.login("master").get(f"/academy/logbook?student_id={sid}").get_data(as_text=True)
+        self.assertNotIn("Log Your Flying", html)

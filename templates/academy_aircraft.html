@@ -1,0 +1,44 @@
+{% extends "academy_base.html" %}
+{% block title %}Aircraft · Flight Academy{% endblock %}
+{% block content %}
+{% macro table(rows, heading, link_type) %}
+<div class="card academy-card p-3 mb-3">
+  <h6 class="mb-2">{{ heading }}</h6>
+  <div class="table-responsive"><table class="table table-sm align-middle mb-0 small plog">
+    <thead class="table-light"><tr><th>{{ 'Type' if link_type else 'Tail' }}</th><th class="num">Flights</th><th class="num">Total</th><th class="num">Dual</th><th class="num">Solo</th><th class="num">PIC</th><th class="num">XC</th><th class="num">Night</th><th class="num">Inst</th><th class="num">Ldg</th></tr></thead>
+    <tbody>
+    {% for r in rows %}
+      <tr>
+        <td>{% if link_type %}<a href="{{ url_for('pilotlog.logbook', student_id=student.id if staff else None, range=range_key, type=r.name, **({'from': start, 'to': end} if range_key == 'custom' else {})) }}">{{ r.name }}</a>{% else %}{{ r.name }}{% endif %}</td>
+        <td class="num">{{ r.flights }}</td><td class="num fw-bold">{{ '%.1f'|format(r.totals.total) }}</td><td class="num">{{ '%.1f'|format(r.totals.dual) }}</td>
+        <td class="num">{{ '%.1f'|format(r.totals.solo) }}</td><td class="num">{{ '%.1f'|format(r.totals.pic) }}</td><td class="num">{{ '%.1f'|format(r.totals.xc) }}</td>
+        <td class="num">{{ '%.1f'|format(r.totals.night) }}</td><td class="num">{{ '%.1f'|format(r.totals.actual_inst + r.totals.sim_inst) }}</td>
+        <td class="num">{{ (r.totals.day_ldg + r.totals.night_ldg)|int }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+    <tfoot class="table-light fw-bold"><tr><td>All</td><td class="num">{{ rows|sum(attribute='flights') }}</td>
+      <td class="num">{{ '%.1f'|format(rows|sum(attribute='totals.total')) }}</td><td class="num">{{ '%.1f'|format(rows|sum(attribute='totals.dual')) }}</td>
+      <td class="num">{{ '%.1f'|format(rows|sum(attribute='totals.solo')) }}</td><td class="num">{{ '%.1f'|format(rows|sum(attribute='totals.pic')) }}</td>
+      <td class="num">{{ '%.1f'|format(rows|sum(attribute='totals.xc')) }}</td><td class="num">{{ '%.1f'|format(rows|sum(attribute='totals.night')) }}</td>
+      <td class="num">{{ '%.1f'|format((rows|sum(attribute='totals.actual_inst')) + (rows|sum(attribute='totals.sim_inst'))) }}</td>
+      <td class="num">{{ ((rows|sum(attribute='totals.day_ldg')) + (rows|sum(attribute='totals.night_ldg')))|int }}</td></tr></tfoot>
+  </table></div>
+</div>
+{% endmacro %}
+{% if not student %}
+<div class="card academy-card p-4">No student profile is linked to your account, so there are no aircraft totals to show.</div>
+{% else %}
+<div class="card academy-card p-3 mb-3">
+  <h4 class="mb-1"><i class="bi bi-airplane-engines"></i> Aircraft</h4>
+  <div class="small text-muted mb-2">{{ student.name }} &middot; {{ range_label }}{% if start or end %} ({{ start or 'start' }} to {{ end or 'today' }}){% endif %}. Tap a type to see just those flights in the logbook.</div>
+  {% include "_range_filter.html" %}
+</div>
+{% if type_rows %}
+{{ table(type_rows, 'By aircraft type', True) }}
+{{ table(tail_rows, 'By tail number', False) }}
+{% else %}
+<div class="card academy-card p-4 text-muted">No logbook flights in this range.</div>
+{% endif %}
+{% endif %}
+{% endblock %}

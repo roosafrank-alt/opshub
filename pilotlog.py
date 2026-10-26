@@ -580,6 +580,16 @@ def _can_touch(entry):
     return _is_staff() or entry["student_id"] == session.get("student_id")
 
 
+def _group_rows(entries, keyfn, unknown):
+    """[{name, flights, totals}] grouped by keyfn (aircraft type or tail), most hours first."""
+    groups = {}
+    for e in entries:
+        name = (keyfn(e) or "").strip() or unknown
+        groups.setdefault(name.upper(), {"name": name, "entries": []})["entries"].append(e)
+    rows = [{"name": g["name"], "flights": len(g["entries"]), "totals": _totals(g["entries"])} for g in groups.values()]
+    return sorted(rows, key=lambda r: -r["totals"]["total"])
+
+
 # ---------------------------------------------------------------- routes
 
 @pilotlog_bp.route("/logbook")
@@ -602,6 +612,13 @@ def logbook():
         entries = conn.execute(sql + " ORDER BY entry_date DESC, id DESC", args).fetchall()
     denied_entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ? AND status = 'denied'
                               ORDER BY entry_date DESC, id DESC""", (student["id"],)).fetchall() if student else []
+    # Totals for every aircraft type in the chosen date range; ?type= narrows the list and the top totals to one.
+    type_rows = _group_rows(entries, lambda e: e["make_model"], "Unknown type")
+    type_filter = (request.args.get("type") or "").strip()
+    if type_filter and type_filter.upper() in {r["name"].upper() for r in type_rows}:
+        entries = [e for e in entries if ((e["make_model"] or "").strip() or "Unknown type").upper() == type_filter.upper()]
+    else:
+        type_filter = ""
     dual_given = None
     if session.get("cfi_id"):
         r = conn.execute("SELECT SUM(dual) d, COUNT(*) c FROM pilot_logbook WHERE cfi_id = ? AND dual > 0 AND status != 'denied'",
@@ -618,7 +635,7 @@ def logbook():
     return render_template("academy_logbook.html", denied_entries=denied_entries, log_entries=log_entries, log_kinds=academy.ENTRY_KINDS,
                            log_kind_map=academy.ENTRY_KIND_MAP, log_today=date.today().isoformat(), student=student, students=students, entries=entries,
                            pending=pending, totals=_totals(entries), extra=extra, can_import=_can_import(student), staff=_is_staff(), dual_given=dual_given,
-                           goal_track=goal_track, can_log=_can_import(student), ac_features=AC_FEATURES, range_key=range_key, range_label=range_label, start=start or "", end=end or "", tab="logbook")
+                           goal_track=goal_track, can_log=_can_import(student), ac_features=AC_FEATURES, type_rows=type_rows, type_filter=type_filter, range_key=range_key, range_label=range_label, start=start or "", end=end or "", tab="logbook")
 
 
 @pilotlog_bp.route("/logbook/<int:entry_id>", methods=["GET", "POST"])
@@ -1480,3 +1497,30 @@ def log_flight():
     conn.close()
     flash("Flight logged.", "success")
     return redirect(url_for("pilotlog.logbook"))
+
+
+@pilotlog_bp.route("/aircraft")
+def aircraft_totals():
+    """Totals for every aircraft type (and every tail number) in the chosen date range."""
+    denied = _require_access()
+    if denied:
+        return denied
+    conn = get_db()
+    student, students = _pick_student(conn)
+    range_key, start, end, range_label = _stats_range()
+    entries = []
+    if student:
+        sql, args = "SELECT * FROM pilot_logbook WHERE student_id = ? AND status != 'denied'", [student["id"]]
+        if start:
+            sql += " AND entry_date >= ?"
+            args.append(start)
+        if end:
+            sql += " AND entry_date <= ?"
+            args.append(end + "~")
+        entries = conn.execute(sql + " ORDER BY entry_date, id", args).fetchall()
+    conn.close()
+    return render_template("academy_aircraft.html", student=student, students=students, staff=_is_staff(), range_key=range_key,
+                           range_label=range_label, start=start or "", end=end or "",
+                           type_rows=_group_rows(entries, lambda e: e["make_model"], "Unknown type"),
+                           tail_rows=_group_rows(entries, lambda e: e["tail"], "No tail number"),
+                           tab="logbook", subtab="aircraft")

@@ -12,4 +12,11 @@
   <input type="date" name="to" value="{{ end }}" class="form-control form-control-sm" style="width:auto;" aria-label="To">
   <button name="range" value="custom" class="btn btn-primary btn-sm">Apply</button>
   {% endif %}
+  {% if type_rows is defined and type_rows %}
+  <select name="type" class="form-select form-select-sm" style="width:auto;max-width:100%;" onchange="this.form.submit()" aria-label="Aircraft type">
+    <option value="">All aircraft types</option>
+    {% for r in type_rows %}<option value="{{ r.name }}" {{ 'selected' if r.name == type_filter }}>{{ r.name }} ({{ r.flights }})</option>{% endfor %}
+  </select>
+  <input type="hidden" name="range" value="{{ range_key }}">
+  {% endif %}
 </form>

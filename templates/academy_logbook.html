@@ -71,6 +71,7 @@
   {% for d in denied_entries %}<a href="{{ url_for('pilotlog.entry', entry_id=d.id) }}" class="alert-link">{{ d.entry_date|usdate }} {{ d.tail }}</a>{{ ', ' if not loop.last }}{% endfor %}</div>
 {% endif %}
 
+{% if type_filter %}<div class="small mb-2">Showing only <strong>{{ type_filter }}</strong>. <a href="{{ url_for('pilotlog.logbook', student_id=student.id if staff else None, range=range_key, **({'from': start, 'to': end} if range_key == 'custom' else {})) }}">Show all types</a> &middot; <a href="{{ url_for('pilotlog.aircraft_totals', student_id=student.id if staff else None) }}">Totals by aircraft</a></div>{% endif %}
 <div class="card academy-card">
   <div class="small text-muted d-sm-none px-2 pt-2" data-change="DESIGN-5"><i class="bi bi-arrow-left-right"></i> Swipe sideways to see every column</div>
   <div class="table-responsive">

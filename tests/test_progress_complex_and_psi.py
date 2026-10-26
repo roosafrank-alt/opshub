@@ -130,3 +130,20 @@ class LogAFlightFeedsOldLogYourFlyingTest(LogAFlightTest):
             self.assertAlmostEqual(st["instrument_hours"], 0.7)
         ml = self.q1("SELECT day_landings, night_landings FROM manual_landings WHERE student_id = ?", (self.sid,))
         self.assertEqual((ml["day_landings"], ml["night_landings"]), (2, 1))
+
+
+class AircraftTabTest(LogAFlightTest):
+    def test_aircraft_tab_totals_by_type_and_filter(self):
+        c = self.login("flight_student")
+        for mm, tail, hrs in (("Cessna 172", "N1", "1.0"), ("Cessna 172", "N2", "2.0"), ("Piper PA-28", "N3", "1.5")):
+            c.post("/academy/logbook/new", data={"entry_date": "2026-10-20", "total": hrs, "make_model": mm, "tail": tail})
+        html = c.get("/academy/aircraft").get_data(as_text=True)
+        self.assertIn("By aircraft type", html)
+        self.assertIn("By tail number", html)
+        self.assertIn("Cessna 172", html)
+        self.assertIn(">3.0<", html)                      # 1.0 + 2.0 in the 172
+        self.assertIn("Aircraft</a>", html)
+        self.assertEqual(c.get("/academy/aircraft", query_string={"range": "1"}).status_code, 200)
+        one = c.get("/academy/logbook", query_string={"type": "Piper PA-28"}).get_data(as_text=True)
+        self.assertIn("Showing only", one)
+        self.assertNotIn('Cessna 172</small>', one)
