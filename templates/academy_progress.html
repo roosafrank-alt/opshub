@@ -112,6 +112,27 @@
         </div>
       </div>
       {% endfor %}
+      {% if t['items']|selectattr('code','equalto','knowledge')|list %}
+      <div class="border-top mt-3 pt-2">
+        <div class="fw-semibold small"><i class="bi bi-file-earmark-check"></i> Knowledge test (PSI) report</div>
+        {% for r in reports.get(t.code, []) %}
+        <div class="small d-flex flex-wrap gap-2 align-items-center">
+          <span class="badge {{ 'bg-success' if r.passed else 'bg-danger' }}">{{ 'Satisfactory' if r.passed else 'Unsatisfactory' }}</span>
+          <span>{{ r.score }} on {{ r.taken_date|usdate }}</span>
+          {% if r.filename %}<a href="{{ url_for('pilotlog.test_report_file', report_id=r.id) }}" target="_blank" rel="noopener">View report</a>{% endif %}
+        </div>
+        {% endfor %}
+        <form method="post" action="{{ url_for('pilotlog.test_report') }}" enctype="multipart/form-data" class="row g-1 mt-1 align-items-end">
+          {% if staff %}<input type="hidden" name="student_id" value="{{ student.id }}">{% endif %}
+          <input type="hidden" name="track" value="{{ t.code }}">
+          <div class="col-6 col-md-2"><label class="form-label small mb-0">Score</label><input type="number" name="score" min="0" max="100" required class="form-control form-control-sm"></div>
+          <div class="col-6 col-md-3"><label class="form-label small mb-0">Date taken</label><input type="date" name="taken_date" class="form-control form-control-sm"></div>
+          <div class="col-12 col-md-4"><label class="form-label small mb-0">Report (PDF or photo)</label><input type="file" name="report" accept=".pdf,image/*" class="form-control form-control-sm"></div>
+          <div class="col-12 col-md-3"><button class="btn btn-outline-primary btn-sm w-100"><i class="bi bi-plus-lg"></i> Add report</button></div>
+        </form>
+        <div class="form-text">A score of 70 or better is satisfactory and checks "Knowledge test passed" off for {{ t.name }}.</div>
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>

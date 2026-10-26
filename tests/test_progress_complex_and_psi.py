@@ -1,0 +1,42 @@
+"""Logbook 'complex / turbine / TAA' box feeds the commercial 10 hours; a satisfactory PSI report checks the knowledge test."""
+import io
+from harness import OpsHubTestCase
+import pilotlog
+
+
+class ComplexAndPsiTest(OpsHubTestCase):
+    def setUp(self):
+        super().setUp()
+        self.sid = self.q1("SELECT id FROM students WHERE user_id = ?", (self.users["flight_student"]["id"],))["id"]
+        self.exec("UPDATE users SET academy_access = 1 WHERE username = 'flight_student'")
+        self.exec("UPDATE students SET pilot_certificate = 'private', training_goal = 'commercial' WHERE id = ?", (self.sid,))
+
+    def item(self, track, code):
+        from db import get_db
+        with self.app.app_context():
+            conn = get_db()
+            t = next(t for t in pilotlog.build_progress(conn, conn.execute("SELECT * FROM students WHERE id=?", (self.sid,)).fetchone()) if t["code"] == track)
+            return next(i for i in t["items"] if i["code"] == code)
+
+    def test_complex_box_counts_toward_commercial(self):
+        self.exec("""INSERT INTO pilot_logbook (student_id, entry_date, total, dual, complex_tae, status) VALUES (?, '2026-10-01', 2.0, 1.5, 1, 'complete')""", (self.sid,))
+        self.exec("""INSERT INTO pilot_logbook (student_id, entry_date, total, dual, complex_tae, status) VALUES (?, '2026-10-02', 3.0, 3.0, 0, 'complete')""", (self.sid,))
+        it = self.item("commercial", "complex")
+        self.assertEqual(it["kind"], "hours")
+        self.assertEqual(it["have"], 1.5)
+
+    def test_satisfactory_psi_report_checks_the_knowledge_test(self):
+        self.exec("UPDATE students SET pilot_certificate = 'student', training_goal = 'private' WHERE id = ?", (self.sid,))
+        c = self.login("flight_student")
+        r = c.post("/academy/progress/test-report", data={"track": "private", "score": "64", "taken_date": "2026-10-20"})
+        self.assertEqual(r.status_code, 302)
+        self.assertFalse(self.item("private", "knowledge")["done"])
+        r = c.post("/academy/progress/test-report", data={"track": "private", "score": "88", "taken_date": "2026-10-22",
+                                                           "report": (io.BytesIO(b"%PDF-1.4 test"), "psi.pdf")}, content_type="multipart/form-data")
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(self.item("private", "knowledge")["done"])
+        html = c.get("/academy/progress").get_data(as_text=True)
+        self.assertIn("Satisfactory", html)
+        self.assertIn("Unsatisfactory", html)
+        rid = self.q1("SELECT id FROM academy_test_reports WHERE filename IS NOT NULL")["id"]
+        self.assertEqual(c.get(f"/academy/progress/test-report/{rid}/file").status_code, 200)

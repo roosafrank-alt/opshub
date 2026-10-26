@@ -1902,6 +1902,8 @@ def _migrate(conn):
     for _c in ("sic", "dual_given", "ifr", "sim_flight", "ground"):
         if _c not in _lb_cols:
             conn.execute(f"ALTER TABLE pilot_logbook ADD COLUMN {_c} REAL")
+    if "complex_tae" not in _lb_cols:   # flight was in a complex / turbine / technically advanced airplane
+        conn.execute("ALTER TABLE pilot_logbook ADD COLUMN complex_tae INTEGER NOT NULL DEFAULT 0")
     for _c in ("source", "import_key"):    # source: NULL = logged at the school, 'foreflight' = imported; import_key stops double imports
         if _c not in _lb_cols:
             conn.execute(f"ALTER TABLE pilot_logbook ADD COLUMN {_c} TEXT")

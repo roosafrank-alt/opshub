@@ -823,6 +823,21 @@ CREATE TABLE IF NOT EXISTS academy_milestones (
     UNIQUE(student_id, track, item)
 );
 
+-- Knowledge test (PSI) reports a student adds for a certificate/rating; a satisfactory one checks the
+-- track's "Knowledge test passed" requirement off.
+CREATE TABLE IF NOT EXISTS academy_test_reports (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id INTEGER NOT NULL REFERENCES students(id),
+    track TEXT NOT NULL,
+    taken_date TEXT,
+    score INTEGER,
+    passed INTEGER NOT NULL DEFAULT 0,
+    filename TEXT,
+    added_by TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_academy_test_reports_student ON academy_test_reports(student_id, track);
+
 -- Specific logbook flights an instructor links to a checkoff requirement on the Progress page
 -- (e.g. the long solo cross-country): shown as evidence, and linking one checks the requirement off.
 CREATE TABLE IF NOT EXISTS academy_milestone_flights (

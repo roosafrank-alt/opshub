@@ -120,7 +120,7 @@ TRACKS = [
         {"code": "pic_xc", "label": "50 hours of cross-country as PIC (10 in airplanes)", "ref": "61.129(a)(2)(ii)", "kind": "hours", "col": "pic_xc", "need": 50},
         {"code": "dual", "label": "20 hours of training on the commercial areas of operation", "ref": "61.129(a)(3)", "kind": "hours", "col": "dual", "need": 20},
         {"code": "dual_inst", "label": "10 hours of instrument training (5 in a single-engine airplane)", "ref": "61.129(a)(3)(i)", "kind": "hours", "col": "dual_inst", "need": 10},
-        {"code": "complex", "label": "10 hours of training in a complex, turbine or technically advanced airplane", "ref": "61.129(a)(3)(ii)", "kind": "manual"},
+        {"code": "complex", "label": "10 hours of training in a complex, turbine or technically advanced airplane (tick the box on each of those flights' logbook entries)", "ref": "61.129(a)(3)(ii)", "kind": "hours", "col": "complex", "need": 10},
         {"code": "day_xc", "label": "2-hour day VFR cross-country with an instructor, more than 100 nm straight-line", "ref": "61.129(a)(3)(iii)", "kind": "manual"},
         {"code": "night_xc", "label": "2-hour night VFR cross-country with an instructor, more than 100 nm straight-line", "ref": "61.129(a)(3)(iv)", "kind": "manual"},
         {"code": "prep", "label": "3 hours of practical test prep training within 2 calendar months of the test", "ref": "61.129(a)(3)(v)", "kind": "hours", "col": "dual", "need": 3, "window": "2cal"},
@@ -366,6 +366,8 @@ def _entry_values(e):
         "dual_xc": min(xc, dual), "solo_xc": min(xc, solo), "pic_xc": min(xc, pic),
         "dual_night": min(night, dual), "pic_night": min(night, pic), "dual_inst": min(inst, dual),
         "night_fs": g("night_fs"), "all_ldg": g("day_ldg") + g("night_ldg"),
+        # dual training in a complex / turbine / technically advanced airplane (the box on the entry)
+        "complex": min(dual, g("total")) if (e["complex_tae"] if "complex_tae" in e.keys() else 0) else 0,
     }
 
 
@@ -414,6 +416,8 @@ def build_progress(conn, student):
                 row["have"] = round(total, 1) if it["kind"] == "hours" else int(total)
                 row["pct"] = min(100, int(total / it["need"] * 100)) if it["need"] else 100
                 row["done"] = total >= it["need"]
+                if not row["done"] and miles.get((t["code"], it["code"])):   # ticked off by an instructor before it was totalled
+                    row["done"], row["pct"], row["who"] = True, 100, miles[(t["code"], it["code"])]
             elif it["kind"] == "manual":
                 m = miles.get((t["code"], it["code"]))
                 row["done"] = bool(m)
@@ -647,6 +651,8 @@ def entry(entry_id):
         ai, si = [i for i, f in enumerate(STUDENT_FIELDS) if f[0] == "actual_inst"][0], [i for i, f in enumerate(STUDENT_FIELDS) if f[0] == "sim_inst"][0]
         if (args[ai] or 0) + (args[si] or 0) > total_val:
             args[si] = round(max(0.0, total_val - (args[ai] or 0)), 1)
+        sets.append("complex_tae=?")
+        args.append(1 if request.form.get("complex_tae") else 0)
         approve = request.form.get("action") == "approve"
         if approve:
             sets += ["status='complete'", "approved_at=?", "approved_by=?"]
@@ -822,6 +828,10 @@ def progress():
                                              (student["id"],)).fetchall()] if (student and _is_staff()) else []
     entries = conn.execute("""SELECT * FROM pilot_logbook WHERE student_id = ? AND status != 'denied' ORDER BY entry_date, id""",
                            (student["id"],)).fetchall() if student else []
+    reports = {}
+    for r in (conn.execute("SELECT * FROM academy_test_reports WHERE student_id = ? ORDER BY taken_date DESC, id DESC",
+                           (student["id"],)).fetchall() if student else []):
+        reports.setdefault(r["track"], []).append(dict(r))
     conn.close()
     open_track = request.args.get("track") or goal_track_code(student)
     # Target picker + ETA (was the Totalizer tab): any certificate/rating, paced by the student's own average.
@@ -829,7 +839,7 @@ def progress():
     target = next((t for t in tracks if t["code"] == target_code), None)
     eta = target_eta(entries, target) if target else None
     return render_template("academy_progress.html", student=student, students=students, tracks=tracks, flights=flights,
-                           target=target, target_code=target_code, eta=eta,
+                           target=target, target_code=target_code, eta=eta, reports=reports,
                            open_track=open_track, staff=_is_staff(), pending_count=pending_count,
                            window_start=_two_cal_months_start(), tab="progress")
 
@@ -1273,3 +1283,82 @@ def stats():
     return render_template("academy_stats.html", student=student, students=students, st=st, range_key=key,
                            range_label=label, start=start or "", end=end or "", staff=_is_staff(),
                            tab="logbook", subtab="stats")
+
+
+# ---------------------------------------------------------------- knowledge test (PSI) reports
+
+PSI_PASSING = 70
+_REPORT_EXT = ("pdf", "png", "jpg", "jpeg", "heic")
+
+
+def _report_dir():
+    import os
+    import db as _db
+    d = os.path.join(os.path.dirname(_db.DB_PATH), "test_reports")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+@pilotlog_bp.route("/progress/test-report", methods=["POST"])
+def test_report():
+    """Add a knowledge test (PSI) report for a certificate/rating. A satisfactory one (70 or better) checks
+    that track's "Knowledge test passed" requirement off. The student adds their own; staff add anyone's."""
+    import os
+    import secrets
+    denied = _require_access()
+    if denied:
+        return denied
+    conn = get_db()
+    student, _students = _pick_student(conn)
+    track = request.form.get("track")
+    t = TRACK_MAP.get(track)
+    item = next((i["code"] for i in (t["items"] if t else []) if i["code"] == "knowledge"), None)
+    if not student or not item:
+        conn.close()
+        abort(400)
+    sid_arg = student["id"] if _is_staff() else None
+    score = request.form.get("score", type=int)
+    if score is None or not 0 <= score <= 100:
+        conn.close()
+        flash("Enter the score from the report (0-100).", "warning")
+        return redirect(url_for("pilotlog.progress", student_id=sid_arg, track=track) + f"#t-{track}")
+    taken = (request.form.get("taken_date") or date.today().isoformat())[:10]
+    fname = None
+    f = request.files.get("report")
+    if f and f.filename:
+        ext = f.filename.rsplit(".", 1)[-1].lower() if "." in f.filename else ""
+        if ext not in _REPORT_EXT:
+            conn.close()
+            flash("Attach the report as a PDF or a photo (PNG / JPG).", "warning")
+            return redirect(url_for("pilotlog.progress", student_id=sid_arg, track=track) + f"#t-{track}")
+        fname = f"{secrets.token_hex(8)}.{ext}"
+        f.save(os.path.join(_report_dir(), fname))
+    passed = score >= PSI_PASSING
+    conn.execute("""INSERT INTO academy_test_reports (student_id, track, taken_date, score, passed, filename, added_by, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                 (student["id"], track, taken, score, 1 if passed else 0, fname, session.get("user_name"), now_iso()))
+    if passed and not conn.execute("SELECT 1 FROM academy_milestones WHERE student_id=? AND track=? AND item=?",
+                                   (student["id"], track, item)).fetchone():
+        conn.execute("""INSERT INTO academy_milestones (student_id, track, item, done_date, signed_by, note, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                     (student["id"], track, item, taken, "PSI test report", f"score {score}", now_iso()))
+    conn.commit()
+    conn.close()
+    flash(f"Test report saved - score {score}: satisfactory, so \"Knowledge test passed\" is checked off." if passed
+          else f"Test report saved - score {score} is below {PSI_PASSING}, so the requirement stays open.", "success" if passed else "warning")
+    return redirect(url_for("pilotlog.progress", student_id=sid_arg, track=track) + f"#t-{track}")
+
+
+@pilotlog_bp.route("/progress/test-report/<int:report_id>/file")
+def test_report_file(report_id):
+    import os
+    from flask import send_from_directory
+    denied = _require_access()
+    if denied:
+        return denied
+    conn = get_db()
+    r = conn.execute("SELECT * FROM academy_test_reports WHERE id = ?", (report_id,)).fetchone()
+    conn.close()
+    if not r or not r["filename"] or not (_is_staff() or r["student_id"] == session.get("student_id")):
+        abort(404)
+    return send_from_directory(_report_dir(), r["filename"])
