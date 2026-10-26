@@ -35,9 +35,9 @@ CREATE TABLE IF NOT EXISTS fixes (
 );
 CREATE INDEX IF NOT EXISTS fixes_ident ON fixes(ident);
 CREATE TABLE IF NOT EXISTS airway_pts (
-    airway TEXT NOT NULL, seq INTEGER NOT NULL, ident TEXT NOT NULL, lat REAL, lon REAL
+    airway TEXT NOT NULL, loc TEXT, seq INTEGER NOT NULL, ident TEXT NOT NULL, lat REAL, lon REAL
 );
-CREATE INDEX IF NOT EXISTS airway_pts_aw ON airway_pts(airway, seq);
+CREATE INDEX IF NOT EXISTS airway_pts_aw ON airway_pts(airway, loc, seq);
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 """
 
@@ -180,7 +180,7 @@ def search_airports(conn, q, limit=8, near=None, freq=None):
         d = nm_between(near[0], near[1], r["lat"], r["lon"]) if near else 0
         # exact code match always first, then visited airports, then nearest
         exact = 0 if qn in (r["icao"], r["local"]) else (1 if qn == r["ident"] else 2)   # (IATA codes like KPO = Pohang must not beat KPOU)
-        return (tier, exact, 0 if visits else 1, -visits, _TYPE_RANK.get(r["type"], 6) if d == 0 else 0, d, r["ident"])
+        return (tier, exact, 0 if visits else 1, -visits, 1 if r["type"] == "heliport" else 0, d, r["ident"])   # heliports after airports
 
     out = []
     for item in sorted(rows.values(), key=key)[:limit]:
@@ -213,13 +213,14 @@ def _find_point(conn, ident, near=None):
 
 
 def _airway_slice(conn, awy, a_ident, b_ident):
-    pts = conn.execute("SELECT seq, ident, lat, lon FROM airway_pts WHERE airway=? ORDER BY seq", (awy,)).fetchall()
-    names = [p["ident"] for p in pts]
-    if a_ident not in names or b_ident not in names:
-        return None
-    i, j = names.index(a_ident), names.index(b_ident)
-    seg = pts[i:j + 1] if i <= j else list(reversed(pts[j:i + 1]))
-    return [p for p in seg]
+    """The points of airway `awy` from a_ident to b_ident (either direction), or None."""
+    for loc in [r[0] for r in conn.execute("SELECT DISTINCT loc FROM airway_pts WHERE airway=?", (awy,))]:
+        pts = conn.execute("SELECT seq, ident, lat, lon FROM airway_pts WHERE airway=? AND loc IS ? ORDER BY seq", (awy, loc)).fetchall()
+        names = [p["ident"] for p in pts]
+        if a_ident in names and b_ident in names:
+            i, j = names.index(a_ident), names.index(b_ident)
+            return list(pts[i:j + 1]) if i <= j else list(reversed(pts[j:i + 1]))
+    return None
 
 
 def parse_route(conn, dep, dest, route=""):

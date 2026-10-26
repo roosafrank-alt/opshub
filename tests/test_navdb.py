@@ -37,11 +37,11 @@ def _build(d):
         w.writerow(["FIX_ID", "STATE_CODE", "LAT_DECIMAL", "LONG_DECIMAL"])
         w.writerow(["HAAYS", "NY", 41.3, -74.0])
         w.writerow(["LHY", "NY", 41.6, -74.2])
-    with open(os.path.join(d, "AWY_SEG.csv"), "w", newline="") as f:
+    with open(os.path.join(d, "AWY_SEG_ALT.csv"), "w", newline="") as f:      # same layout as the FAA's file
         w = csv.writer(f)
-        w.writerow(["AWY_ID", "POINT_SEQ", "FROM_POINT"])
-        for i, p in enumerate(["LHY", "HAAYS", "SAX"], 1):
-            w.writerow(["V99", i, p])
+        w.writerow(["AWY_LOCATION", "AWY_ID", "POINT_SEQ", "FROM_POINT", "FROM_PT_TYPE", "TO_POINT"])
+        w.writerow(["C", "V99", 10, "LHY", "WP", "HAAYS"])
+        w.writerow(["C", "V99", 20, "HAAYS", "WP", "SAX"])     # last segment: SAX only appears as TO_POINT
 
 
 class NavDbTests(OpsHubTestCase):
