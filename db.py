@@ -1902,6 +1902,8 @@ def _migrate(conn):
     for _c in ("sic", "dual_given", "ifr", "sim_flight", "ground"):
         if _c not in _lb_cols:
             conn.execute(f"ALTER TABLE pilot_logbook ADD COLUMN {_c} REAL")
+    if "distance_nm" not in _lb_cols:   # nautical miles flown, typed in (or worked out from the route) on a logged flight
+        conn.execute("ALTER TABLE pilot_logbook ADD COLUMN distance_nm REAL")
     if "ac_features" not in _lb_cols:   # aircraft features of the flight (tailwheel, complex, ...), copied from the plane
         conn.execute("ALTER TABLE pilot_logbook ADD COLUMN ac_features TEXT")
     _as_cols = [r["name"] for r in conn.execute("PRAGMA table_info(assets)").fetchall()]

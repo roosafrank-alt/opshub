@@ -111,3 +111,22 @@ class LogAFlightTest(OpsHubTestCase):
         c = self.login("master")
         c.post("/academy/logbook/new", data={"student_id": self.sid, "entry_date": "2026-10-20", "total": "1.0"})
         self.assertIsNone(self.q1("SELECT id FROM pilot_logbook WHERE student_id = ? AND source = 'manual'", (self.sid,)))
+
+
+class LogAFlightFeedsOldLogYourFlyingTest(LogAFlightTest):
+    def test_logged_flight_feeds_leaderboard_stats_and_currency(self):
+        import academy
+        from db import get_db
+        c = self.login("flight_student")
+        c.post("/academy/logbook/new", data={"entry_date": "2026-10-20", "total": "2.0", "xc": "1.5", "night": "0.5", "actual_inst": "0.4",
+                                              "sim_inst": "0.3", "day_ldg": "2", "night_ldg": "1", "distance_nm": "120"})
+        self.assertNotIn("Log Your Flying", c.get("/academy/logbook").get_data(as_text=True))
+        with self.app.app_context():
+            conn = get_db()
+            st = academy.student_stats(conn)[self.sid]
+        if st is not None:
+            self.assertEqual((st["landings"], st["night_landings"], st["xc_flights"], st["distance_nm"]), (2, 1, 1, 120))
+            self.assertAlmostEqual(st["night_hours"], 0.5)
+            self.assertAlmostEqual(st["instrument_hours"], 0.7)
+        ml = self.q1("SELECT day_landings, night_landings FROM manual_landings WHERE student_id = ?", (self.sid,))
+        self.assertEqual((ml["day_landings"], ml["night_landings"]), (2, 1))

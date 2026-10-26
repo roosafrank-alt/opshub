@@ -196,6 +196,24 @@ def student_stats(conn, since=None):
         st = stats.get(r["student_id"])
         if st and r["kind"] in ENTRY_KIND_MAP:
             st[r["kind"]] += r["v"] or 0
+    # Flights the pilot logged themselves (Log a flight) feed the same leaderboard numbers the old
+    # "Log Your Flying" box did: landings, night landings, cross-country flights, night and instrument hours, distance.
+    sql = """SELECT student_id, COALESCE(SUM(day_ldg),0) dl, COALESCE(SUM(night_ldg),0) nl, SUM(CASE WHEN xc > 0 THEN 1 ELSE 0 END) xcf,
+                    COALESCE(SUM(night),0) nh, COALESCE(SUM(COALESCE(actual_inst,0) + COALESCE(sim_inst,0)),0) ih,
+                    COALESCE(SUM(distance_nm),0) nm FROM pilot_logbook WHERE source = 'manual' AND status != 'denied'"""
+    params = []
+    if since:
+        sql += " AND entry_date >= ?"
+        params.append(since)
+    for r in conn.execute(sql + " GROUP BY student_id", params).fetchall():
+        st = stats.get(r["student_id"])
+        if st:
+            st["landings"] += r["dl"]
+            st["night_landings"] += r["nl"]
+            st["xc_flights"] += r["xcf"] or 0
+            st["night_hours"] += r["nh"]
+            st["instrument_hours"] += r["ih"]
+            st["distance_nm"] += r["nm"]
     # Explorer: different airports each student has landed at, from the
     # From / To boxes of their logbook (the same source as the Airport Map).
     from pilotlog import _airport_codes, _HOME_AIRPORT

@@ -20,10 +20,10 @@ class AcademyTabsLayoutTest(OpsHubTestCase):
         self.assertNotIn('href="/academy/progress"', body)
         self.assertNotIn('href="/academy/map"', body)
 
-    def test_log_your_flying_is_on_the_logbook_not_the_board(self):
+    def test_log_your_flying_box_is_gone_replaced_by_log_a_flight(self):
         c = self.login("master")
         self.assertNotIn("Log Your Flying", c.get("/academy").get_data(as_text=True))
-        self.assertIn("Log Your Flying", c.get("/academy/logbook").get_data(as_text=True))
+        self.assertNotIn("Log Your Flying", c.get("/academy/logbook").get_data(as_text=True))
 
     def test_points_board_has_an_info_icon_for_how_points_work(self):
         c = self.login("master")

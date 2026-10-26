@@ -1453,16 +1453,29 @@ def log_flight():
     si = min(_num(f.get("sim_inst")) or 0, round(max(0.0, total - ai), 1))
     feats = clean_features(f.getlist("ac_features"))
     ints = lambda k: _num(f.get(k), "int") or 0
-    conn.execute("""INSERT INTO pilot_logbook (student_id, entry_date, tail, make_model, route_from, route_to, route, total, dual, solo, pic,
+    dist = _num(f.get("distance_nm"))
+    if dist is None:    # not typed: add up the legs of the From / To route
+        try:
+            codes = _airport_codes(f.get("route_from")) + _airport_codes(f.get("route_to"))
+            coords = _lookup_airports(conn, codes) if len(codes) > 1 else {}
+            dist = round(sum(_haversine_nm((coords[a]["lat"], coords[a]["lon"]), (coords[b]["lat"], coords[b]["lon"]))
+                             for a, b in zip(codes, codes[1:]) if a != b and a in coords and b in coords)) or None
+        except Exception:
+            dist = None
+    cur = conn.execute("""INSERT INTO pilot_logbook (student_id, entry_date, tail, make_model, route_from, route_to, route, total, dual, solo, pic,
                     xc, night, actual_inst, sim_inst, approaches, day_ldg, night_ldg, night_fs, remarks, instructor_name,
-                    ac_features, complex_tae, status, approved_at, approved_by, source, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'complete', ?, ?, 'manual', ?, ?)""",
+                    ac_features, complex_tae, distance_nm, status, approved_at, approved_by, source, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'complete', ?, ?, 'manual', ?, ?)""",
                  (student["id"], d, (f.get("tail") or "").strip().upper()[:12] or None, (f.get("make_model") or "").strip()[:60] or None,
                   (f.get("route_from") or "").strip()[:60] or None, (f.get("route_to") or "").strip()[:60] or None,
                   (f.get("route") or "").strip()[:200] or None, total, dual, solo, pic, xc, night, ai, si, ints("approaches"),
                   ints("day_ldg"), ints("night_ldg"), min(ints("night_fs"), ints("night_ldg")),
                   (f.get("remarks") or "").strip()[:500] or None, (f.get("instructor_name") or "").strip()[:80] or None,
-                  feats, counts_as_complex(feats), now_iso(), "Logged by the pilot", now_iso(), now_iso()))
+                  feats, counts_as_complex(feats), dist, now_iso(), "Logged by the pilot", now_iso(), now_iso()))
+    if ints("day_ldg") or ints("night_ldg"):    # landings logged here count toward 90-day landing currency too
+        conn.execute("""INSERT INTO manual_landings (student_id, landing_date, day_landings, night_landings, note, created_by)
+                        VALUES (?, ?, ?, ?, ?, ?)""", (student["id"], d, ints("day_ldg"), ints("night_ldg"),
+                                                       "Logbook entry %s" % cur.lastrowid, session.get("user_name")))
     conn.commit()
     conn.close()
     flash("Flight logged.", "success")
