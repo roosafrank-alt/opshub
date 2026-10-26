@@ -385,6 +385,11 @@ def build_progress(conn, student):
     vals = [(e, _entry_values(e)) for e in entries]
     miles = {(r["track"], r["item"]): r for r in conn.execute(
         "SELECT * FROM academy_milestones WHERE student_id = ?", (student["id"],)).fetchall()}
+    linked = {}
+    for r in conn.execute("""SELECT mf.track, mf.item, l.id, l.entry_date, l.tail, l.route_from, l.route_to, l.total
+                             FROM academy_milestone_flights mf JOIN pilot_logbook l ON l.id = mf.entry_id
+                             WHERE mf.student_id = ? AND l.status != 'denied' ORDER BY l.entry_date, l.id""", (student["id"],)).fetchall():
+        linked.setdefault((r["track"], r["item"]), []).append(dict(r))
     cert = student["pilot_certificate"] or ""
     ratings = [r.strip() for r in (student["pilot_ratings"] or "").split(",") if r.strip()]
     window_start = _two_cal_months_start()
@@ -412,6 +417,7 @@ def build_progress(conn, student):
                 row["done"] = bool(m)
                 row["who"] = m
                 row["pct"] = 100 if m else 0
+                row["linked"] = linked.get((t["code"], it["code"]), [])
             elif it["kind"] == "cert":
                 ok = (cert in it["cert"]) if it.get("cert") else (it["rating"] in ratings)
                 row["done"], row["pct"] = ok, 100 if ok else 0
@@ -761,9 +767,12 @@ def progress():
     tracks = build_progress(conn, student) if student else []
     pending_count = conn.execute("SELECT COUNT(*) c FROM pilot_logbook WHERE student_id = ? AND status = 'pending'",
                                  (student["id"],)).fetchone()["c"] if student else 0
+    flights = [dict(r) for r in conn.execute("""SELECT id, entry_date, tail, route_from, route_to, total FROM pilot_logbook
+                                                WHERE student_id = ? AND status != 'denied' ORDER BY entry_date DESC, id DESC""",
+                                             (student["id"],)).fetchall()] if (student and _is_staff()) else []
     conn.close()
     open_track = request.args.get("track") or goal_track_code(student)
-    return render_template("academy_progress.html", student=student, students=students, tracks=tracks,
+    return render_template("academy_progress.html", student=student, students=students, tracks=tracks, flights=flights,
                            open_track=open_track, staff=_is_staff(), pending_count=pending_count,
                            window_start=_two_cal_months_start(), tab="progress")
 
@@ -793,6 +802,39 @@ def milestone():
                       session.get("user_name"), (request.form.get("note") or "").strip()[:200] or None, now_iso()))
     conn.commit()
     conn.close()
+    return redirect(url_for("pilotlog.progress", student_id=student_id, track=track) + f"#t-{track}")
+
+
+@pilotlog_bp.route("/progress/milestone/flights", methods=["POST"])
+def milestone_flights():
+    """An instructor picks the specific logbook flights that meet a checkoff requirement. Saving with at
+    least one flight picked checks the requirement off (dated from the latest flight); saving with none
+    just clears the picks. Students can see the picks but never change them."""
+    if not _access_ok() or not _is_staff():
+        flash("Only an instructor can pick the flights for a requirement.", "danger")
+        return redirect(url_for("pilotlog.progress"))
+    student_id = request.form.get("student_id", type=int)
+    track, item = request.form.get("track"), request.form.get("item")
+    t = TRACK_MAP.get(track)
+    if not student_id or not t or item not in [i["code"] for i in t["items"] if i["kind"] == "manual"]:
+        abort(400)
+    conn = get_db()
+    ids = {int(x) for x in request.form.getlist("entry_id") if x.isdigit()}
+    rows = conn.execute(f"""SELECT id, entry_date FROM pilot_logbook WHERE student_id = ? AND status != 'denied'
+                            AND id IN ({','.join('?' * len(ids)) or 'NULL'})""", [student_id, *ids]).fetchall() if ids else []
+    conn.execute("DELETE FROM academy_milestone_flights WHERE student_id=? AND track=? AND item=?", (student_id, track, item))
+    for r in rows:
+        conn.execute("""INSERT OR IGNORE INTO academy_milestone_flights (student_id, track, item, entry_id, added_by, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?)""", (student_id, track, item, r["id"], session.get("user_name"), now_iso()))
+    if rows and not conn.execute("SELECT 1 FROM academy_milestones WHERE student_id=? AND track=? AND item=?",
+                                 (student_id, track, item)).fetchone():
+        conn.execute("""INSERT INTO academy_milestones (student_id, track, item, done_date, signed_by, note, created_at)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)""",
+                     (student_id, track, item, max(r["entry_date"] for r in rows)[:10], session.get("user_name"),
+                      f"{len(rows)} flight{'s' if len(rows) != 1 else ''} picked", now_iso()))
+    conn.commit()
+    conn.close()
+    flash("Flights saved for that requirement." if rows else "Flights cleared for that requirement.", "success")
     return redirect(url_for("pilotlog.progress", student_id=student_id, track=track) + f"#t-{track}")
 
 

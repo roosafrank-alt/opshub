@@ -823,6 +823,19 @@ CREATE TABLE IF NOT EXISTS academy_milestones (
     UNIQUE(student_id, track, item)
 );
 
+-- Specific logbook flights an instructor links to a checkoff requirement on the Progress page
+-- (e.g. the long solo cross-country): shown as evidence, and linking one checks the requirement off.
+CREATE TABLE IF NOT EXISTS academy_milestone_flights (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    student_id INTEGER NOT NULL REFERENCES students(id),
+    track TEXT NOT NULL,
+    item TEXT NOT NULL,
+    entry_id INTEGER NOT NULL REFERENCES pilot_logbook(id) ON DELETE CASCADE,
+    added_by TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now')),
+    UNIQUE(student_id, track, item, entry_id)
+);
+
 -- Airport locations for the Flight Academy map (pilotlog.airport_map),
 -- looked up once per identifier from aviationweather.gov and kept here.
 -- found = 0 means the lookup came back empty (retried after a week).

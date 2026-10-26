@@ -39,7 +39,7 @@
         <div class="req-check">{% if it.done %}<i class="bi bi-check-circle-fill text-success"></i>{% else %}<i class="bi bi-circle text-secondary"></i>{% endif %}</div>
         <div class="flex-grow-1">
           <div class="d-flex justify-content-between gap-2">
-            <div class="{{ 'text-success fw-semibold' if it.done }}">{{ it.label }}</div>
+            <div class="{{ 'text-success fw-semibold' if it.done }}">{{ it.label }}{% if staff and it.kind == 'manual' %} <button type="button" class="btn btn-link btn-sm p-0 ms-1 text-muted pick-flights" title="Add or pick the flights that meet this" aria-label="Edit flights for this requirement" data-track="{{ t.code }}" data-item="{{ it.code }}" data-label="{{ it.label }}" data-picked="{{ it.linked|map(attribute='id')|join(',') }}"><i class="bi bi-pencil-square"></i></button>{% endif %}</div>
             <div class="req-ref">14 CFR {{ it.ref }}</div>
           </div>
           {% if it.kind in ('hours', 'count') %}
@@ -55,6 +55,7 @@
           </details>
           {% endif %}
           {% elif it.kind == 'manual' %}
+            {% if it.linked %}<div class="d-flex flex-wrap gap-1 mt-1">{% for fl in it.linked %}<a href="{{ url_for('pilotlog.entry', entry_id=fl.id) }}" class="badge bg-light text-dark border text-decoration-none"><i class="bi bi-airplane"></i> {{ fl.entry_date|usdate }} {{ fl.tail }}{% if fl.route_from or fl.route_to %} &middot; {{ fl.route_from or '?' }}-{{ fl.route_to or '?' }}{% endif %}</a>{% endfor %}</div>{% endif %}
             {% if it.who %}<div class="small text-muted">Checked off {{ it.who.done_date|usdate }}{% if it.who.signed_by %} by {{ it.who.signed_by }}{% endif %}{% if it.who.note %} - {{ it.who.note }}{% endif %}</div>{% endif %}
             {% if staff %}
             <form method="post" action="{{ url_for('pilotlog.milestone') }}" class="d-flex gap-1 mt-1 flex-wrap">
@@ -80,5 +81,56 @@
   </div>
 </div>
 {% endfor %}
+{% if staff %}
+<div id="pf-back" class="pf-back" hidden></div>
+<form id="pf-sheet" class="pf-sheet" method="post" action="{{ url_for('pilotlog.milestone_flights') }}" hidden>
+  <input type="hidden" name="student_id" value="{{ student.id }}"><input type="hidden" name="track" id="pf-track"><input type="hidden" name="item" id="pf-item">
+  <div class="pf-head"><div><strong>Pick the flights</strong><div class="small text-muted" id="pf-label"></div></div>
+    <button type="button" class="btn-close" id="pf-x" aria-label="Close"></button></div>
+  <div class="pf-list">
+    {% for f in flights %}
+    <label class="pf-row"><input type="checkbox" name="entry_id" value="{{ f.id }}" class="form-check-input">
+      <span><strong>{{ f.entry_date|usdate }}</strong> {{ f.tail }}{% if f.route_from or f.route_to %} &middot; {{ f.route_from or '?' }} to {{ f.route_to or '?' }}{% endif %} &middot; {{ '%.1f'|format(f.total or 0) }} hrs</span></label>
+    {% else %}<div class="p-3 text-muted">No logbook flights yet for {{ student.name }}.</div>{% endfor %}
+  </div>
+  <div class="pf-foot small text-muted">Picking at least one flight checks the requirement off.</div>
+  <div class="pf-foot"><button class="btn btn-primary w-100 fw-bold" type="submit">Save</button></div>
+</form>
+<style>
+  .pf-back { position: fixed; inset: 0; background: rgba(0,0,0,.35); z-index: 1999; }
+  .pf-sheet { position: fixed; left: 0; right: 0; bottom: 0; z-index: 2000; background: #fff; border-radius: 1rem 1rem 0 0; max-width: 40rem; margin: 0 auto;
+    display: flex; flex-direction: column; max-height: 80vh; padding-bottom: max(env(safe-area-inset-bottom), 16px); box-shadow: 0 -6px 24px rgba(0,0,0,.25); transition: transform .2s; }
+  .pf-sheet[hidden], .pf-back[hidden] { display: none; }
+  .pf-head { display: flex; justify-content: space-between; align-items: flex-start; gap: .5rem; padding: 1rem 1rem .5rem; border-bottom: 1px solid #dee2e6; touch-action: none; }
+  .pf-head::before { content: ""; position: absolute; top: 6px; left: 50%; width: 2.5rem; height: 4px; margin-left: -1.25rem; border-radius: 2px; background: #ced4da; }
+  .pf-list { overflow-y: auto; overscroll-behavior: contain; }
+  .pf-row { display: flex; gap: .6rem; align-items: center; padding: .6rem 1rem; border-bottom: 1px solid #f1f3f5; margin: 0; cursor: pointer; }
+  .pf-foot { padding: .5rem 1rem 0; }
+</style>
+<script>
+(function () {
+  var sheet = document.getElementById('pf-sheet'), back = document.getElementById('pf-back');
+  function close() { sheet.hidden = true; back.hidden = true; sheet.style.transform = ''; sheet.style.transition = ''; }
+  document.querySelectorAll('.pick-flights').forEach(function (b) {
+    b.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var picked = (b.dataset.picked || '').split(',');
+      document.getElementById('pf-track').value = b.dataset.track;
+      document.getElementById('pf-item').value = b.dataset.item;
+      document.getElementById('pf-label').textContent = b.dataset.label;
+      sheet.querySelectorAll('input[name=entry_id]').forEach(function (c) { c.checked = picked.indexOf(c.value) !== -1; });
+      sheet.hidden = false; back.hidden = false;
+    });
+  });
+  document.getElementById('pf-x').addEventListener('click', close);
+  back.addEventListener('click', close);
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { close(); } });
+  var y0 = null, dy = 0, list = sheet.querySelector('.pf-list');
+  sheet.addEventListener('touchstart', function (e) { y0 = (!list.contains(e.target) || list.scrollTop <= 0) ? e.touches[0].clientY : null; dy = 0; }, { passive: true });
+  sheet.addEventListener('touchmove', function (e) { if (y0 === null) { return; } dy = e.touches[0].clientY - y0; if (dy > 0) { sheet.style.transition = 'none'; sheet.style.transform = 'translateY(' + dy + 'px)'; } }, { passive: true });
+  sheet.addEventListener('touchend', function () { if (y0 === null) { return; } if (dy > 70) { close(); } else { sheet.style.transition = ''; sheet.style.transform = ''; } y0 = null; });
+})();
+</script>
+{% endif %}
 {% endif %}
 {% endblock %}
