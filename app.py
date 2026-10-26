@@ -9152,11 +9152,14 @@ def _view_as_picker(kind):
         abort(403)
     conn = get_db()
     if kind == "student":
+        # Your own profile is left out: "Use it as a student myself" covers it.
         people = conn.execute("""SELECT id, name FROM students
-                                 WHERE active = 1 AND COALESCE(is_station, 0) = 0 ORDER BY lower(name)""").fetchall()
+                                 WHERE active = 1 AND COALESCE(is_station, 0) = 0
+                                 AND COALESCE(user_id, 0) <> ? ORDER BY lower(name)""", (session.get("user_id") or 0,)).fetchall()
     else:
         people = conn.execute("""SELECT id, name FROM cfis
-                                 WHERE active = 1 AND COALESCE(is_station, 0) = 0 ORDER BY lower(name)""").fetchall()
+                                 WHERE active = 1 AND COALESCE(is_station, 0) = 0
+                                 AND COALESCE(user_id, 0) <> ? ORDER BY lower(name)""", (session.get("user_id") or 0,)).fetchall()
     conn.close()
     return render_template("view_as_student_picker.html", people=people, kind=kind,
                            start_endpoint="view_as_student_start" if kind == "student" else "view_as_cfi_start",
@@ -9249,6 +9252,32 @@ def view_as_student_me():
 def view_as_cfi_start(cfi_id):
     """Start looking at Fly with Kate! as one particular CFI."""
     return _view_as_person_start("cfi", cfi_id)
+
+
+@app.route("/view-as/flight/cfi/me", methods=["POST"])
+@login_required
+def view_as_cfi_me():
+    """An admin uses everything as their OWN CFI profile (nothing look-only):
+    the CFI counterpart of "Use it as a student myself". Only a CFI profile
+    already linked to this account counts; it is never created here, and
+    never falls back to someone else's."""
+    if not can_pick_student():
+        abort(403)
+    conn = get_db()
+    own = conn.execute("SELECT id FROM cfis WHERE user_id = ? AND active = 1", (session.get("user_id"),)).fetchone()
+    if not own:
+        conn.close()
+        flash("Your account isn't linked to a CFI profile yet, so there's no CFI view of you to switch to.", "warning")
+        return redirect(_local_path(request.form.get("next")) or url_for("flight.dashboard"))
+    ok, error = start_view_as(conn, "flight", "cfi")
+    conn.close()
+    if not ok:
+        flash(error or "Can't switch to your CFI profile.", "danger")
+        return redirect(url_for("flight.dashboard"))
+    session.pop("_view_as_readonly", None)
+    session["_view_as_return"] = _local_path(request.form.get("next")) or url_for("flight.dashboard")
+    flash("You're using everything as a CFI, under your own name. Use Back to my normal view when done.", "info")
+    return redirect(_stay_on_page(url_for("flight.dashboard")))
 
 
 @app.route("/view-as/exit", methods=["POST"])
