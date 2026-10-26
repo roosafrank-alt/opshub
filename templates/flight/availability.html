@@ -419,7 +419,7 @@ b.addEventListener('click',function(){var open=n.hidden;n.hidden=!open;b.setAttr
   .wl-pop .wl-head { display: none; align-items: center; justify-content: space-between; padding: .4rem .5rem .4rem .85rem; font-weight: 600; border-bottom: 1px solid #dee2e6; touch-action: none; }
   .wl-pop .wl-head::before { content: ""; position: absolute; top: 5px; left: 50%; width: 2.5rem; height: 4px; margin-left: -1.25rem; border-radius: 2px; background: #ced4da; }
   .wl-pop .wl-head button { border: 0; background: none; font-size: 1.5rem; line-height: 1; padding: .1rem .6rem; }
-  .wl-pop.wl-sheet { left: 0; right: 0; bottom: 0; top: auto; width: 100%; max-width: 100%; border-radius: 1rem 1rem 0 0; transition: transform .2s; }
+  .wl-pop.wl-sheet { left: 0; right: 0; bottom: 0; top: auto; width: 100%; max-width: 100%; border-radius: 1rem 1rem 0 0; transition: transform .2s; padding-bottom: max(env(safe-area-inset-bottom), 34px); }
   .wl-pop.wl-sheet .wl-head { display: flex; padding-top: 1rem; }
   .wl-back { position: fixed; inset: 0; z-index: 2999; background: rgba(0,0,0,.35); }
 </style>
@@ -509,7 +509,7 @@ b.addEventListener('click',function(){var open=n.hidden;n.hidden=!open;b.setAttr
     document.body.appendChild(pop);
     var vh = window.innerHeight;
     if (touch) {
-      list.style.maxHeight = Math.round(vh * 0.55) + 'px';
+      list.style.maxHeight = Math.round(vh * 0.5) + 'px';
     } else {
       var r = sel.getBoundingClientRect();
       var h = Math.min(pop.scrollHeight, vh * 0.6);
