@@ -1,0 +1,65 @@
+{% extends "academy_base.html" %}
+{% block title %}Stats · Flight Academy{% endblock %}
+{% block content %}
+{% if not student %}
+<div class="card academy-card p-4">No student profile is linked to your account, so there are no stats to show.</div>
+{% else %}
+<div class="card academy-card p-3 mb-3">
+  <h4 class="mb-1"><i class="bi bi-graph-up"></i> Stats</h4>
+  <div class="small text-muted mb-2">{{ student.name }} · {{ range_label }}{% if start or end %} ({{ start or 'start' }} to {{ end or 'today' }}){% endif %}</div>
+  <form method="get" class="d-flex gap-2 flex-wrap align-items-center" id="stats-form">
+    {% if staff %}<input type="hidden" name="student_id" value="{{ student.id }}">{% endif %}
+    <div class="btn-group btn-group-sm" role="group">
+      {% for k, l in [('all','All time'),('1','1 month'),('6','6 months'),('12','12 months'),('custom','Custom')] %}
+      <button name="range" value="{{ k }}" class="btn {{ 'btn-dark' if range_key == k else 'btn-outline-dark' }}">{{ l }}</button>
+      {% endfor %}
+    </div>
+    {% if range_key == 'custom' %}
+    <input type="date" name="from" value="{{ start }}" class="form-control form-control-sm" style="width:auto;" aria-label="From">
+    <span class="small text-muted">to</span>
+    <input type="date" name="to" value="{{ end }}" class="form-control form-control-sm" style="width:auto;" aria-label="To">
+    <button name="range" value="custom" class="btn btn-primary btn-sm">Apply</button>
+    {% endif %}
+  </form>
+</div>
+
+{% macro tile(value, label, sub='') %}
+<div class="col-6 col-md-3"><div class="border rounded p-2 h-100 text-center bg-white">
+  <div class="fs-4 fw-bold">{{ value }}</div><div class="small text-muted">{{ label }}</div>{% if sub %}<div class="small text-muted">{{ sub }}</div>{% endif %}
+</div></div>
+{% endmacro %}
+
+{% if st.flights == 0 %}
+<div class="card academy-card p-4 text-muted">No logbook flights in this range.</div>
+{% else %}
+<div class="row g-2 mb-3">
+  {{ tile(st.airports, 'Airports visited', (st.airports_placed ~ ' located on the map') if st.airports_placed != st.airports else '') }}
+  {{ tile('{:,}'.format(st.nm), 'Nautical miles', '{:,} statute miles'.format(st.mi)) }}
+  {{ tile(st.flights, 'Flights', st.days ~ ' flying days') }}
+  {{ tile('%.1f'|format(st.hours), 'Hours flown', 'avg ' ~ st.avg ~ ' per flight') }}
+  {{ tile(st.landings, 'Landings') }}
+  {{ tile(st.approaches, 'Approaches') }}
+  {{ tile(st.aircraft, 'Aircraft flown', st.types ~ ' type' ~ ('s' if st.types != 1 else '')) }}
+  {{ tile('%.1f'|format(st.xc), 'Cross-country hrs') }}
+</div>
+<div class="card academy-card p-3 mb-3">
+  <h6 class="mb-2">Hours</h6>
+  <div class="row g-2 text-center">
+    {% for label, v in [('Dual rcvd', st.dual), ('Solo', st.solo), ('PIC', st.pic), ('Night', st.night), ('Instrument', st.inst)] %}
+    <div class="col-4 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ '%.1f'|format(v) }}</div><div class="small text-muted">{{ label }}</div></div></div>
+    {% endfor %}
+  </div>
+</div>
+<div class="card academy-card p-3 mb-3">
+  <h6 class="mb-2">Highlights</h6>
+  <ul class="mb-0 small">
+    {% if st.longest %}<li>Longest leg: <strong>{{ st.longest.a }} → {{ st.longest.b }}</strong>, {{ '{:,}'.format(st.longest.nm) }} NM</li>{% endif %}
+    {% if st.farthest %}<li>Farthest from N89: <strong>{{ st.farthest.code }}</strong>, {{ '{:,}'.format(st.farthest.nm) }} NM</li>{% endif %}
+    {% if st.busiest %}<li>Busiest month: <strong>{{ st.busiest.month }}</strong> ({{ st.busiest.n }} flights)</li>{% endif %}
+    {% if st.top_airports %}<li>Most visited: {% for c, n in st.top_airports %}<strong>{{ c }}</strong> ({{ n }}){{ ', ' if not loop.last }}{% endfor %}</li>{% endif %}
+  </ul>
+  <div class="small text-muted mt-2">Distance is straight-line between the airports in your From / To boxes, in order. Flights with no route typed don't add miles.</div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

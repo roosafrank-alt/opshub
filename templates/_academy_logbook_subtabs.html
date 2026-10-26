@@ -4,6 +4,7 @@
 {% set _tab = subtab if subtab is defined else (tab if tab is defined else 'logbook') %}
 {% set _sid = student.id if (staff is defined and staff and student) else None %}
 <ul class="nav nav-pills academy-subtabs mb-3 gap-1">
+  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'stats' }}" href="{{ url_for('pilotlog.stats', student_id=_sid) }}"><i class="bi bi-graph-up"></i> Stats</a></li>
   <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'logbook' }}" href="{{ url_for('pilotlog.logbook') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
   <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'progress' }}" href="{{ url_for('pilotlog.progress') }}"><i class="bi bi-bar-chart-steps"></i> Progress</a></li>
   <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'map' }}" href="{{ url_for('pilotlog.airport_map') }}"><i class="bi bi-map"></i> Map</a></li>

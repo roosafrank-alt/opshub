@@ -1123,3 +1123,121 @@ def airport_map():
     return render_template("academy_map.html", student=student, students=students, airports=airports,
                            unplaced=unplaced, lines=lines, center=center, whole_school=whole_school,
                            staff=_is_staff(), tab="map")
+
+
+# ---------------------------------------------------------------- stats
+
+def _haversine_nm(a, b):
+    from math import radians, sin, cos, asin, sqrt
+    la1, lo1, la2, lo2 = map(radians, (a[0], a[1], b[0], b[1]))
+    h = sin((la2 - la1) / 2) ** 2 + cos(la1) * cos(la2) * sin((lo2 - lo1) / 2) ** 2
+    return 2 * 3440.065 * asin(sqrt(h))
+
+
+def _stats_range():
+    """(key, start_iso or None, end_iso or None, label) from ?range=all|1|6|12|custom&from=&to=."""
+    from datetime import timedelta
+    key = request.args.get("range") or "all"
+    today = date.today()
+    if key in ("1", "6", "12"):
+        m = int(key)
+        y, mo = today.year, today.month - m
+        while mo <= 0:
+            mo += 12
+            y -= 1
+        day = min(today.day, 28)
+        return key, date(y, mo, day).isoformat(), today.isoformat(), f"Last {m} month{'s' if m > 1 else ''}"
+    if key == "custom":
+        def ok(v):
+            try:
+                return date.fromisoformat((v or "")[:10]).isoformat()
+            except ValueError:
+                return None
+        s, e = ok(request.args.get("from")), ok(request.args.get("to"))
+        if s and e and s > e:
+            s, e = e, s
+        return key, s, e, "Custom range"
+    return "all", None, None, "All time"
+
+
+def compute_stats(conn, entries):
+    """Headline numbers for a list of logbook rows (airports, distance, hours, landings...)."""
+    from collections import Counter
+    s = _totals(entries)
+    visits, legs_nm, longest = Counter(), 0.0, None
+    seqs = []
+    for e in entries:
+        codes = _airport_codes(e["route_from"]) + _airport_codes(e["route_to"])
+        if codes and not _airport_codes(e["route_from"]):
+            codes.insert(0, _HOME_AIRPORT)
+        for c in codes:
+            visits[c] += 1
+        seqs.append(codes)
+    try:
+        coords = _lookup_airports(conn, list(visits.keys()) + [_HOME_AIRPORT])
+    except Exception:
+        coords = {}
+    def pt(c):
+        r = coords.get(c)
+        return (r["lat"], r["lon"]) if r and r["lat"] is not None and r["lon"] is not None else None
+    for codes in seqs:
+        for a, b in zip(codes, codes[1:]):
+            if a != b and pt(a) and pt(b):
+                d = _haversine_nm(pt(a), pt(b))
+                legs_nm += d
+                if not longest or d > longest[0]:
+                    longest = (d, a, b)
+    far = None
+    home = pt(_HOME_AIRPORT)
+    if home:
+        for c in visits:
+            if pt(c):
+                d = _haversine_nm(home, pt(c))
+                if not far or d > far[0]:
+                    far = (d, c)
+    flown = [e for e in entries if (e["total"] or 0) > 0]
+    months = Counter((e["entry_date"] or "")[:7] for e in flown)
+    busiest = months.most_common(1)[0] if months else None
+    out = dict(
+        flights=len(entries), hours=s["total"], dual=s["dual"], solo=s["solo"], pic=s["pic"], xc=s["xc"],
+        night=s["night"], inst=round(s["actual_inst"] + s["sim_inst"], 1), approaches=int(s["approaches"]),
+        landings=int(s["day_ldg"] + s["night_ldg"]),
+        airports=len(visits), airports_placed=sum(1 for c in visits if pt(c)),
+        nm=round(legs_nm), mi=round(legs_nm * 1.15078),
+        longest=({"nm": round(longest[0]), "a": longest[1], "b": longest[2]} if longest else None),
+        farthest=({"nm": round(far[0]), "code": far[1]} if far else None),
+        top_airports=visits.most_common(5),
+        aircraft=len({(e["tail"] or "").strip().upper() for e in entries if (e["tail"] or "").strip()}),
+        types=len({(e["make_model"] or "").strip().upper() for e in entries if (e["make_model"] or "").strip()}),
+        days=len({(e["entry_date"] or "")[:10] for e in flown}),
+        avg=round(s["total"] / len(flown), 1) if flown else 0,
+        busiest=({"month": busiest[0], "n": busiest[1]} if busiest else None),
+    )
+    return out
+
+
+@pilotlog_bp.route("/stats")
+def stats():
+    """Pilot stats: airports visited, distance flown, hours and more, for all time, the last 1 / 6 / 12
+    months, or a custom date range."""
+    denied = _require_access()
+    if denied:
+        return denied
+    conn = get_db()
+    student, students = _pick_student(conn)
+    key, start, end, label = _stats_range()
+    entries = []
+    if student:
+        sql, args = "SELECT * FROM pilot_logbook WHERE student_id = ? AND status != 'denied'", [student["id"]]
+        if start:
+            sql += " AND entry_date >= ?"
+            args.append(start)
+        if end:
+            sql += " AND entry_date <= ?"
+            args.append(end + "~")   # entry_date may carry a time part
+        entries = conn.execute(sql + " ORDER BY entry_date, id", args).fetchall()
+    st = compute_stats(conn, entries) if student else None
+    conn.close()
+    return render_template("academy_stats.html", student=student, students=students, st=st, range_key=key,
+                           range_label=label, start=start or "", end=end or "", staff=_is_staff(),
+                           tab="logbook", subtab="stats")
