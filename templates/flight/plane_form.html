@@ -30,7 +30,7 @@
       </div>
     </div>
     <div class="mb-3">
-      <label class="form-label">This airplane is <span class="text-muted small">(shows on every student's logbook entry for flights in it)</span></label>
+      <label class="form-label">This airplane is <span class="text-muted small">(copies onto logbook entries of flights from today on; past flights don't change)</span></label>
       <div class="d-flex flex-wrap gap-3">
         {% set chosen = F.getlist('ac_features') if F is not none else (plane.ac_features or '').split(',') %}
         {% for code, label in ac_features %}

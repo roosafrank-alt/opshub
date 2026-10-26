@@ -320,17 +320,21 @@ def counts_as_complex(features):
     return 1 if set((features or "").split(",")) & {"complex", "taa", "turbine"} else 0
 
 
-def apply_plane_features(conn, asset_id, features):
-    """A plane's features changed: carry them onto the logbook entries of school flights in it."""
-    conn.execute("UPDATE pilot_logbook SET ac_features = ?, complex_tae = ? WHERE asset_id = ? AND flight_id IS NOT NULL",
-                 (features, counts_as_complex(features), asset_id))
+def features_for_flight(f):
+    """The plane's features as they apply to ONE flight: only flights on or after the day they were set.
+    Changing a plane later (say, making it a TAA) never rewrites flights already flown."""
+    feats = f["ac_features"]
+    since = f["ac_features_since"]
+    if not feats or (since and (f["flight_date"] or "") < since):
+        return None
+    return feats
 
 
 def ensure_entry(conn, flight_id):
     """Create (or, while still pending, refresh) the logbook entry for one
     finished flight. Called from flight.py wherever a flight is logged,
     ended or edited. A completed (student-approved) entry is left alone."""
-    f = conn.execute("""SELECT f.*, a.tag, a.make, a.model, a.ac_features, c.name as cfi_name,
+    f = conn.execute("""SELECT f.*, a.tag, a.make, a.model, a.ac_features, a.ac_features_since, c.name as cfi_name,
                                c.cfi_cert_number, c.cfi_cert_expires, c.signature as cfi_signature
                         FROM flights f JOIN assets a ON a.id = f.asset_id
                         LEFT JOIN cfis c ON c.id = f.cfi_id WHERE f.id = ?""", (flight_id,)).fetchone()
@@ -350,7 +354,7 @@ def ensure_entry(conn, flight_id):
                         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?)""",
                      (flight_id, f["student_id"], f["cfi_id"], f["asset_id"], f["flight_date"], f["tag"], make_model,
                       total, dual, solo, pic, day_ldg, night_ldg, f["night_landings_fs"] or 0, *instructor,
-                      now_iso(), now_iso(), f["ac_features"], counts_as_complex(f["ac_features"])))
+                      now_iso(), now_iso(), features_for_flight(f), counts_as_complex(features_for_flight(f))))
     elif existing["status"] != "pending":
         # LOCK: the times come from the billed flight and nothing else, even once the student approved the
         # entry. A correction made on the flight flows through; the student's own sub-times (cross-country,
@@ -363,10 +367,15 @@ def ensure_entry(conn, flight_id):
     elif existing["status"] == "pending":
         conn.execute("""UPDATE pilot_logbook SET student_id=?, cfi_id=?, asset_id=?, entry_date=?, tail=?, make_model=?,
                         total=?, dual=?, solo=?, pic=?, day_ldg=?, night_ldg=?, night_fs=?, instructor_name=?,
-                        instructor_cert=?, instructor_cert_exp=?, instructor_signature=?, updated_at=?, ac_features=?, complex_tae=? WHERE id=?""",
+                        instructor_cert=?, instructor_cert_exp=?, instructor_signature=?, updated_at=? WHERE id=?""",
                      (f["student_id"], f["cfi_id"], f["asset_id"], f["flight_date"], f["tag"], make_model,
                       total, dual, solo, pic, day_ldg, night_ldg, f["night_landings_fs"] or 0, *instructor,
-                      now_iso(), f["ac_features"], counts_as_complex(f["ac_features"]), existing["id"]))
+                      now_iso(), existing["id"]))
+        if not existing["ac_features"]:   # never overwrite what the entry already says; only fill an empty one
+            feats = features_for_flight(f)
+            if feats:
+                conn.execute("UPDATE pilot_logbook SET ac_features = ?, complex_tae = ? WHERE id = ?",
+                             (feats, counts_as_complex(feats), existing["id"]))
 
 
 def _cap_instrument(conn, entry_id, total):

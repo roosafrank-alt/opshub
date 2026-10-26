@@ -1907,6 +1907,8 @@ def _migrate(conn):
     _as_cols = [r["name"] for r in conn.execute("PRAGMA table_info(assets)").fetchall()]
     if "ac_features" not in _as_cols:   # set on the plane's school profile
         conn.execute("ALTER TABLE assets ADD COLUMN ac_features TEXT")
+    if "ac_features_since" not in _as_cols:   # date the features were last changed: flights before it never get them
+        conn.execute("ALTER TABLE assets ADD COLUMN ac_features_since TEXT")
     if "complex_tae" not in _lb_cols:   # flight was in a complex / turbine / technically advanced airplane
         conn.execute("ALTER TABLE pilot_logbook ADD COLUMN complex_tae INTEGER NOT NULL DEFAULT 0")
     for _c in ("source", "import_key"):    # source: NULL = logged at the school, 'foreflight' = imported; import_key stops double imports

@@ -4019,9 +4019,10 @@ def plane_edit(asset_id):
             conn.close()
             return render_template("flight/plane_form.html", plane=plane, form=request.form, ac_features=pilotlog.AC_FEATURES)
         features = pilotlog.clean_features(request.form.getlist("ac_features"))
-        conn.execute("UPDATE assets SET tag = ?, name = ?, make = ?, model = ?, is_flight_asset = ?, school_listed = MAX(school_listed, ?), ac_features = ?, updated_at = ? WHERE id = ?",
-                     (tag, name or tag, make, model, is_flight_asset, is_flight_asset, features, now_iso(), asset_id))
-        pilotlog.apply_plane_features(conn, asset_id, features)
+        # Changing a plane's features starts today: flights already flown keep what they had.
+        since = date.today().isoformat() if features != (plane["ac_features"] or None) else plane["ac_features_since"]
+        conn.execute("UPDATE assets SET tag = ?, name = ?, make = ?, model = ?, is_flight_asset = ?, school_listed = MAX(school_listed, ?), ac_features = ?, ac_features_since = ?, updated_at = ? WHERE id = ?",
+                     (tag, name or tag, make, model, is_flight_asset, is_flight_asset, features, since, now_iso(), asset_id))
         conn.commit()
         conn.close()
         flash(f"{tag} saved." + ("" if is_flight_asset else f" {tag} is no longer used by the flight school (off the Schedule), but stays on the Planes list so you can turn it back on."), "success")

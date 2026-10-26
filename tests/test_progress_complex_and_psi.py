@@ -56,18 +56,33 @@ class KnowledgeTestsTabTest(ComplexAndPsiTest):
 
 
 class PlaneFeaturesTest(OpsHubTestCase):
-    def test_plane_features_carry_to_logbook_entries(self):
+    def test_new_features_apply_going_forward_only(self):
+        from datetime import date, timedelta
+        import pilotlog
         sid = self.q1("SELECT id FROM students WHERE user_id = ?", (self.users["flight_student"]["id"],))["id"]
         aid = self.exec("INSERT INTO assets (tag, name, is_flight_asset, school_listed) VALUES ('N1TW', 'TW', 1, 1)")
-        fid = self.exec("INSERT INTO flights (student_id, asset_id, flight_date) VALUES (?, ?, '2026-10-01')", (sid, aid))
+        old = (date.today() - timedelta(days=30)).isoformat()
+        fid = self.exec("INSERT INTO flights (student_id, asset_id, flight_date) VALUES (?, ?, ?)", (sid, aid, old))
         eid = self.exec("""INSERT INTO pilot_logbook (student_id, asset_id, flight_id, entry_date, total, dual, status)
-                           VALUES (?, ?, ?, '2026-10-01', 1.0, 1.0, 'pending')""", (sid, aid, fid))
+                           VALUES (?, ?, ?, ?, 1.0, 1.0, 'pending')""", (sid, aid, fid, old))
         r = self.login("flight_admin").post(f"/flight/planes/{aid}/edit", data={"tag": "N1TW", "make": "Cessna", "model": "T", "is_flight_asset": "on",
-                                                                                   "ac_features": ["tailwheel", "complex"]})
+                                                                                   "ac_features": ["taa", "complex"]})
         self.assertIn(r.status_code, (302, 303))
-        e = self.q1("SELECT ac_features, complex_tae FROM pilot_logbook WHERE id = ?", (eid,))
-        self.assertEqual(e["ac_features"], "tailwheel,complex")
-        self.assertEqual(e["complex_tae"], 1)
+        self.assertEqual(self.q1("SELECT ac_features, complex_tae FROM pilot_logbook WHERE id = ?", (eid,))["ac_features"], None)
+        from db import get_db
+        with self.app.app_context():
+            conn = get_db()
+            pilotlog.ensure_entry(conn, fid)            # a refresh of the old, still pending entry must not add them either
+            conn.commit()
+        self.assertIsNone(self.q1("SELECT ac_features FROM pilot_logbook WHERE id = ?", (eid,))["ac_features"])
+        new = date.today().isoformat()
+        fid2 = self.exec("INSERT INTO flights (student_id, asset_id, flight_date) VALUES (?, ?, ?)", (sid, aid, new))
+        with self.app.app_context():
+            conn = get_db()
+            pilotlog.ensure_entry(conn, fid2)
+            conn.commit()
+        e = self.q1("SELECT ac_features, complex_tae FROM pilot_logbook WHERE flight_id = ?", (fid2,))
+        self.assertEqual((e["ac_features"], e["complex_tae"]), ("complex,taa", 1))
         html = self.login("flight_admin").get(f"/flight/planes/{aid}/edit").get_data(as_text=True)
         self.assertIn("Pressurized", html)
 
