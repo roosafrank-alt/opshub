@@ -10,6 +10,7 @@ import navdb
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 AIRPORTS = [  # ident, gps, iata, local, name, city, lat, lon
     ("N89", "", "", "N89", "Joseph Y. Resnick", "Ellenville", 41.72778, -74.37722),
+    ("K20N", "", "", "20N", "Kingston-Ulster", "Kingston", 41.9853, -73.9641),
     ("KPOU", "KPOU", "POU", "POU", "Hudson Valley Regional", "Poughkeepsie", 41.6266, -73.8842),
     ("KSWF", "KSWF", "SWF", "SWF", "Stewart International", "Newburgh", 41.5041, -74.1048),
     ("KPIT", "KPIT", "PIT", "PIT", "Pittsburgh International", "Pittsburgh", 40.4915, -80.2329),
@@ -70,8 +71,15 @@ class NavDbTests(OpsHubTestCase):
         self.assertEqual(navdb.lookup_airport(self.nav, "N89")["code"], "N89")   # no ICAO code -> local code, not KN89
         self.assertEqual(navdb.search_airports(self.nav, "stewart")[0]["code"], "KSWF")
 
+    def test_k_dropped_from_codes_with_numbers(self):
+        self.assertEqual(navdb.lookup_airport(self.nav, "K20N")["code"], "20N")   # typed with K still finds it
+        self.assertEqual(navdb.lookup_airport(self.nav, "20N")["code"], "20N")
+        self.assertEqual(navdb.search_airports(self.nav, "kings")[0]["code"], "20N")
+        self.assertEqual(navdb.display_code({"icao": None, "local": None, "ident": "K1G"}), "K1G")  # already 3 chars
+        self.assertEqual(navdb.display_code({"icao": "KJFK", "local": "JFK", "ident": "KJFK"}), "KJFK")
+
     def test_filters_per_character(self):
-        self.assertEqual(len(navdb.search_airports(self.nav, "K")), 4)
+        self.assertEqual(len(navdb.search_airports(self.nav, "K")), 5)
         self.assertEqual([a["code"] for a in navdb.search_airports(self.nav, "KP", near=(41.7, -74.4))][:1], ["KPOU"])
         self.assertEqual([a["code"] for a in navdb.search_airports(self.nav, "KPI")], ["KPIT"])
 
