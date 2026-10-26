@@ -75,7 +75,7 @@ Shop / inventory
 - [ ] Assets: new, quick new, edit, hours update (can hours go backwards?), trash/restore/purge
 - [ ] Maintenance items: new, edit, complete, due/overdue math around hours and dates
 - [ ] Logbook entries: create, edit, print, starter templates
-- [ ] Photos: upload (bad file types, huge files), set cover, delete
+- [x] Photos: upload (bad file types, huge files), set cover, delete
 - [ ] Trash page: empty trash, restore conflicts
 - [ ] Shop billing, shop pay, and stats totals match the underlying transactions and labor
 
@@ -113,3 +113,7 @@ dashboard / next-lesson / running-late / fly-preview / resource-scan files fail
 because they depend on the time of day (they seed bookings relative to "now" or
 use fixed clock times) or on the network; they are not app bugs. Worth making them
 clock-independent. The schedule-part2 fixes went live, so their markers were removed.
+
+## Oct 26 note
+
+Health check (live vs queued, identical): the same ~22 clock/network-dependent failures as Oct 25, no regressions. `qa-section-confirm-twice` went live; marker removed. New: photo upload has no size ceiling and accepts empty files (cards `qa-photo-upload-no-size-limit`, `qa-photo-empty-file-saved`).

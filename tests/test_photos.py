@@ -185,3 +185,20 @@ class CoverAndDeleteTest(PhotoBase):
             row = self.q1("SELECT * FROM photos WHERE id=?", (a,))
             self.assertIsNotNone(row, role)
             self.assertFalse(row["is_cover"], role)
+
+
+class UploadLimitsTest(PhotoBase):
+    """Size and emptiness checks on uploads (QA night of Oct 26)."""
+
+    @open_finding("qa-photo-upload-no-size-limit")
+    def test_upload_size_has_a_ceiling(self):
+        # With no ceiling, one giant upload can fill the Pi's storage.
+        self.assertIsNotNone(self._app_module.app.config.get("MAX_CONTENT_LENGTH"))
+
+    @open_finding("qa-photo-empty-file-saved")
+    def test_empty_file_is_not_saved_as_a_photo(self):
+        part = self.make_part()
+        self.login("shop_admin")
+        data = {"photos": [(io.BytesIO(b""), "blank.jpg")]}
+        self.client.post(f"/parts/{part}/photos", data=data, content_type="multipart/form-data")
+        self.assertEqual(len(self.photos("part_id", part)), 0)

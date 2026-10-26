@@ -99,7 +99,6 @@ class ProjectSectionsTest(OpsHubTestCase):
         self.assertEqual(self.login("tech").post(self.url("complete", sid=99999),
                                                  data=dict(completed="1")).status_code, 404)
 
-    @open_finding("qa-section-confirm-twice")
     def test_confirming_twice_keeps_first_confirmation(self):
         self.login("tech").post(self.url("complete"), data=dict(completed="1"))
         c = self.login("inspector")
