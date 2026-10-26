@@ -58,3 +58,12 @@ class PickerKeepsTheProgramThemeTest(OpsHubTestCase):
         self.assertIn("Flight Academy", academy.split("</title>")[0])
         self.assertIn("Fly with Kate!", flight.split("</title>")[0])
         self.assertNotIn("flight-nav-boxed", academy)
+
+
+class PickerKeepsAcademyLookTest(OpsHubTestCase):
+    def test_chip_on_a_picker_page_keeps_the_page_you_came_from(self):
+        c = self.login("flight_admin_cfi")
+        html = c.get("/view-as/flight/student?next=/academy/logbook").get_data(as_text=True)
+        self.assertIn("/view-as/flight/cfi?next=/academy/logbook", html.replace("%2F", "/"))
+        html = c.get("/view-as/flight/cfi?next=/academy/logbook").get_data(as_text=True)
+        self.assertIn("academy-tab", html)

@@ -10,6 +10,8 @@
    only way to look at the app as someone else. #}
 {#- No Tech / Apprentice / Inspector (or any staff role) while looking at a customer's portal or picking one. #}
 {% set in_customer_view = session.get('customer_view_id') or request.endpoint == 'customer.portal_view_picker' %}
+{#- On a picker page itself, keep the page you came from, so the next picker keeps the same program look. #}
+{% set chip_next = (request.args.get('next') or request.path) if request.path.startswith('/view-as') else request.path %}
 {% set chips = view_as_chip_rows.get(view_as_program, []) if view_as_chip_rows and not in_customer_view else [] %}
 {% set can_look_at_customers = not in_customer_view and view_as_program == 'shop' and session.get('user_id') and not session.get('_view_as_real') and (session.get('is_master_admin') or session.get('shop_role') == 'admin') %}
 {% if chips or can_look_at_customers %}
@@ -21,7 +23,7 @@
   {% if chip.action == 'current' %}
   <span class="btn btn-light py-0 px-2 fw-bold disabled" aria-current="true" style="font-size:.68rem; line-height:1.5; opacity:1;">{% if chip.short and chip.short != chip.label %}<span class="chip-full">{{ chip.label }}</span><span class="chip-short">{{ chip.short }}</span>{% else %}{{ chip.label }}{% endif %}</span>
   {% elif chip.pick %}
-  <a href="{{ url_for('view_as_shop_picker', level=chip.level, next=request.path) if view_as_program == 'shop' else url_for('view_as_cfi_picker' if chip.level == 'cfi' else 'view_as_student_picker', next=request.path) }}" class="btn btn-outline-light py-0 px-2" style="font-size:.68rem; line-height:1.5;" title="Use it as yourself or pick a {{ chip.label if view_as_program == 'shop' else ('CFI' if chip.level == 'cfi' else 'student') }} to look at">{% if chip.short and chip.short != chip.label %}<span class="chip-full">{{ chip.label }}</span><span class="chip-short">{{ chip.short }}</span>{% else %}{{ chip.label }}{% endif %}</a>
+  <a href="{{ url_for('view_as_shop_picker', level=chip.level, next=chip_next) if view_as_program == 'shop' else url_for('view_as_cfi_picker' if chip.level == 'cfi' else 'view_as_student_picker', next=chip_next) }}" class="btn btn-outline-light py-0 px-2" style="font-size:.68rem; line-height:1.5;" title="Use it as yourself or pick a {{ chip.label if view_as_program == 'shop' else ('CFI' if chip.level == 'cfi' else 'student') }} to look at">{% if chip.short and chip.short != chip.label %}<span class="chip-full">{{ chip.label }}</span><span class="chip-short">{{ chip.short }}</span>{% else %}{{ chip.label }}{% endif %}</a>
   {% else %}
   <form action="{{ url_for('view_as_exit') if chip.action == 'exit' else url_for('view_as_start', program=view_as_program, level=chip.level) }}" method="post" class="d-inline m-0">
     <button type="submit" class="btn btn-outline-light py-0 px-2" style="font-size:.68rem; line-height:1.5;"{% if chip.action == 'exit' %} title="Back to your normal view"{% endif %}>{% if chip.short and chip.short != chip.label %}<span class="chip-full">{{ chip.label }}</span><span class="chip-short">{{ chip.short }}</span>{% else %}{{ chip.label }}{% endif %}</button>
