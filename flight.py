@@ -1199,6 +1199,13 @@ def _alert_fix_links(reason, scheduled_id, student_id):
     reason = reason or ""
     links = []
     edit_url = url_for("flight.schedule_edit", scheduled_id=scheduled_id)
+    # Picking an instructor starts on the Availability page for the booking's
+    # day, where each instructor shows as free or busy.
+    conn = get_db()
+    sf = conn.execute("SELECT scheduled_date FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
+    conn.close()
+    avail_url = (url_for("flight.schedule_availability", date=sf["scheduled_date"]) if sf and sf["scheduled_date"]
+                 else edit_url)
     if "medical" in reason and student_id:
         links.append(dict(label="Update medical", icon="bi-heart-pulse",
                           url=url_for("flight.student_edit", student_id=student_id, _anchor="medical"),
@@ -1208,7 +1215,7 @@ def _alert_fix_links(reason, scheduled_id, student_id):
                           url=url_for("flight.student_edit", student_id=student_id, _anchor="solo-signoff"),
                           hint="Enter the new sign-off date on the student's profile"))
     if ("currency" in reason or "No dual" in reason or "medical" in reason):
-        links.append(dict(label="Add an instructor", icon="bi-person-plus", url=edit_url,
+        links.append(dict(label="Add an instructor", icon="bi-person-plus", url=avail_url,
                           hint="Make it a dual flight - or log a dual flight for this student to bring them current"))
         if student_id:
             links.append(dict(label="Check currency", icon="bi-person-lines-fill",
@@ -1217,9 +1224,10 @@ def _alert_fix_links(reason, scheduled_id, student_id):
     if "time off" in reason:
         links.append(dict(label="Move this lesson", icon="bi-calendar2-week", url=edit_url,
                           hint="Pick a new time or instructor for this lesson"))
-    if not any(l["url"] == edit_url for l in links):
+    if not any(l["url"] in (edit_url, avail_url) for l in links):
         links.append(dict(label="Assign CFI" if not links else "Open booking", icon="bi-person-plus" if not links else "bi-pencil",
-                          url=edit_url, hint="Edit the booking"))
+                          url=avail_url if not links else edit_url,
+                          hint="See which instructors are free that day" if not links else "Edit the booking"))
     return links
 
 
