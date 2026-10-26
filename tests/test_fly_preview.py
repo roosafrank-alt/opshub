@@ -321,7 +321,7 @@ class DashboardTest(FlyBase):
         html = c.get("/flight/dashboard").get_data(as_text=True)
         self.assertIn('data-dash-scope="mine"', html)
         c.get("/flight/dashboard/live?scope=mine")
-        self.assertIn("Your Next Lesson", c.get("/flight/dashboard/live").get_data(as_text=True))
+        self.assertIn("Showing only your flights", c.get("/flight/dashboard/live").get_data(as_text=True))
 
     def test_withdraw_change_request(self):  # FLY-35
         sid = self.book(change_request_note="Can we move it?", change_requested_at=db.now_iso())
@@ -490,9 +490,8 @@ class SchoolDayTest(FlyBase):
         self.assertIn("7 AM - 7 PM", c.get("/flight/cfis/schedule").get_data(as_text=True))
         c.get("/flight/schedule?view=day")
         day = c.get("/flight/schedule?view=day").get_data(as_text=True)
-        # The Day view is the Availability-style plane x time-slot grid now,
-        # so the school-day window shows in the Month/Week timelines instead.
-        self.assertIn("avail-grid-v", day)
+        self.assertIn('data-start-min="420"', day)
+        self.assertIn('data-end-min="1140"', day)
 
     def test_bad_window_is_refused(self):  # FLY-37
         c = self.login("master")

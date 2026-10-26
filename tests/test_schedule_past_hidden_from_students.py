@@ -50,12 +50,10 @@ class SchedulePastHiddenFromStudentsTest(OpsHubTestCase):
         self.assertIn(f'data-student-id="{self.student}"', html)
         self.assertIn("9:00 AM", html)
 
-    def _student_never_sees_the_other_students_past_flight(self, html, check_time=True):
+    def _student_never_sees_the_other_students_past_flight(self, html):
         self.assertNotIn('data-plane="N999"', html)
         self.assertNotIn(f'data-student-id="{self.other_student}"', html)
-        # The Day view's grid has an 11:00 AM row label of its own.
-        if check_time:
-            self.assertNotIn("11:00 AM", html)
+        self.assertNotIn("11:00 AM", html)
 
     def _cfi_still_sees_both(self, html):
         self.assertIn('data-plane="N123"', html)
@@ -67,7 +65,7 @@ class SchedulePastHiddenFromStudentsTest(OpsHubTestCase):
         html = self.login("flight_student").get(
             f"/flight/schedule?view=day&date={self.day.isoformat()}").get_data(as_text=True)
         self._student_sees_own_past_flight_in_full(html)
-        self._student_never_sees_the_other_students_past_flight(html, check_time=False)
+        self._student_never_sees_the_other_students_past_flight(html)
 
     def test_day_view_keeps_past_detail_for_a_cfi(self):
         html = self.login("cfi").get(

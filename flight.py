@@ -1199,6 +1199,13 @@ def _alert_fix_links(reason, scheduled_id, student_id):
     reason = reason or ""
     links = []
     edit_url = url_for("flight.schedule_edit", scheduled_id=scheduled_id)
+    # Picking an instructor starts on the Schedule day view for the booking's
+    # day, with this booking highlighted.
+    conn = get_db()
+    sf = conn.execute("SELECT scheduled_date FROM scheduled_flights WHERE id = ?", (scheduled_id,)).fetchone()
+    conn.close()
+    avail_url = (url_for("flight.schedule_calendar", view="day", date=sf["scheduled_date"], highlight=scheduled_id) if sf and sf["scheduled_date"]
+                 else edit_url)
     if "medical" in reason and student_id:
         links.append(dict(label="Update medical", icon="bi-heart-pulse",
                           url=url_for("flight.student_edit", student_id=student_id, _anchor="medical"),
@@ -1208,7 +1215,7 @@ def _alert_fix_links(reason, scheduled_id, student_id):
                           url=url_for("flight.student_edit", student_id=student_id, _anchor="solo-signoff"),
                           hint="Enter the new sign-off date on the student's profile"))
     if ("currency" in reason or "No dual" in reason or "medical" in reason):
-        links.append(dict(label="Add an instructor", icon="bi-person-plus", url=edit_url,
+        links.append(dict(label="Add an instructor", icon="bi-person-plus", url=avail_url,
                           hint="Make it a dual flight - or log a dual flight for this student to bring them current"))
         if student_id:
             links.append(dict(label="Check currency", icon="bi-person-lines-fill",
@@ -1217,9 +1224,10 @@ def _alert_fix_links(reason, scheduled_id, student_id):
     if "time off" in reason:
         links.append(dict(label="Move this lesson", icon="bi-calendar2-week", url=edit_url,
                           hint="Pick a new time or instructor for this lesson"))
-    if not any(l["url"] == edit_url for l in links):
+    if not any(l["url"] in (edit_url, avail_url) for l in links):
         links.append(dict(label="Assign CFI" if not links else "Open booking", icon="bi-person-plus" if not links else "bi-pencil",
-                          url=edit_url, hint="Edit the booking"))
+                          url=avail_url if not links else edit_url,
+                          hint="Open that day on the Schedule, with this lesson highlighted" if not links else "Edit the booking"))
     return links
 
 
@@ -8641,6 +8649,30 @@ def log_add_oil(flight_id):
     return _reply(True, "1 qt oil added (%g qt this flight)." % qt, qt=qt, by=by)
 
 
+@flight_bp.route("/log/<int:flight_id>/toggle_gauges", methods=["POST"])
+@login_required
+def log_toggle_gauges(flight_id):
+    """The "Hobbs/Tach match" button on the Active Flight board: like the oil
+    button, one tap saves right away; tapping again clears it."""
+    conn = get_db()
+    f = conn.execute("SELECT * FROM flights WHERE id = ?", (flight_id,)).fetchone()
+    if not f or not f["started_at"] or f["ended_at"]:
+        conn.close()
+        return jsonify({"ok": False, "message": "That flight isn't currently running."}), 400
+    if not _can_end_flight(f):
+        conn.close()
+        return jsonify({"ok": False, "message": "Only the assigned instructor, the student (on a solo flight), or a master admin can update this flight."}), 403
+    asset = conn.execute("SELECT is_owner_placeholder, is_simulator FROM assets WHERE id = ?", (f["asset_id"],)).fetchone()
+    if asset and (asset["is_owner_placeholder"] or asset["is_simulator"]):
+        conn.close()
+        return jsonify({"ok": False, "message": "Gauges aren't checked for this aircraft."}), 400
+    checked = None if f["gauges_checked_at"] else now_iso()
+    conn.execute("UPDATE flights SET gauges_checked_at=? WHERE id=?", (checked, flight_id))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True, "checked": bool(checked)})
+
+
 @flight_bp.route("/log/<int:flight_id>/update_progress", methods=["POST"])
 @login_required
 def log_update_progress(flight_id):
@@ -8697,8 +8729,12 @@ def log_update_progress(flight_id):
         squawk = 0
     else:
         squawk = f["squawk"]
-    conn.execute("UPDATE flights SET hobbs_start=?, tach_start=?, oil_added_qt=?, oil_added_by=?, notes=?, squawk=? WHERE id=?",
-                 (hobbs_start, tach_start, oil_added_qt, oil_added_by, notes, squawk, flight_id))
+    # The "what is off" note for Hobbs/Tach (the check button saves itself, see log_toggle_gauges) (not for own-plane/sim sessions, which have no gauges here).
+    gauges_checked_at, gauges_note = f["gauges_checked_at"], f["gauges_note"]
+    if not is_sim and not is_own_plane:
+        gauges_note = request.form.get("gauges_note", "").strip() or None
+    conn.execute("UPDATE flights SET hobbs_start=?, tach_start=?, oil_added_qt=?, oil_added_by=?, notes=?, squawk=?, gauges_checked_at=?, gauges_note=? WHERE id=?",
+                 (hobbs_start, tach_start, oil_added_qt, oil_added_by, notes, squawk, gauges_checked_at, gauges_note, flight_id))
     conn.commit()
     conn.close()
     if squawk and notes:
@@ -9010,6 +9046,7 @@ def log_end(flight_id):
                 note += f" - {payment_detail}"
             if card_last4:
                 note += f" - simulated charge ending in {card_last4}"
+            note = _paid_at_flight_note(note, cost["total"], credit_applied, payment_amount)
             _ledger_entry(conn, ended_row["student_id"], "payment", payment_amount, note=note,
                           flight_id=flight_id, created_by=session.get("user_name"))
             if flight_payments.needs_confirmation(payment_method, bool(is_flight_admin())):
@@ -9077,6 +9114,11 @@ def log_end(flight_id):
         flash("Session ended and logged. The squawk you flagged will show up on the Maintenance side until it's acknowledged.", "success")
     else:
         flash("Session ended and logged.", "success")
+    if paid_choice == "1" and cost is not None and payment_amount > 0.005:
+        _to_lesson, _to_credit = _overpayment_split(cost["total"], credit_applied, payment_amount)
+        if _to_credit > 0.005:
+            flash(f"${_to_lesson:,.2f} of the ${payment_amount:,.2f} payment went to this session; "
+                  f"${_to_credit:,.2f} was added to the student's credit.", "success")
     if card_req_msg:
         flash(card_req_msg, "success" if card_req_msg.startswith("Your request") else "warning")
     if wave_invoice_msg:
@@ -9117,6 +9159,25 @@ def _quick_wave_check(local_id):
             conn.close()
 
 
+def _overpayment_split(cost_total, credit_applied, payment_amount):
+    """(to_lesson, to_credit): how much of a payment taken at the end of a
+    session went to that session and how much was extra, which stays on the
+    student's account as credit. E.g. a $100 session, no credit applied and
+    $500 paid -> (100.00, 400.00). to_credit is 0.0 when nothing was left over."""
+    owed = max(0.0, cost_total - credit_applied)
+    to_lesson = round(min(payment_amount, owed), 2)
+    to_credit = round(max(0.0, payment_amount - owed), 2)
+    return to_lesson, to_credit
+
+
+def _paid_at_flight_note(note, cost_total, credit_applied, payment_amount):
+    """Adds the overpayment split to the 'Paid at flight' ledger note."""
+    to_lesson, to_credit = _overpayment_split(cost_total, credit_applied, payment_amount)
+    if to_credit > 0.005:
+        note += f" - ${to_lesson:,.2f} paid this session, ${to_credit:,.2f} added to credit"
+    return note
+
+
 def _send_flight_receipt_email(conn, ended_row, cost, paid, payment_method, payment_amount, credit_applied, payment_detail=None):
     """Emails the student a receipt for a just-ended flight, if they have an
     email on file - opt-out toggle on End Session (send_receipt_email),
@@ -9144,6 +9205,9 @@ def _send_flight_receipt_email(conn, ended_row, cost, paid, payment_method, paym
     if paid:
         if payment_amount > 0.005:
             lines.append(f"Paid: ${payment_amount:.2f}" + (f" ({payment_method}{': ' + payment_detail if payment_detail else ''})" if payment_method else ""))
+        _to_lesson, _to_credit = _overpayment_split(cost["total"], credit_applied, payment_amount)
+        if _to_credit > 0.005:
+            lines.append(f"${_to_lesson:.2f} of the payment covered this session; ${_to_credit:.2f} was added to your credit.")
         lines.append("Status: Paid in full")
     else:
         lines.append(f"Status: Unpaid - ${cost['total'] - credit_applied:.2f} owed")
@@ -9402,6 +9466,7 @@ def _save_logged_flight(conn, form, date_field="flight_date", notes_field="notes
         _deduct_flight_cost(conn, cost, created_by=session.get("user_name"))
         if paid and payment_amount > 0.005:
             note = f"Paid at flight ({payment_method})" if payment_method else "Paid at flight"
+            note = _paid_at_flight_note(note, cost["total"], credit_applied, payment_amount)
             _ledger_entry(conn, new_row["student_id"], "payment", payment_amount, note=note,
                           flight_id=new_flight_id, created_by=session.get("user_name"))
             if flight_payments.needs_confirmation(payment_method, bool(is_flight_admin())):

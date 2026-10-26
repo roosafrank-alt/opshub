@@ -2815,6 +2815,13 @@ def _migrate(conn):
     if "flight_notes" not in flight_cols_sent_back:
         conn.execute("ALTER TABLE flights ADD COLUMN flight_notes TEXT")
         conn.commit()
+    # Active flight page: the pilot/CFI ticks that the starting Hobbs and Tach
+    # match the gauges, or writes what is off.
+    for _col, _ddl in (("gauges_checked_at", "ALTER TABLE flights ADD COLUMN gauges_checked_at TEXT"),
+                       ("gauges_note", "ALTER TABLE flights ADD COLUMN gauges_note TEXT")):
+        if _col not in flight_cols_sent_back:
+            conn.execute(_ddl)
+            conn.commit()
     quick_cols_sent_back = [r["name"] for r in conn.execute("PRAGMA table_info(plane_squawks)").fetchall()]
     if "sent_back_note" not in quick_cols_sent_back:
         conn.execute("ALTER TABLE plane_squawks ADD COLUMN sent_back_note TEXT")

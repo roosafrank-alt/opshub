@@ -36,7 +36,7 @@ class ScheduleDayGridTest(OpsHubTestCase):
 
     def test_day_view_lists_instructor_buttons_like_availability(self):
         html = self.day()
-        self.assertIn('id="availCfiSide"', html)
+        self.assertIn('class="avail-cfi-side"', html)
         self.assertIn(f'data-cfi="{self.cfi}"', html)
         self.assertIn("avail-cfi-chips", html)
 
@@ -46,3 +46,11 @@ class ScheduleDayGridTest(OpsHubTestCase):
         html = self.client.get("/flight/", follow_redirects=True).get_data(as_text=True)
         self.assertIn("avail-grid-v", html)
         self.assertIn('data-plane="N300DG"', html)
+
+    def test_phone_short_times_and_separator_before_tail_number(self):
+        self.client.post("/flight/schedule/new", data=dict(asset_id=self.plane, student_id=self.student, cfi_id=self.cfi,
+                                                         scheduled_date=future(), scheduled_time="08:00", duration_hours="1.5"))
+        for html in (self.day(), self.client.get("/flight/", follow_redirects=True).get_data(as_text=True)):
+            self.assertIn('d-sm-none">11:00a</span>', html)
+            self.assertIn('d-none d-sm-inline">11:00 AM</span>', html)
+            self.assertIn("8:00a</span> &middot; N300DG", html)

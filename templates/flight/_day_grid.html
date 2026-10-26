@@ -1,6 +1,6 @@
 {#- The Availability page's plane x time-slot grid for one day. Used by the Schedule Day view and the home page's
    Today's Schedule / Upcoming sections so they all look the same. block is the schedule_block macro (passed in because
-   it lives in _schedule_live.html); with_cfis adds the instructor buttons (Schedule Day view only, one per page). -#}
+   it lives in _schedule_live.html); with_cfis adds the instructor buttons above that grid. -#}
 {% macro day_grid_css() %}
   /* Day view: the Availability page's plane x time-slot grid (same look). */
   .avail-grid { border-collapse: separate; border-spacing: 2px; }
@@ -24,12 +24,31 @@
     .avail-grid-v th, .avail-grid-v td { font-size: .75rem; }
     .avail-grid-v .avail-time-col { width: 4.6rem; white-space: nowrap; }
   }
+  /* Instructor buttons (same look as the Availability page) */
+  .avail-with-cfis { display: flex; flex-direction: column; gap: .5rem; }
+  .avail-with-cfis .avail-fit { flex: 1 1 auto; min-width: 0; }
+  .avail-cfi-side { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+  .avail-cfi-label { background: #fff; border: 1px solid #dee2e6; font-weight: 700; font-size: .78rem; padding: .35rem .5rem; white-space: nowrap; }
+  .avail-cfi-side .btn { font-size: .72rem; padding: .2rem .4rem; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .avail-cfi-note { font-size: .6rem; color: #6c757d; line-height: 1.2; padding: .15rem .1rem 0; }
+  @media (max-width: 767.98px) {
+    .avail-cfi-note { order: -1; flex-basis: 100%; padding: 0; }
+  }
+  @media (min-width: 768px) {
+    .avail-with-cfis { gap: 0; }
+    .avail-with-cfis .avail-cfi-side { gap: 3px; align-items: stretch; background: #fff; border: 1px solid #dee2e6; border-bottom: 0; padding: 0 3px 0 0; }
+    .avail-with-cfis .avail-cfi-label { box-sizing: border-box; width: 6rem; flex: none; border: 0; border-right: 1px solid #dee2e6; padding: .5rem; font-size: .78rem; }
+    .avail-with-cfis .avail-cfi-side .btn { align-self: center; }
+  }
+  .avail-cfi-chips { display: block; font-size: .6rem; font-weight: 600; line-height: 1.2; color: #0a3d1f; white-space: normal; }
+  .avail-cfi-chips:empty { display: none; }
+  .avail-cfi-chips.none { color: #a61e4d; }
 {% endmacro %}
 
 {% macro day_grid(ad, day_str, block, with_cfis=false) %}
   <div class="avail-with-cfis">
   {% if with_cfis and ad.cfis %}
-  <div class="avail-cfi-side" id="availCfiSide" aria-label="Instructors" data-free="{{ ad.cfi_free|tojson|forceescape }}">
+  <div class="avail-cfi-side" aria-label="Instructors" data-free="{{ ad.cfi_free|tojson|forceescape }}">
     <span class="avail-cfi-label">Instructors</span>
     {% for c in ad.cfis %}
     <button type="button" class="btn btn-outline-primary" data-cfi="{{ c.id }}" data-first="{{ c.name.split()[0] }}" aria-pressed="false" title="Show when {{ c.name }} is free">{{ c.name.split()[0] }}</button>
@@ -49,7 +68,7 @@
         {% for slot in ad.slots %}
         {% set i = loop.index0 %}
         <tr>
-          <th class="avail-time-col">{{ slot.label }}</th>
+          <th class="avail-time-col"><span class="d-sm-none">{{ slot.label.replace(' AM', 'a').replace(' PM', 'p') }}</span><span class="d-none d-sm-inline">{{ slot.label }}</span></th>
           {% for row in ad.grid %}
           {% set cell = row.cells[i] %}
           {% if cell.show %}
@@ -82,4 +101,42 @@
     </table>
   </div>
   </div>
+{% endmacro %}
+
+{#- Instructor name buttons for every day_grid(..., true) on the page: tapping names shows which of them are free in each
+   open slot. Picks live here, not in the buttons, so they survive a live refresh swapping the HTML (call
+   window.schCfiApply() after one). -#}
+{% macro day_grid_cfi_js() %}
+(function () {
+  var sel = {};
+  function apply() {
+    document.querySelectorAll('.avail-with-cfis').forEach(function (box) {
+      var side = box.querySelector('.avail-cfi-side');
+      if (!side) { return; }
+      var free = {};
+      try { free = JSON.parse(side.dataset.free || '{}'); } catch (e) {}
+      var nm = {};
+      side.querySelectorAll('[data-cfi]').forEach(function (b) {
+        nm[b.dataset.cfi] = b.dataset.first;
+        var on = !!sel[b.dataset.cfi];
+        b.classList.toggle('btn-primary', on); b.classList.toggle('btn-outline-primary', !on);
+        b.setAttribute('aria-pressed', on);
+      });
+      var ids = Object.keys(sel);
+      box.querySelectorAll('.avail-cfi-chips').forEach(function (el) {
+        if (!ids.length) { el.textContent = ''; el.classList.remove('none'); return; }
+        var ok = ids.filter(function (i) { return (free[el.dataset.slot] || []).indexOf(+i) >= 0; });
+        el.classList.toggle('none', !ok.length);
+        el.textContent = ok.length ? ok.map(function (i) { return nm[i]; }).join(', ') : (ids.length === 1 ? 'no ' + nm[ids[0]] : 'no instructor');
+      });
+    });
+  }
+  window.schCfiApply = apply;
+  document.addEventListener('click', function (e) {
+    var b = e.target.closest && e.target.closest('.avail-cfi-side [data-cfi]');
+    if (!b) { return; }
+    if (sel[b.dataset.cfi]) { delete sel[b.dataset.cfi]; } else { sel[b.dataset.cfi] = 1; }
+    apply();
+  });
+})();
 {% endmacro %}

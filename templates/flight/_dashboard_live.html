@@ -1013,7 +1013,7 @@
   </button>
   <div class="dash-collapse-body" data-collapse-body="today">
     {% if today_flights_total %}
-    {{ day_grid(today_grid, today_str, schedule_block) }}
+    {{ day_grid(today_grid, today_str, schedule_block, true) }}
     {% else %}
     <p class="text-muted small mb-0">Nothing on the board for today.</p>
     {% endif %}
@@ -1048,7 +1048,7 @@
       </h6>
       <span class="badge bg-secondary fs-6">{{ day.flights|length }} flight{{ 's' if day.flights|length != 1 }} booked</span>
     </div>
-    {{ day_grid(day.grid, day.date, schedule_block) }}
+    {{ day_grid(day.grid, day.date, schedule_block, true) }}
     {% else %}
     <p class="text-muted small mb-0">Nothing else on the books yet.</p>
     {% endfor %}
