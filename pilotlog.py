@@ -488,7 +488,13 @@ def _pick_student(conn):
     if _is_staff():
         students = conn.execute("""SELECT * FROM students WHERE active = 1 AND COALESCE(is_station, 0) = 0
                                    ORDER BY name""").fetchall()
-        sid = request.values.get("student_id", type=int) or session.get("student_id") or \
+        # A staff pick sticks across the logbook / totalizer / endorsements / map tabs.
+        ids = {r["id"] for r in students}
+        asked = request.values.get("student_id", type=int)
+        if asked in ids:
+            session["picked_student_id"] = asked
+        sticky = session.get("picked_student_id")
+        sid = asked or (sticky if sticky in ids else None) or session.get("student_id") or \
             (students[0]["id"] if students else None)
         student = conn.execute("SELECT * FROM students WHERE id = ?", (sid,)).fetchone() if sid else None
         return student, students
