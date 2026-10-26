@@ -149,10 +149,15 @@ REQUIREMENTS = {
             {"ids": ["A.2"], "need": "current", "if": "only if the knowledge test report lists missed subject areas"}],
     "multi": [{"ids": ["A.78"], "need": "ever"}, {"ids": ["A.1"], "need": "current"}],
     "atp": [{"ids": ["A.41"], "need": "ever", "label": "ATP CTP completed (airplane multiengine)"}],
+    # One-time endorsements a pilot can work toward (the "Training toward" goal on the profile).
+    "tailwheel": [{"ids": ["A.75"], "need": "ever", "label": "Tailwheel airplane endorsement (14 CFR 61.31(i))"}],
+    "complex": [{"ids": ["A.72"], "need": "ever", "label": "Complex airplane endorsement (14 CFR 61.31(e))"}],
+    "high_performance": [{"ids": ["A.73"], "need": "ever", "label": "High-performance airplane endorsement (14 CFR 61.31(f))"}],
 }
 TRACK_NAMES = {"solo": "First Solo", "sport": "Sport Pilot", "recreational": "Recreational Pilot", "private": "Private Pilot",
                "instrument": "Instrument Rating", "commercial": "Commercial Pilot", "cfi": "Flight Instructor",
-               "multi": "Multi-Engine Rating", "atp": "Airline Transport Pilot"}
+               "multi": "Multi-Engine Rating", "atp": "Airline Transport Pilot", "tailwheel": "Tailwheel Endorsement",
+               "complex": "Complex Endorsement", "high_performance": "High Performance Endorsement"}
 NEXT_TRACK = {None: "private", "": "private", "student": "private", "sport": "private", "recreational": "private",
               "private": "instrument", "commercial": "cfi", "atp": "atp"}
 CERT_LABELS = {"student": "Student Pilot", "sport": "Sport Pilot", "recreational": "Recreational Pilot",
