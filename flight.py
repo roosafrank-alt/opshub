@@ -4890,7 +4890,13 @@ def _dashboard_day_grid(conn, day_str, ids):
     always show as booked, but only the flights in ids (what this person's
     Whole school / Just mine view lists) are drawn inside them."""
     ad = _build_availability_day(conn, day_str, None)
-    _fill_day_cells(ad, [f for f in _build_schedule_day(conn, day_str, None, None) if f["id"] in ids])
+    wanted = [f for f in _build_schedule_day(conn, day_str, None, None) if f["id"] in ids]
+    shown = _fill_day_cells(ad, wanted)
+    # A lesson with no column (a student's own aircraft, a plane that isn't
+    # on the flight line, or no time set) would otherwise vanish from the
+    # home page while the badge still counts it: list it under the grid.
+    ad["extras"] = [f for f in wanted if f["id"] not in shown]
+    ad["extras_label"] = "Also today" if day_str == datetime.now().strftime("%Y-%m-%d") else "Also this day"
     return ad
 
 

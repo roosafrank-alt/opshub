@@ -100,6 +100,12 @@
       </tbody>
     </table>
   </div>
+  {% if ad.extras %}
+  <div class="avail-extras mt-2">
+    <div class="small text-muted mb-1">{{ ad.extras_label }}</div>
+    <div class="d-flex flex-wrap gap-1">{% for f in ad.extras %}<div style="min-width:9rem;flex:1 1 9rem;max-width:100%">{{ block(f, false) }}</div>{% endfor %}</div>
+  </div>
+  {% endif %}
   </div>
 {% endmacro %}
 
