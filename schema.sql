@@ -807,7 +807,7 @@ CREATE TABLE IF NOT EXISTS pilot_logbook (
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_pilot_logbook_student ON pilot_logbook(student_id, entry_date);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_pilot_logbook_import ON pilot_logbook(student_id, import_key) WHERE import_key IS NOT NULL;
+-- (the import_key index is created in db._migrate, after the column exists on old databases)
 
 -- Progress requirements an instructor checks off (knowledge test, long
 -- cross-country, endorsements...) - pilotlog.TRACKS.
