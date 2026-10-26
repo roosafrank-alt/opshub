@@ -1,0 +1,63 @@
+{% extends "academy_base.html" %}
+{% block title %}Import from ForeFlight · Flight Academy{% endblock %}
+{% block content %}
+<div class="card academy-card p-3 mb-3">
+  <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+    <h4 class="mb-0"><i class="bi bi-upload"></i> Import from ForeFlight</h4>
+    <a href="{{ url_for('pilotlog.logbook', student_id=student.id if staff else None) }}" class="btn btn-outline-secondary btn-sm">Back to logbook</a>
+  </div>
+  <div class="small text-muted mt-1">Into {{ student.name }}'s logbook. Upload the CSV exported from ForeFlight (the file starts with "ForeFlight Logbook Import"). You'll see what it would add before anything is saved.</div>
+  {% if not preview %}
+  <form method="post" enctype="multipart/form-data" class="mt-3">
+    <input type="file" name="file" accept=".csv,text/csv" class="form-control" required>
+    <button class="btn btn-primary mt-2"><i class="bi bi-search"></i> Look it over</button>
+  </form>
+  <ul class="small text-muted mt-3 mb-0">
+    <li>Imported flights count toward your totals and ratings progress, and are marked <b>Imported</b> (not instructor-signed).</li>
+    <li>Uploading the same file again, or a newer export, only adds flights that aren't here yet.</li>
+    <li>Not imported: other people's names and emails, Hobbs/tach, and clock times.</li>
+  </ul>
+  {% endif %}
+</div>
+
+{% if preview %}
+<div class="card academy-card p-3">
+  {% if preview.new or preview.maybe %}
+  <h5 class="mb-2">{{ preview.new }} new flight{{ 's' if preview.new != 1 }}{% if preview.first %} <span class="text-muted fs-6">{{ preview.first|usdate }} &ndash; {{ preview.last|usdate }}</span>{% endif %}</h5>
+  <div class="row g-2 text-center">
+    {% for key, label in [('total','Total'),('pic','PIC'),('sic','SIC'),('dual','Dual rcvd'),('dual_given','Dual given'),('solo','Solo'),('xc','XC'),('night','Night'),('actual_inst','Actual inst'),('sim_inst','Sim inst')] %}
+    <div class="col-4 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ '%.1f'|format(preview.totals[key]) }}</div><div class="small text-muted">{{ label }}</div></div></div>
+    {% endfor %}
+  </div>
+  <div class="small text-muted mt-2">{{ preview.totals.approaches|int }} approaches &middot; {{ (preview.totals.day_ldg + preview.totals.night_ldg)|int }} landings &middot; {{ preview.aircraft }} aircraft in the file</div>
+  {% if preview.sample %}
+  <div class="table-responsive mt-3"><table class="table table-sm small mb-0">
+    <thead><tr><th>Date</th><th>Aircraft</th><th>From &rarr; To</th><th class="text-end">Total</th></tr></thead>
+    <tbody>{% for e in preview.sample %}<tr><td>{{ e.entry_date|usdate }}</td><td>{{ e.tail or '' }} <span class="text-muted">{{ e.make_model or '' }}</span></td><td>{{ e.route_from or '' }} &rarr; {{ e.route_to or '' }}</td><td class="text-end">{{ '%.1f'|format(e.total) }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+  <div class="small text-muted">Newest {{ preview.sample|length }} shown.</div>
+  {% endif %}
+  {% else %}
+  <h5 class="mb-1">Nothing new to import</h5>
+  {% endif %}
+
+  {% if preview.already %}<div class="small mt-2"><i class="bi bi-check2-circle text-success"></i> {{ preview.already }} flight{{ 's' if preview.already != 1 }} already imported &mdash; skipped.</div>{% endif %}
+  {% if preview.skipped %}<div class="small mt-1 text-muted"><i class="bi bi-skip-forward"></i> {{ preview.skipped|length }} row{{ 's' if preview.skipped|length != 1 }} skipped: {% for line, why in preview.skipped[:4] %}line {{ line }} ({{ why }}){{ ', ' if not loop.last }}{% endfor %}{% if preview.skipped|length > 4 %} &hellip;{% endif %}.</div>{% endif %}
+  {% if preview.flags %}<div class="small mt-1 text-muted"><i class="bi bi-info-circle"></i> {{ preview.flags }} flight{{ 's' if preview.flags != 1 }} are marked as a flight review, IPC or checkride in ForeFlight. Those aren't turned into endorsements here (an endorsement needs an instructor's signature).</div>{% endif %}
+
+  <form method="post" class="mt-3">
+    <input type="hidden" name="action" value="confirm"><input type="hidden" name="token" value="{{ preview.token }}">
+    {% if preview.maybe %}
+    <div class="alert alert-warning py-2 small">
+      <b>{{ preview.maybe }} flight{{ 's' if preview.maybe != 1 }}</b> look like ones the school already logged (same day, same plane, same hours){% for e in preview.maybe_sample %}{{ ' &middot; ' if loop.first else ', ' }}{{ e.entry_date|usdate }} {{ e.tail }}{% endfor %}. They are left out unless you tick this:
+      <div class="form-check mt-1"><input class="form-check-input" type="checkbox" name="include_maybe" value="1" id="incm"><label class="form-check-label" for="incm">Import them too</label></div>
+    </div>
+    {% endif %}
+    <div class="d-flex gap-2">
+      {% if preview.new or preview.maybe %}<button class="btn btn-success"><i class="bi bi-check2-circle"></i> Import {{ preview.new }} flight{{ 's' if preview.new != 1 }}</button>{% endif %}
+      <a href="{{ url_for('pilotlog.import_foreflight', student_id=student.id if staff else None) }}" class="btn btn-outline-secondary">Cancel</a>
+    </div>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

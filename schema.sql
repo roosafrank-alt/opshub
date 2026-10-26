@@ -779,6 +779,10 @@ CREATE TABLE IF NOT EXISTS pilot_logbook (
     make_model TEXT,
     route_from TEXT,
     route_to TEXT,
+    route TEXT, -- optional: waypoints / airways flown
+    sic REAL, dual_given REAL, ifr REAL, sim_flight REAL, ground REAL, -- from a ForeFlight import
+    source TEXT, -- NULL = logged at the school, 'foreflight' = imported
+    import_key TEXT, -- same flight imported twice is skipped
     total REAL NOT NULL DEFAULT 0, -- Tach time (else Hobbs)
     dual REAL NOT NULL DEFAULT 0, -- dual received (= the instructor's dual given)
     solo REAL NOT NULL DEFAULT 0,
@@ -803,6 +807,7 @@ CREATE TABLE IF NOT EXISTS pilot_logbook (
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_pilot_logbook_student ON pilot_logbook(student_id, entry_date);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_pilot_logbook_import ON pilot_logbook(student_id, import_key) WHERE import_key IS NOT NULL;
 
 -- Progress requirements an instructor checks off (knowledge test, long
 -- cross-country, endorsements...) - pilotlog.TRACKS.
