@@ -1898,6 +1898,14 @@ def _migrate(conn):
     for _c in ("denied_at", "denied_by", "deny_reason", "route"):    # deny_*: a pending entry can be denied; route: optional waypoints/airways
         if _c not in _lb_cols:
             conn.execute(f"ALTER TABLE pilot_logbook ADD COLUMN {_c} TEXT")
+    # ForeFlight import: time the school logbook had no column for, and where an entry came from.
+    for _c in ("sic", "dual_given", "ifr", "sim_flight", "ground"):
+        if _c not in _lb_cols:
+            conn.execute(f"ALTER TABLE pilot_logbook ADD COLUMN {_c} REAL")
+    for _c in ("source", "import_key"):    # source: NULL = logged at the school, 'foreflight' = imported; import_key stops double imports
+        if _c not in _lb_cols:
+            conn.execute(f"ALTER TABLE pilot_logbook ADD COLUMN {_c} TEXT")
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_pilot_logbook_import ON pilot_logbook(student_id, import_key) WHERE import_key IS NOT NULL")
     conn.execute("""CREATE TABLE IF NOT EXISTS academy_milestones (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         student_id INTEGER NOT NULL REFERENCES students(id),

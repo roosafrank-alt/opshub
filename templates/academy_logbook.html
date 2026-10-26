@@ -17,6 +17,7 @@
     </div>
     <div class="d-flex gap-2">
       <a href="{{ url_for('pilotlog.totalizer', student_id=student.id if staff else None) }}" class="btn btn-outline-success btn-sm" data-change="SCHOOL-35"><i class="bi bi-calculator"></i> Totalizer</a>
+      {% if can_import %}<a href="{{ url_for('pilotlog.import_foreflight', student_id=student.id if staff else None) }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-upload"></i> Import from ForeFlight</a>{% endif %}
       <a href="{{ url_for('pilotlog.export_csv', student_id=student.id if staff else None) }}" class="btn btn-outline-primary btn-sm"><i class="bi bi-download"></i> Export (CSV)</a>
     </div>
   </div>
@@ -24,6 +25,8 @@
     {% for key, label in [('total','Total'),('dual','Dual rcvd'),('solo','Solo'),('pic','PIC'),('xc','XC'),('night','Night'),('actual_inst','Actual inst'),('sim_inst','Sim inst')] %}
     <div class="col-3 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ '%.1f'|format(totals[key]) }}</div><div class="small text-muted">{{ label }}</div></div></div>
     {% endfor %}
+    {% if extra and extra.sic %}<div class="col-3 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ '%.1f'|format(extra.sic) }}</div><div class="small text-muted">SIC</div></div></div>{% endif %}
+    {% if extra and extra.dual_given %}<div class="col-3 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ '%.1f'|format(extra.dual_given) }}</div><div class="small text-muted">Dual given</div></div></div>{% endif %}
     <div class="col-3 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ (totals.day_ldg + totals.night_ldg)|int }}</div><div class="small text-muted">Landings</div></div></div>
   </div>
   {% if dual_given %}<div class="small text-muted mt-2"><i class="bi bi-person-video3"></i> Dual given by you (all students): <strong>{{ '%.1f'|format(dual_given.hours) }} hrs</strong> on {{ dual_given.flights }} flight{{ 's' if dual_given.flights != 1 }}.</div>{% endif %}
@@ -87,7 +90,7 @@
           <td class="num">{{ '%.1f'|format((e.actual_inst or 0) + (e.sim_inst or 0)) if (e.actual_inst or e.sim_inst) else '' }}</td>
           <td class="num">{{ e.day_ldg or 0 }}/{{ e.night_ldg or 0 }}</td>
           <td>{% if e.instructor_name %}{{ e.instructor_name }} <small class="text-muted">{{ e.instructor_cert or '' }}</small>{% endif %}</td>
-          <td>{% if e.status == 'pending' %}<span class="badge bg-warning text-dark">Pending</span>{% else %}<span class="badge bg-success"><i class="bi bi-check2"></i> Done</span>{% endif %}</td>
+          <td>{% if e.status == 'pending' %}<span class="badge bg-warning text-dark">Pending</span>{% elif e.source == 'foreflight' %}<span class="badge bg-secondary"><i class="bi bi-upload"></i> Imported</span>{% else %}<span class="badge bg-success"><i class="bi bi-check2"></i> Done</span>{% endif %}</td>
         </tr>
       {% else %}
         <tr><td colspan="13" class="text-muted p-3">No flights yet - they show up here as soon as a flight is logged.</td></tr>

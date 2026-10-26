@@ -47,6 +47,8 @@ EXPORT_COLUMNS = [
     ("day_ldg", "Day Landings"), ("night_ldg", "Night Landings"), ("night_fs", "Night Full-Stop Landings"),
     ("remarks", "Remarks"), ("instructor_name", "Instructor"), ("instructor_cert", "Instructor Cert #"),
     ("instructor_cert_exp", "Instructor Cert Exp"), ("status", "Status"),
+    ("sic", "SIC"), ("dual_given", "Dual Given"), ("ifr", "IFR"), ("sim_flight", "Simulator"), ("ground", "Ground Training"),
+    ("route", "Route"), ("source", "Source"),
 ]
 
 # ---------------------------------------------------------------------------
@@ -492,10 +494,11 @@ def logbook():
                                   ORDER BY entry_date DESC, id DESC LIMIT 25""", (student["id"],)).fetchall() if student else []
     conn.close()
     pending = [e for e in entries if e["status"] == "pending"]
+    extra = {k: round(sum((e[k] or 0) for e in entries), 1) for k in ("sic", "dual_given")}
     import academy
     return render_template("academy_logbook.html", denied_entries=denied_entries, log_entries=log_entries, log_kinds=academy.ENTRY_KINDS,
                            log_kind_map=academy.ENTRY_KIND_MAP, log_today=date.today().isoformat(), student=student, students=students, entries=entries,
-                           pending=pending, totals=_totals(entries), staff=_is_staff(), dual_given=dual_given,
+                           pending=pending, totals=_totals(entries), extra=extra, can_import=bool(student and _can_edit({'student_id': student['id']})), staff=_is_staff(), dual_given=dual_given,
                            goal_track=goal_track, tab="logbook")
 
 
@@ -568,6 +571,122 @@ def entry(entry_id):
         return redirect(url_for("pilotlog.entry", entry_id=entry_id))
     conn.close()
     return render_template("academy_logbook_entry.html", e=e, fields=STUDENT_FIELDS, staff=_is_staff(), can_edit=_can_edit(e), tab="logbook")
+
+
+# ---------------------------------------------------------------- ForeFlight import
+
+_IMPORT_COLS = ("entry_date", "tail", "make_model", "route_from", "route_to", "route", "total", "dual", "dual_given", "solo", "pic", "sic",
+                "xc", "night", "ifr", "actual_inst", "sim_inst", "sim_flight", "ground", "approaches", "day_ldg", "night_ldg", "night_fs",
+                "remarks", "instructor_name", "import_key")
+
+
+def _import_dir():
+    import os
+    import db as _db
+    d = os.path.join(os.path.dirname(_db.DB_PATH), "imports")
+    os.makedirs(d, exist_ok=True)
+    return d
+
+
+def _looks_logged(entry, existing):
+    """A ForeFlight flight that is probably one the school already logged: same day, same plane, hours within 0.3."""
+    for x in existing:
+        if x["entry_date"] == entry["entry_date"] and (x["tail"] or "").upper() == (entry["tail"] or "") \
+                and abs((x["total"] or 0) - entry["total"]) <= 0.3:
+            return True
+    return False
+
+
+@pilotlog_bp.route("/logbook/import", methods=["GET", "POST"])
+def import_foreflight():
+    """Upload a ForeFlight logbook export, look over what it would add, then confirm."""
+    import json
+    import os
+    import re
+    import secrets
+    import time
+    import foreflight_import
+    denied = _require_access()
+    if denied:
+        return denied
+    conn = get_db()
+    student, _students = _pick_student(conn)
+    if not student:
+        conn.close()
+        flash("No student profile is linked to your account, so there's no logbook to import into.", "warning")
+        return redirect(url_for("pilotlog.logbook"))
+    if not _can_edit({"student_id": student["id"]}):
+        conn.close()
+        flash("Only the student (or a Flight Admin) can import into a logbook.", "warning")
+        return redirect(url_for("pilotlog.logbook", student_id=student["id"] if _is_staff() else None))
+    sid_arg = student["id"] if _is_staff() else None
+    folder = _import_dir()
+    for f in os.listdir(folder):    # forget old previews
+        fp = os.path.join(folder, f)
+        if time.time() - os.path.getmtime(fp) > 86400:
+            os.remove(fp)
+
+    if request.method == "POST" and request.form.get("action") == "confirm":
+        token = request.form.get("token", "")
+        path = os.path.join(folder, token + ".json") if re.fullmatch(r"[A-Za-z0-9_-]{16,40}", token) else None
+        if not path or not os.path.exists(path):
+            conn.close()
+            flash("That preview has expired. Upload the file again.", "warning")
+            return redirect(url_for("pilotlog.import_foreflight", student_id=sid_arg))
+        with open(path) as fh:
+            pending = json.load(fh)
+        if pending["student_id"] != student["id"] or pending["user_id"] != session.get("user_id"):
+            conn.close()
+            abort(403)
+        rows = pending["new"] + (pending["maybe"] if request.form.get("include_maybe") else [])
+        added = 0
+        marks = ",".join("?" * (len(_IMPORT_COLS) + 5))
+        for e in rows:
+            cur = conn.execute(f"""INSERT OR IGNORE INTO pilot_logbook (student_id, {', '.join(_IMPORT_COLS)}, status, approved_at, approved_by, source)
+                                   VALUES ({marks})""",
+                               [student["id"]] + [e[c] for c in _IMPORT_COLS] + ["complete", now_iso(), "Imported from ForeFlight", "foreflight"])
+            added += cur.rowcount
+        conn.commit()
+        conn.close()
+        os.remove(path)
+        flash(f"Imported {added} flight{'s' if added != 1 else ''} from ForeFlight into {student['name']}'s logbook.", "success")
+        return redirect(url_for("pilotlog.logbook", student_id=sid_arg))
+
+    preview = None
+    if request.method == "POST":
+        up = request.files.get("file")
+        raw = up.read(5 * 1024 * 1024 + 1) if up else b""
+        if not raw:
+            flash("Choose the ForeFlight CSV file first.", "warning")
+        elif len(raw) > 5 * 1024 * 1024:
+            flash("That file is over 5 MB - too big to be a ForeFlight logbook export.", "warning")
+        else:
+            parsed = foreflight_import.parse(raw.decode("utf-8-sig", errors="replace"))
+            if parsed["problem"]:
+                flash(parsed["problem"], "danger")
+            else:
+                have_keys = {r["import_key"] for r in conn.execute(
+                    "SELECT import_key FROM pilot_logbook WHERE student_id = ? AND import_key IS NOT NULL", (student["id"],))}
+                school = conn.execute("""SELECT entry_date, tail, total FROM pilot_logbook WHERE student_id = ? AND status != 'denied'
+                                         AND import_key IS NULL""", (student["id"],)).fetchall()
+                new, maybe, already = [], [], 0
+                for e in parsed["entries"]:
+                    if e["import_key"] in have_keys:
+                        already += 1
+                    elif _looks_logged(e, school):
+                        maybe.append(e)
+                    else:
+                        new.append(e)
+                token = secrets.token_urlsafe(16)
+                with open(os.path.join(folder, token + ".json"), "w") as fh:
+                    json.dump({"student_id": student["id"], "user_id": session.get("user_id"), "new": new, "maybe": maybe}, fh)
+                dates = [e["entry_date"] for e in new] or [e["entry_date"] for e in parsed["entries"]]
+                preview = {"token": token, "new": len(new), "maybe": len(maybe), "already": already, "skipped": parsed["skipped"],
+                           "aircraft": parsed["aircraft"], "flags": parsed["flags"], "totals": foreflight_import.totals(new),
+                           "first": min(dates) if dates else None, "last": max(dates) if dates else None,
+                           "sample": sorted(new, key=lambda x: x["entry_date"], reverse=True)[:8], "maybe_sample": maybe[:5]}
+    conn.close()
+    return render_template("academy_logbook_import.html", student=student, preview=preview, staff=_is_staff(), tab="logbook")
 
 
 @pilotlog_bp.route("/logbook/export.csv")

@@ -12,6 +12,7 @@
     {% else %}<span class="badge bg-success fs-6"><i class="bi bi-check2-circle"></i> Approved {{ e.approved_at|usdate }}{% if e.approved_by %} by {{ e.approved_by }}{% endif %}</span>{% endif %}
   </div>
 
+  {% if e.source == 'foreflight' %}<div class="alert alert-secondary py-2 small"><i class="bi bi-upload"></i> Imported from ForeFlight{% if e.sic %} &middot; SIC {{ '%.1f'|format(e.sic) }}{% endif %}{% if e.dual_given %} &middot; dual given {{ '%.1f'|format(e.dual_given) }}{% endif %}{% if e.ifr %} &middot; IFR {{ '%.1f'|format(e.ifr) }}{% endif %}{% if e.sim_flight %} &middot; simulator {{ '%.1f'|format(e.sim_flight) }}{% endif %}{% if e.ground %} &middot; ground {{ '%.1f'|format(e.ground) }}{% endif %}. Not instructor-signed.</div>{% endif %}
   {% if e.status == 'denied' and e.deny_reason %}<div class="alert alert-danger py-2 small">Reason: {{ e.deny_reason }}</div>{% endif %}
   {% if not can_edit %}<div class="alert alert-info py-2 small"><i class="bi bi-eye"></i> You can read this logbook, but only the student or a Flight Admin can change it.</div>{% endif %}
   <form method="post">
