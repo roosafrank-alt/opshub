@@ -1,0 +1,41 @@
+{% extends "academy_base.html" %}
+{% block title %}Knowledge tests · Flight Academy{% endblock %}
+{% block content %}
+{% if not student %}
+<div class="card academy-card p-4">No student profile is linked to your account, so there are no test reports to show.</div>
+{% else %}
+<div class="card academy-card p-3 mb-3">
+  <h4 class="mb-1"><i class="bi bi-file-earmark-check"></i> Knowledge tests</h4>
+  <div class="small text-muted">{{ student.name }}'s PSI knowledge test reports. A satisfactory one (70 or better) checks "Knowledge test passed" for that rating on Progress.</div>
+</div>
+
+<div class="card academy-card p-3 mb-3">
+  {% for r in reports %}
+  <div class="d-flex flex-wrap gap-2 align-items-center py-2 {{ 'border-top' if not loop.first }}">
+    <span class="badge {{ 'bg-success' if r.passed else 'bg-danger' }}">{{ 'Satisfactory' if r.passed else 'Unsatisfactory' }}</span>
+    <strong>{{ r.track_name }}</strong>
+    <span>score {{ r.score }}</span>
+    <span class="text-muted small">taken {{ r.taken_date|usdate }}{% if r.added_by %} &middot; added by {{ r.added_by }}{% endif %}</span>
+    {% if r.filename %}<a class="ms-auto btn btn-outline-primary btn-sm" href="{{ url_for('pilotlog.test_report_file', report_id=r.id) }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-text"></i> View report</a>
+    {% else %}<span class="ms-auto small text-muted">no file attached</span>{% endif %}
+  </div>
+  {% else %}
+  <div class="text-muted">No test reports added yet.</div>
+  {% endfor %}
+</div>
+
+<div class="card academy-card p-3 mb-3">
+  <h6 class="mb-2">Add a report</h6>
+  <form method="post" action="{{ url_for('pilotlog.test_report') }}" enctype="multipart/form-data" class="row g-2 align-items-end">
+    {% if staff %}<input type="hidden" name="student_id" value="{{ student.id }}">{% endif %}
+    <input type="hidden" name="back" value="tests">
+    <div class="col-12 col-md-3"><label class="form-label small mb-0">Rating</label>
+      <select name="track" class="form-select form-select-sm">{% for t in tracks %}<option value="{{ t.code }}" {{ 'selected' if t.code == default_track }}>{{ t.name }}</option>{% endfor %}</select></div>
+    <div class="col-6 col-md-1"><label class="form-label small mb-0">Score</label><input type="number" name="score" min="0" max="100" required class="form-control form-control-sm"></div>
+    <div class="col-6 col-md-2"><label class="form-label small mb-0">Date taken</label><input type="date" name="taken_date" class="form-control form-control-sm"></div>
+    <div class="col-12 col-md-4"><label class="form-label small mb-0">Report (PDF or photo)</label><input type="file" name="report" accept=".pdf,image/*" class="form-control form-control-sm"></div>
+    <div class="col-12 col-md-2"><button class="btn btn-primary btn-sm w-100"><i class="bi bi-plus-lg"></i> Add</button></div>
+  </form>
+</div>
+{% endif %}
+{% endblock %}

@@ -40,3 +40,16 @@ class ComplexAndPsiTest(OpsHubTestCase):
         self.assertIn("Unsatisfactory", html)
         rid = self.q1("SELECT id FROM academy_test_reports WHERE filename IS NOT NULL")["id"]
         self.assertEqual(c.get(f"/academy/progress/test-report/{rid}/file").status_code, 200)
+
+
+class KnowledgeTestsTabTest(ComplexAndPsiTest):
+    def test_tab_lists_reports_after_endorsements(self):
+        self.exec("UPDATE students SET pilot_certificate = 'student', training_goal = 'private' WHERE id = ?", (self.sid,))
+        c = self.login("flight_student")
+        r = c.post("/academy/progress/test-report", data={"track": "private", "score": "91", "back": "tests",
+                                                           "report": (io.BytesIO(b"%PDF-1.4 x"), "p.pdf")}, content_type="multipart/form-data")
+        self.assertIn("/academy/knowledge-tests", r.headers["Location"])
+        html = c.get("/academy/knowledge-tests").get_data(as_text=True)
+        self.assertIn("Satisfactory", html)
+        self.assertIn("View report", html)
+        self.assertLess(html.index("Endorsements</a>"), html.index("Knowledge tests</a>"))

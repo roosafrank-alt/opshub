@@ -1346,6 +1346,8 @@ def test_report():
     conn.close()
     flash(f"Test report saved - score {score}: satisfactory, so \"Knowledge test passed\" is checked off." if passed
           else f"Test report saved - score {score} is below {PSI_PASSING}, so the requirement stays open.", "success" if passed else "warning")
+    if request.form.get("back") == "tests":
+        return redirect(url_for("pilotlog.knowledge_tests", student_id=sid_arg))
     return redirect(url_for("pilotlog.progress", student_id=sid_arg, track=track) + f"#t-{track}")
 
 
@@ -1362,3 +1364,23 @@ def test_report_file(report_id):
     if not r or not r["filename"] or not (_is_staff() or r["student_id"] == session.get("student_id")):
         abort(404)
     return send_from_directory(_report_dir(), r["filename"])
+
+
+@pilotlog_bp.route("/knowledge-tests")
+def knowledge_tests():
+    """Every knowledge test (PSI) report on file for the student, newest first, with the add form."""
+    denied = _require_access()
+    if denied:
+        return denied
+    conn = get_db()
+    student, students = _pick_student(conn)
+    reports = [dict(r) for r in conn.execute("""SELECT * FROM academy_test_reports WHERE student_id = ?
+                                               ORDER BY taken_date DESC, id DESC""", (student["id"],)).fetchall()] if student else []
+    conn.close()
+    names = {t["code"]: t["name"] for t in TRACKS}
+    for r in reports:
+        r["track_name"] = names.get(r["track"], r["track"])
+    tracks = [t for t in TRACKS if any(i["code"] == "knowledge" for i in t["items"])]
+    return render_template("academy_knowledge_tests.html", student=student, students=students, reports=reports, tracks=tracks,
+                           default_track=goal_track_code(student) if student else "", staff=_is_staff(),
+                           tab="logbook", subtab="tests")
