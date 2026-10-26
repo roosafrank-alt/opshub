@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Switch to {{ label }} · Winds Aloft{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+  <h4 class="mb-0"><i class="bi bi-eye"></i> Switch to {{ label }}</h4>
+  <a href="{{ back }}" class="btn btn-outline-secondary btn-sm">Cancel</a>
+</div>
+<form method="post" action="{{ url_for('view_as_start', program='shop', level=level) }}" class="card border-primary p-3 mb-3 d-flex flex-row align-items-center justify-content-between gap-2">
+  <span><strong>Use it as a {{ label }} myself</strong><br><span class="small text-muted">The Maintenance side as a {{ label }}, not look-only: everything works and saves under your name.</span></span>
+  <button class="btn btn-primary fw-bold" type="submit"><i class="bi bi-person-badge"></i> Switch to my {{ label }} view</button>
+</form>
+<p class="text-muted small">Or pick a {{ label }} to see the Maintenance side exactly as they see it. It is look only, so nothing you tap can change anything as them. Use Back to my normal view in the yellow bar when you are done.</p>
+<input type="search" id="person-search" class="form-control form-control-sm mb-2" placeholder="Search {{ label }}s" autocomplete="off">
+<div class="list-group" id="person-list">
+  {% for p in people %}
+  <form method="post" action="{{ url_for('view_as_shop_person_start', level=level, user_id=p.id) }}" class="list-group-item d-flex align-items-center justify-content-between gap-2 m-0 person-row" data-name="{{ p.name|lower }}">
+    <input type="hidden" name="next" value="{{ back }}">
+    <span class="fw-bold">{{ p.name }}</span>
+    <button class="btn btn-dark btn-sm fw-bold" type="submit"><i class="bi bi-eye"></i> Look as this {{ label }}</button>
+  </form>
+  {% else %}
+  <div class="list-group-item text-muted">No other active {{ label }}s yet.</div>
+  {% endfor %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  var box = document.getElementById('person-search');
+  var rows = document.querySelectorAll('.person-row');
+  box.addEventListener('input', function () {
+    var q = box.value.trim().toLowerCase();
+    rows.forEach(function (r) { r.style.display = !q || r.getAttribute('data-name').indexOf(q) !== -1 ? '' : 'none'; });
+  });
+})();
+</script>
+{% endblock %}

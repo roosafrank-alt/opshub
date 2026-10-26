@@ -61,11 +61,11 @@ class ViewAsTest(OpsHubTestCase):
         self.client.post("/view-as/flight/student")
         s = self.sess()
         self.assertEqual(s["flight_role"], "student")
-        self.assertEqual(s["shop_role"], "admin")  # baseline re-applied, no leftover Tech
+        self.assertIsNone(s["shop_role"])  # a Student only has Fly with Kate!: Winds Aloft closes, no leftover Tech
         self.assertFalse(s["is_master_admin"])
         self.client.post("/view-as/shop/inspector")
         self.assertEqual(self.sess()["shop_role"], "inspector")
-        self.assertEqual(self.sess()["flight_role"], "cfi")
+        self.assertIsNone(self.sess()["flight_role"])  # a Tech only has Winds Aloft: Fly with Kate! closes
         self.client.post("/view-as/exit")
         s = self.sess()
         self.assertTrue(s["is_master_admin"])

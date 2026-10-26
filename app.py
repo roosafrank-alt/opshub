@@ -39,6 +39,7 @@ from auth import (holds_role, student_course_grants, academy_grants_only, ground
                    current_customer, start_view_as, exit_view_as, viewing_as_label,
                    view_as_active_program, SHOP_VIEW_AS_LEVELS, FLIGHT_VIEW_AS_LEVELS,
                    real_is_master_admin, view_as_chips, home_view_as_level, can_pick_student,
+                   can_pick_shop_person, SHOP_PICK_LEVELS,
                    account_program_count, single_program_endpoint,
                    login_allowed, login_failed, login_succeeded, unlock_account, LOGIN_BLOCKED_MSG,
                    real_user_id, session_programs, safe_next, is_flight_admin)
@@ -9145,6 +9146,10 @@ def _stay_on_page(fallback):
     path = _local_path(path)
     if not path or path.startswith(("/view-as", "/login", "/logout")):
         return fallback
+    # Switching role from inside Flight Academy: if the exact page isn't open to
+    # the new role, land on the Academy home, not on the Flight School dashboard.
+    if path.startswith("/academy") and fallback == url_for("flight.dashboard"):
+        fallback = url_for("academy_page")
     full = path + (("?" + urlparse(raw).query) if raw.startswith("http") and urlparse(raw).query else "")
     try:
         with app.test_client() as tc:
@@ -9323,6 +9328,62 @@ def view_as_cfi_me():
     return redirect(_stay_on_page(url_for("flight.dashboard")))
 
 
+@app.route("/view-as/shop/pick/<level>", methods=["GET"])
+@login_required
+def view_as_shop_picker(level):
+    """Switch role > Tech / Apprentice / Inspector (Maintenance side): use it as
+    yourself, or pick one other person to look at it as (look only)."""
+    if level not in SHOP_PICK_LEVELS or not can_pick_shop_person():
+        abort(403)
+    conn = get_db()
+    me = real_user_id()
+    people = [r for r in conn.execute("SELECT id, name, shop_role, shop_roles FROM users WHERE active = 1 ORDER BY lower(name)").fetchall()
+              if r["id"] != me and level in user_shop_roles(r)]
+    conn.close()
+    return render_template("view_as_shop_picker.html", people=people, level=level, label=SHOP_VIEW_AS_LEVELS[level],
+                           back=_local_path(request.args.get("next")) or url_for("dashboard"))
+
+
+@app.route("/view-as/shop/<level>/<int:user_id>", methods=["POST"])
+@login_required
+def view_as_shop_person_start(level, user_id):
+    """Look at the Maintenance side as one particular tech / apprentice / inspector (look only)."""
+    conn = get_db()
+    ok, error = start_view_as(conn, "shop", level, shop_user_id=user_id)
+    conn.close()
+    if not ok:
+        flash(error or "Can't switch to that person.", "danger")
+        return redirect(_local_path(request.form.get("next")) or url_for("dashboard"))
+    session["_view_as_return"] = _local_path(request.form.get("next")) or url_for("dashboard")
+    return redirect(url_for("dashboard"))
+
+
+@app.before_request
+def _customer_view_stays_in_the_portal():
+    """While an admin is looking at a customer's portal, only the portal itself (and the way
+    back) opens - the same as for a real customer, never the rest of the app."""
+    if not session.get("customer_view_id") or session.get("_view_as_real"):
+        return None
+    if request.blueprint == "customer" or request.endpoint in ("static", "logout", "tour_seen", "home_launcher", "login"):
+        return None
+    if request.method != "GET":
+        return None
+    flash("You're looking at a customer's portal, so that page isn't available. Use Back from customer view when you're done.", "warning")
+    return redirect(url_for("customer.customer_dashboard"))
+
+
+@app.errorhandler(403)
+def _forbidden_with_a_way_back(e):
+    """A plain 403 used to be a dead end (no header, no buttons) - especially after a
+    Switch role or Customer view. Always offer the way back."""
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+        return e
+    return render_template("error_403.html",
+                           switched=bool(session.get("_view_as_real")),
+                           viewing_customer=bool(session.get("customer_view_id")),
+                           signed_in=bool(session.get("user_id"))), 403
+
+
 @app.route("/view-as/exit", methods=["POST"])
 def view_as_exit():
     back = _local_path(session.pop("_view_as_return", None))
@@ -9340,7 +9401,8 @@ def _view_as_student_is_look_only():
     Switch role buttons, logout and the tour flag still go through."""
     if request.method in ("GET", "HEAD", "OPTIONS") or not session.get("_view_as_readonly"):
         return None
-    if request.endpoint in ("view_as_exit", "view_as_start", "view_as_student_start", "view_as_cfi_start", "tour_seen", "logout"):
+    if request.endpoint in ("view_as_exit", "view_as_start", "view_as_student_start", "view_as_cfi_start", "view_as_cfi_me", "view_as_student_me",
+                           "view_as_shop_person_start", "tour_seen", "logout"):
         return None
     # GS-GRADES: quiz and game checks still answer while looking at a student's view; the
     # handlers record nothing in that mode.
@@ -9348,7 +9410,7 @@ def _view_as_student_is_look_only():
         return None
     if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
         return ("", 403)
-    flash("You're only looking at this student's view, so nothing was changed.", "warning")
+    flash("You're only looking at this person's view, so nothing was changed.", "warning")
     ref = request.referrer or ""
     host = request.host_url.rstrip("/")
     return redirect(ref[len(host):] if ref.startswith(host + "/") else url_for("academy_page"))

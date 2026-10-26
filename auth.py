@@ -108,6 +108,11 @@ def _instructor_for(user_row):
 def _set_academy_flags(user_row):
     """Flight Academy / Ground School access: the admin-assigned flags, plus
     automatically for a Flight Admin (no separate academy_access needed)."""
+    if session.get("_view_as_no_academy"):
+        # Switched to a Maintenance role: Fly with Kate! and Flight Academy stay closed.
+        session["academy_access"] = False
+        session["groundschool_access"] = False
+        return
     fa = _flight_admin_for(user_row)
     # Looking at Flight Academy as one picked student (look only): the admin
     # behind it already had Academy, so it opens for the student view too.
@@ -217,7 +222,9 @@ def refresh_or_expire_session():
     refreshes the _view_as_real snapshot itself, so exiting the switch lands
     on up-to-date real roles instead of ones frozen from whenever it
     started."""
-    uid = session.get("user_id")
+    # The REAL account, even while looking as a picked tech / apprentice / inspector
+    # (session user_id is then that person's, never the one to refresh from).
+    uid = real_user_id()
     if not uid:
         return None
     conn = get_db()
@@ -347,7 +354,7 @@ FLIGHT_VIEW_AS_LEVELS = {"admin": "Flight Admin", "cfi": "CFI", "student": "Stud
 # baseline snapshotted on first entry, so exiting always restores everything
 # regardless of which programs were switched along the way.
 _VIEW_AS_SNAPSHOT_KEYS = ("is_master_admin", "shop_role", "flight_role", "cfi_id", "student_id", "can_bill",
-                          "academy_access", "groundschool_access")
+                          "academy_access", "groundschool_access", "user_id", "user_name")
 
 
 # Idea "view as for multi-role accounts": someone who holds more than one
@@ -369,7 +376,7 @@ def real_is_master_admin():
 
 
 def _own_roles(conn, program):
-    uid = session.get("user_id")
+    uid = real_user_id()
     if not uid:
         return []
     row = conn.execute("SELECT * FROM users WHERE id = ?", (uid,)).fetchone()
@@ -402,6 +409,16 @@ def allowed_view_as_levels(conn, program):
     if len(own) < 2:
         return {}
     return {r: levels[r] for r in own}
+
+
+def can_pick_shop_person():
+    """True for the real signed-in master admin or Shop Admin: they may pick
+    one particular tech / apprentice / inspector to look at the shop side as
+    (look only)."""
+    return bool(real_is_master_admin() or _real("shop_role") == "admin")
+
+
+SHOP_PICK_LEVELS = ("tech", "apprentice", "inspector")
 
 
 def can_pick_student():
@@ -439,7 +456,8 @@ def view_as_chips(conn, program):
         # picker (one particular person, look only) instead of switching
         # straight away.
         chips.append(dict(level=level, label=label, action=action,
-                          pick=bool(program == "flight" and level in ("student", "cfi") and can_pick_student())))
+                          pick=bool((program == "flight" and level in ("student", "cfi") and can_pick_student())
+                                    or (program == "shop" and level in SHOP_PICK_LEVELS and can_pick_shop_person()))))
     # Narrow phones: "Flight Admin" / "Shop Admin" show as just "Admin" (the
     # header already says which program you're in) so the row fits one line.
     for chip in chips:
@@ -464,7 +482,7 @@ def _pick_view_as_flight_profile(conn, level):
     return (first["id"], first["name"]) if first else (None, None)
 
 
-def start_view_as(conn, program, level, student_id=None, cfi_id=None):
+def start_view_as(conn, program, level, student_id=None, cfi_id=None, shop_user_id=None):
     """A master admin (any level, either program), or an account with
     several roles in a program (just its own roles) - either one already
     switched can switch straight to a different role without exiting first.
@@ -475,7 +493,18 @@ def start_view_as(conn, program, level, student_id=None, cfi_id=None):
     if level not in allowed_view_as_levels(conn, program):
         return False, None
     person_id = person_name = None
-    if student_id is not None:
+    shop_person = None
+    if shop_user_id is not None:
+        # Looking at one particular tech / apprentice / inspector (the picker):
+        # only a Shop Admin or master admin, only an active account that really
+        # holds that role, and never your own (that is "Use it as ... myself").
+        if program != "shop" or level not in SHOP_PICK_LEVELS or not can_pick_shop_person():
+            return False, None
+        row = conn.execute("SELECT * FROM users WHERE id = ? AND active = 1", (shop_user_id,)).fetchone()
+        if not row or level not in user_shop_roles(row) or row["id"] == real_user_id():
+            return False, "That person isn't an active " + SHOP_VIEW_AS_LEVELS[level].lower() + ", so there's nothing to look at."
+        shop_person = row
+    elif student_id is not None:
         # Looking at one particular student (the picker): only a Flight Admin
         # or master admin, only a real, active, non-station student.
         if program != "flight" or level != "student" or not can_pick_student():
@@ -514,11 +543,33 @@ def start_view_as(conn, program, level, student_id=None, cfi_id=None):
         session[k] = v
     session.pop("_view_as_person_name", None)
     session.pop("_view_as_readonly", None)
+    session.pop("_view_as_no_academy", None)
 
     session["is_master_admin"] = False
+    # A master admin (or anyone looking at a picked person) holds every program, but
+    # a Tech / CFI / Student ... only has their own: close the other programs so the
+    # switched view can open exactly what that role can, and nothing more.
+    if real_is_master_admin() or shop_person is not None or student_id is not None or cfi_id is not None:
+        if program == "shop":
+            session["flight_role"] = None
+            session["cfi_id"] = None
+            session["student_id"] = None
+            session["academy_access"] = False
+            session["groundschool_access"] = False
+            session["_view_as_no_academy"] = True
+        else:
+            session["shop_role"] = None
     if program == "shop":
         session["shop_role"] = level
         session["can_bill"] = False
+        if shop_person is not None:
+            # Look only: the whole shop side as this person sees it. Every change
+            # is refused while _view_as_readonly is set; Back to my normal view
+            # restores your own id and name from the baseline snapshot.
+            session["user_id"] = shop_person["id"]
+            session["user_name"] = shop_person["name"]
+            session["_view_as_person_name"] = shop_person["name"]
+            session["_view_as_readonly"] = True
     elif program == "flight":
         session["flight_role"] = level
         session["can_bill"] = False
@@ -549,6 +600,7 @@ def exit_view_as():
     session.pop("_view_as_person_name", None)
     session.pop("_view_as_program", None)
     session.pop("_view_as_readonly", None)
+    session.pop("_view_as_no_academy", None)
     if not real:
         return False
     for key, value in real.items():
@@ -561,7 +613,9 @@ def viewing_as_label():
         return None
     program = session.get("_view_as_program")
     if program == "shop":
-        return SHOP_VIEW_AS_LEVELS.get(session.get("shop_role"))
+        label = SHOP_VIEW_AS_LEVELS.get(session.get("shop_role"))
+        name = session.get("_view_as_person_name")
+        return f"{label} ({name})" if label and name and session.get("_view_as_readonly") else label
     role_label = FLIGHT_VIEW_AS_LEVELS.get(session.get("flight_role"))
     name = session.get("_view_as_person_name")
     # Your own profile needs no name after it - only a master admin

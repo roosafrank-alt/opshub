@@ -36,3 +36,15 @@ class PickerHidesOwnNameTest(OpsHubTestCase):
         self.assertNotIn(f'data-name="{mine["name"].lower()}"', body)
         if others:
             self.assertIn(f'data-name="{others["name"].lower()}"', body)
+
+
+class AcademyStaysInAcademyTest(OpsHubTestCase):
+    def test_myself_buttons_from_academy_land_in_academy(self):
+        c = self.login("master")
+        r = c.post("/view-as/flight/student/me", data={"next": "/academy"})
+        self.assertTrue(r.headers["Location"].startswith("/academy"), r.headers["Location"])
+        c.post("/view-as/exit")
+        uid = self.users["master"]["id"]
+        self.exec("INSERT INTO cfis (name, username, password_hash, active, user_id) VALUES ('Master CFI','mcfi','x',1,?)", (uid,))
+        r = c.post("/view-as/flight/cfi/me", data={"next": "/academy"})
+        self.assertTrue(r.headers["Location"].startswith("/academy"), r.headers["Location"])

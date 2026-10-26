@@ -40,10 +40,10 @@ class ViewAsSwitchWithoutExitTest(OpsHubTestCase):
         self.assertEqual(r.status_code, 302)
         with c.session_transaction() as s:
             self.assertEqual(s["shop_role"], "tech")
-            # Switching to Shop falls back to the real admin's flight_role
-            # and cfi_id, not whatever the Student preview left behind.
-            self.assertEqual(s["flight_role"], "cfi")
-            self.assertEqual(s.get("cfi_id"), real_cfi_id)
+            # A Tech only has Winds Aloft: Fly with Kate! is closed, and nothing
+            # the Student preview left behind is kept.
+            self.assertIsNone(s["flight_role"])
+            self.assertIsNone(s.get("cfi_id"))
 
     def test_exiting_after_several_switches_restores_the_real_admin_session(self):
         c = self.login("master")
