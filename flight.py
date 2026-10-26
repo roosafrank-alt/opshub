@@ -8697,8 +8697,16 @@ def log_update_progress(flight_id):
         squawk = 0
     else:
         squawk = f["squawk"]
-    conn.execute("UPDATE flights SET hobbs_start=?, tach_start=?, oil_added_qt=?, oil_added_by=?, notes=?, squawk=? WHERE id=?",
-                 (hobbs_start, tach_start, oil_added_qt, oil_added_by, notes, squawk, flight_id))
+    # Hobbs/Tach check box and its "what is off" note (not for own-plane/sim sessions, which have no gauges here).
+    gauges_checked_at, gauges_note = f["gauges_checked_at"], f["gauges_note"]
+    if not is_sim and not is_own_plane:
+        gauges_note = request.form.get("gauges_note", "").strip() or None
+        if request.form.get("gauges_ok"):
+            gauges_checked_at = gauges_checked_at or now_iso()
+        else:
+            gauges_checked_at = None
+    conn.execute("UPDATE flights SET hobbs_start=?, tach_start=?, oil_added_qt=?, oil_added_by=?, notes=?, squawk=?, gauges_checked_at=?, gauges_note=? WHERE id=?",
+                 (hobbs_start, tach_start, oil_added_qt, oil_added_by, notes, squawk, gauges_checked_at, gauges_note, flight_id))
     conn.commit()
     conn.close()
     if squawk and notes:
