@@ -102,6 +102,35 @@ class NavDbTests(OpsHubTestCase):
         self.assertGreater(r["nm"], navdb.parse_route(self.nav, "N89", "KPOU")["nm"])
         self.assertEqual(navdb.parse_route(self.nav, "N89", "KPOU", "ZZZZZ")["unresolved"], ["ZZZZZ"])
 
+    def test_legs_have_course_and_airway_name(self):
+        r = navdb.parse_route(self.nav, "N89", "KPOU", "LHY V99 SAX")
+        legs = r["legs_info"]
+        self.assertEqual([(l["from"], l["to"]) for l in legs], [("N89", "LHY"), ("LHY", "HAAYS"), ("HAAYS", "SAX"), ("SAX", "KPOU")])
+        self.assertEqual([l["via"] for l in legs], [None, "V99", "V99", None])
+        self.assertTrue(all(1 <= l["course"] <= 360 for l in legs))
+        self.assertEqual(navdb.true_course(0, 0, 1, 0), 360)       # due north
+        self.assertEqual(navdb.true_course(0, 0, 0, 1), 90)        # due east
+
+    def test_symbols_in_view_by_zoom(self):
+        box = (41.0, -75.0, 42.0, -73.5)   # south, west, north, east
+        z6 = navdb.in_view(self.nav, *box, 6)
+        self.assertEqual(z6["navaids"], [])                          # nothing but big airports when zoomed out
+        z9 = navdb.in_view(self.nav, *box, 9)
+        self.assertIn("N89", [a["code"] for a in z9["airports"]])
+        self.assertIn("SAX", [v["code"] for v in z9["navaids"]])
+        self.assertEqual(z9["fixes"], [])                                # waypoints only once zoomed in (10+)
+        self.assertIn("HAAYS", [f["code"] for f in navdb.in_view(self.nav, *box, 10)["fixes"]])
+        self.assertIn(("LHY", "HAAYS"), [(w["from"], w["to"]) for w in z9["airways"] if w["id"] == "V99"])
+        self.assertFalse(any(w["high"] for w in z9["airways"] if w["id"] == "V99"))
+        self.assertEqual(navdb.in_view(self.nav, *box, 4), {"airports": [], "navaids": [], "fixes": [], "airways": []})
+
+    def test_nav_api(self):
+        c = self.login("master")
+        r = c.get("/academy/api/nav?south=41&west=-75&north=42&east=-73.5&zoom=9").get_json()
+        self.assertIn("N89", [a["code"] for a in r["airports"]])
+        self.assertEqual(c.get("/academy/api/nav?south=x").get_json(), {"airports": [], "navaids": [], "fixes": [], "airways": []})
+        self.assertEqual(c.get("/academy/api/nav?south=-80&west=-170&north=80&east=170&zoom=9").get_json()["airports"], [])  # whole-world box refused
+
     def test_api_requires_login_and_works(self):
         self.assertIn(self.client.get("/academy/api/airports?q=KP").status_code, (200, 302, 401, 403))
         c = self.login("master")

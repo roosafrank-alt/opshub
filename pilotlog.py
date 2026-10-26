@@ -819,6 +819,27 @@ def api_airports():
         nav.close()
 
 
+@pilotlog_bp.route("/api/nav")
+def api_nav():
+    """Airports, navaids and waypoints inside the map window: ?south=&west=&north=&east=&zoom="""
+    denied = _require_access()
+    if denied:
+        return jsonify({"airports": [], "navaids": [], "fixes": [], "airways": []})
+    import navdb
+    try:
+        south, west, north, east = (float(request.args[k]) for k in ("south", "west", "north", "east"))
+        zoom = int(float(request.args.get("zoom", "8")))
+    except (KeyError, ValueError):
+        return jsonify({"airports": [], "navaids": [], "fixes": [], "airways": []})
+    if not navdb.available() or (north - south) > 40 or (east - west) > 80:
+        return jsonify({"airports": [], "navaids": [], "fixes": [], "airways": []})
+    nav = navdb.connect()
+    try:
+        return jsonify(navdb.in_view(nav, south, west, north, east, zoom))
+    finally:
+        nav.close()
+
+
 @pilotlog_bp.route("/api/route")
 def api_route():
     """Points + distance (nm) for the entry map: ?from=&to=&route=

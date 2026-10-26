@@ -23,17 +23,20 @@ CREATE TABLE IF NOT EXISTS airports (
     ident TEXT PRIMARY KEY,      -- code people type: KPOU, N89, CYUL
     icao TEXT, iata TEXT, local TEXT,
     name TEXT, city TEXT, region TEXT, country TEXT, type TEXT,
-    lat REAL NOT NULL, lon REAL NOT NULL, elev INTEGER
+    lat REAL NOT NULL, lon REAL NOT NULL, elev INTEGER, tower INTEGER DEFAULT 0
 );
+CREATE INDEX IF NOT EXISTS airports_pos ON airports(lat, lon);
 CREATE TABLE IF NOT EXISTS navaids (
     ident TEXT NOT NULL, type TEXT, name TEXT, freq TEXT, country TEXT,
     lat REAL NOT NULL, lon REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS navaids_ident ON navaids(ident);
+CREATE INDEX IF NOT EXISTS navaids_pos ON navaids(lat, lon);
 CREATE TABLE IF NOT EXISTS fixes (
     ident TEXT NOT NULL, state TEXT, lat REAL NOT NULL, lon REAL NOT NULL
 );
 CREATE INDEX IF NOT EXISTS fixes_ident ON fixes(ident);
+CREATE INDEX IF NOT EXISTS fixes_pos ON fixes(lat, lon);
 CREATE TABLE IF NOT EXISTS airway_pts (
     airway TEXT NOT NULL, loc TEXT, seq INTEGER NOT NULL, ident TEXT NOT NULL, lat REAL, lon REAL
 );
@@ -96,6 +99,14 @@ def nm_between(lat1, lon1, lat2, lon2):
     return 2 * 3440.065 * math.asin(min(1.0, math.sqrt(a)))
 
 
+def true_course(lat1, lon1, lat2, lon2):
+    """Initial true course (degrees, 1-360) along the great circle from point 1 to point 2."""
+    p1, p2, dl = math.radians(lat1), math.radians(lat2), math.radians(lon2 - lon1)
+    y = math.sin(dl) * math.cos(p2)
+    x = math.cos(p1) * math.sin(p2) - math.sin(p1) * math.cos(p2) * math.cos(dl)
+    return int(round((math.degrees(math.atan2(y, x)) + 360) % 360)) or 360
+
+
 def _norm(code):
     return re.sub(r"[^A-Z0-9]", "", (code or "").upper())
 
@@ -112,7 +123,7 @@ def display_code(r):
 def _row_airport(r):
     # Show the code pilots use: the ICAO code if it has one (KPOU), else the FAA/local code (N89).
     # OurAirports' own id for a field without an ICAO code is a made-up K+local (KN89).
-    return {"code": display_code(r), "icao": r["icao"], "iata": r["iata"], "name": r["name"] or "",
+    return {"code": display_code(r), "tower": bool(r["tower"]), "elev": r["elev"], "type": r["type"], "icao": r["icao"], "iata": r["iata"], "name": r["name"] or "",
             "city": r["city"] or "", "region": r["region"] or "", "country": r["country"] or "",
             "lat": r["lat"], "lon": r["lon"], "kind": "airport"}
 
@@ -166,10 +177,12 @@ def search_airports(conn, q, limit=8, near=None, freq=None):
         for r in conn.execute("""SELECT * FROM airports WHERE (ident LIKE ? OR icao LIKE ? OR iata LIKE ? OR local LIKE ?)
                                  AND type != 'closed' LIMIT 400""", (like, like, like, like)):
             rows[r["ident"]] = (0, r)
-    if len(q) >= 3:
-        words = "%" + q.replace("%", "") + "%"
-        for r in conn.execute("""SELECT * FROM airports WHERE (UPPER(name) LIKE ? OR UPPER(city) LIKE ?)
-                                 AND type != 'closed' LIMIT 400""", (words, words)):
+    if len(q) >= 3:   # words in the name or city that START with what was typed (kin -> Kingston, not Jenkins)
+        t = q.replace("%", "").replace("_", "")
+        pats = [t + "%", "% " + t + "%", "%-" + t + "%", "%/" + t + "%"]
+        cond = " OR ".join(["UPPER(name) LIKE ?", "UPPER(city) LIKE ?"][i % 2] for i in range(8))
+        args = [x for pat in pats for x in (pat, pat)]
+        for r in conn.execute(f"SELECT * FROM airports WHERE ({cond}) AND type != 'closed' LIMIT 6000", args):
             rows.setdefault(r["ident"], (1, r))
     if not rows and qn == HOME_CODE[:len(qn)]:
         return [dict(HOME)]
@@ -180,7 +193,7 @@ def search_airports(conn, q, limit=8, near=None, freq=None):
         d = nm_between(near[0], near[1], r["lat"], r["lon"]) if near else 0
         # exact code match always first, then visited airports, then nearest
         exact = 0 if qn in (r["icao"], r["local"]) else (1 if qn == r["ident"] else 2)   # (IATA codes like KPO = Pohang must not beat KPOU)
-        return (tier, exact, 0 if visits else 1, -visits, 1 if r["type"] == "heliport" else 0, d, r["ident"])   # heliports after airports
+        return (exact, 0 if visits else 1, -visits, 1 if r["type"] == "heliport" else 0, d, r["ident"])   # heliports after airports
 
     out = []
     for item in sorted(rows.values(), key=key)[:limit]:
@@ -254,7 +267,7 @@ def parse_route(conn, dep, dest, route=""):
                         if not f:
                             continue
                         lat, lon = f["lat"], f["lon"]
-                    points.append({"code": p["ident"], "name": "", "lat": lat, "lon": lon, "kind": "airway"})
+                    points.append({"code": p["ident"], "name": "", "lat": lat, "lon": lon, "kind": "airway", "via": t})
                 i += 2
                 continue
             i += 1
@@ -273,5 +286,47 @@ def parse_route(conn, dep, dest, route=""):
         if not clean or clean[-1]["code"] != p["code"]:
             clean.append(p)
     legs = [round(nm_between(a["lat"], a["lon"], b["lat"], b["lon"]), 1) for a, b in zip(clean, clean[1:])]
-    return {"points": clean, "nm": round(sum(legs), 1), "legs": legs, "straight": not toks and len(clean) == 2,
+    info = [{"from": a["code"], "to": b["code"], "nm": n, "course": true_course(a["lat"], a["lon"], b["lat"], b["lon"]),
+             "via": b.get("via")} for (a, b), n in zip(zip(clean, clean[1:]), legs)]
+    return {"points": clean, "nm": round(sum(legs), 1), "legs": legs, "legs_info": info, "straight": not toks and len(clean) == 2,
             "unresolved": unresolved}
+
+
+_VOR_TYPES = ("VOR", "VORTAC", "VOR/DME", "VOR-DME", "TACAN", "VORDME", "DVOR", "DVOR-DME")
+
+
+def in_view(conn, south, west, north, east, zoom):
+    """Symbols for the map: what is worth drawing at this zoom inside the box.
+    Big airports first, then smaller ones, VORs, NDBs, and (zoomed in) waypoints."""
+    out = {"airports": [], "navaids": [], "fixes": [], "airways": []}
+    z = int(zoom)
+    if z < 5:
+        return out
+    types = ["large_airport", "medium_airport"] if z < 9 else (["large_airport", "medium_airport", "small_airport", "seaplane_base"] if z < 12 else None)
+    q = "SELECT * FROM airports WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?"
+    args = [south, north, west, east]
+    if types:
+        q += " AND (type IN (%s) OR tower = 1)" % ",".join("?" * len(types))
+        args += types
+    q += " ORDER BY CASE type WHEN 'large_airport' THEN 0 WHEN 'medium_airport' THEN 1 ELSE 2 END, tower DESC LIMIT 400"
+    for r in conn.execute(q, args):
+        a = _row_airport(r)
+        out["airports"].append({k: a[k] for k in ("code", "name", "city", "lat", "lon", "tower", "elev", "type")})
+    if z >= 7:
+        nq = "SELECT ident, type, name, freq, lat, lon FROM navaids WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ?"
+        if z < 9:
+            nq += " AND (type LIKE 'VOR%' OR type LIKE 'TACAN%' OR type LIKE 'DVOR%')"
+        for r in conn.execute(nq + " LIMIT 300", (south, north, west, east)):
+            out["navaids"].append({"code": r["ident"], "name": r["name"] or "", "type": r["type"], "freq": r["freq"], "lat": r["lat"], "lon": r["lon"]})
+    if z >= 8:   # airway segments with at least one end in view; low (V, T) and high (J, Q) are drawn differently
+        for r in conn.execute("""SELECT a.airway, a.ident AS i1, a.lat AS la1, a.lon AS lo1, b.ident AS i2, b.lat AS la2, b.lon AS lo2
+                                 FROM airway_pts a JOIN airway_pts b ON b.airway = a.airway AND b.loc IS a.loc AND b.seq = a.seq + 1
+                                 WHERE a.lat IS NOT NULL AND b.lat IS NOT NULL
+                                   AND ((a.lat BETWEEN ? AND ? AND a.lon BETWEEN ? AND ?) OR (b.lat BETWEEN ? AND ? AND b.lon BETWEEN ? AND ?))
+                                 LIMIT 1500""", (south, north, west, east, south, north, west, east)):
+            out["airways"].append({"id": r["airway"], "a": [r["la1"], r["lo1"]], "b": [r["la2"], r["lo2"]], "from": r["i1"], "to": r["i2"],
+                                   "high": r["airway"][0] in "JQ"})
+    if z >= 10:
+        for r in conn.execute("SELECT ident, lat, lon FROM fixes WHERE lat BETWEEN ? AND ? AND lon BETWEEN ? AND ? LIMIT 500", (south, north, west, east)):
+            out["fixes"].append({"code": r["ident"], "lat": r["lat"], "lon": r["lon"]})
+    return out

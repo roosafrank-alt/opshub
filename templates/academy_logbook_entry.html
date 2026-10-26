@@ -73,13 +73,28 @@
     <h6 class="mb-0"><i class="bi bi-map"></i> Flight path</h6>
     <div id="route-nm" class="fw-bold" style="color:#8a1c7c"></div>
   </div>
-  <div id="route-map" style="height:300px; border-radius:.5rem; background:#e8e4d8"></div>
+  <div id="route-map" style="height:min(62vh,520px); min-height:340px; border-radius:.5rem; background:#e8e4d8"></div>
+  <div class="small text-muted mt-1"><span class="avm-key" style="border-color:#1b4f9c"></span> towered &nbsp; <span class="avm-key" style="border-color:#8a1c7c"></span> non-towered &nbsp; VOR &#11042; &nbsp; <span style="color:#3a6ea5">&mdash;</span> low airway &nbsp; <span style="color:#8a6d3b">&middot;&middot;&middot;</span> high airway &nbsp; Tap a symbol to set From, To or add it to the route.</div>
   <div id="route-note" class="small text-muted mt-1"></div>
+  <div id="route-legs" class="mt-2 small"></div>
 </div>
 {% endblock %}
 
 {% block scripts %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+  .avm-grey { filter: grayscale(.85) contrast(.92) brightness(1.04); }
+  .avm-ic { background: none; border: 0; }
+  .avm-lbl { background: rgba(255,255,255,.82); border: 0; box-shadow: none; padding: 0 3px; font: 700 11px/14px ui-monospace, Menlo, monospace; color: #8a1c7c; }
+  .avm-lbl.tw { color: #1b4f9c; } .avm-lbl.strong { font-size: 12px; background: #fff; }
+  .avm-lbl:before { display: none; }
+  .avm-leg span { background: #fff; border: 1px solid #8a1c7c; border-radius: 9px; padding: 0 6px; font: 600 11px/16px system-ui, sans-serif; color: #2b2b2b; white-space: nowrap; transform: translate(-50%,-50%); display: inline-block; }
+  .avm-scale { background: rgba(255,255,255,.85); padding: 2px 6px; font: 600 11px system-ui; border-radius: 4px; }
+  .avm-scale div { border-bottom: 3px solid #2b2b2b; border-left: 2px solid #2b2b2b; border-right: 2px solid #2b2b2b; height: 5px; margin-bottom: 1px; }
+  .avm-awy span { background: rgba(255,255,255,.85); font: 700 10px/12px system-ui, sans-serif; padding: 0 3px; border-radius: 3px; display: inline-block; transform: translate(-50%,-50%); }
+  .avm-key { display: inline-block; width: 11px; height: 11px; border: 2px solid; border-radius: 50%; vertical-align: -2px; }
+</style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="{{ url_for('static', filename='js/aviation-map.js') }}"></script>
 <script src="{{ url_for('static', filename='js/airport-pick.js') }}"></script>
 {% endblock %}

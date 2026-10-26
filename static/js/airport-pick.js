@@ -58,9 +58,15 @@
   attach(from, 'from'); attach(to, 'to');
 
   var mapEl = document.getElementById('route-map');
-  if (typeof L === 'undefined') { mapEl.innerHTML = '<div class="p-3 text-muted">The map could not load (no internet?).</div>'; return; }
-  var map = L.map(mapEl).setView([41.72778, -74.37722], 8), layer = L.layerGroup().addTo(map);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 16, attribution: '&copy; OpenStreetMap' }).addTo(map);
+  if (typeof L === 'undefined' || !window.AviationMap) { mapEl.innerHTML = '<div class="p-3 text-muted">The map could not load (no internet?).</div>'; return; }
+  var av = window.AviationMap.create(mapEl, {
+    onPick: function (role, code) {   // clicked a symbol on the map
+      if (role === 'from') from.value = code;
+      else if (role === 'to') to.value = code;
+      else if (route) route.value = (route.value.trim() + ' ' + code).trim();
+      update();
+    }
+  });
   var timer, seq = 0;
   function update() {
     clearTimeout(timer);
@@ -70,20 +76,20 @@
               '&route=' + encodeURIComponent(route ? route.value : '');
       fetch(base + 'route?' + q, { credentials: 'same-origin' }).then(function (r) { return r.json(); }).then(function (d) {
         if (n !== seq) return;
-        layer.clearLayers();
-        var pts = d.points || [], nmEl = document.getElementById('route-nm'), note = document.getElementById('route-note');
+        var pts = d.points || [], nmEl = document.getElementById('route-nm'), note = document.getElementById('route-note'),
+            tbl = document.getElementById('route-legs');
+        tbl.innerHTML = '';
         if (d.error) { nmEl.textContent = ''; note.textContent = d.error; return; }
-        if (pts.length < 2) { nmEl.textContent = ''; note.textContent = 'Pick a From and To airport to see the path.'; return; }
-        var ll = pts.map(function (p) { return [p.lat, p.lon]; });
-        L.polyline(ll, { color: '#8a1c7c', weight: 3, dashArray: d.straight ? '6 6' : null }).addTo(layer);
-        pts.forEach(function (p, i) {
-          L.circleMarker([p.lat, p.lon], { radius: i === 0 || i === pts.length - 1 ? 7 : 4, color: '#8a1c7c', fillColor: i === 0 || i === pts.length - 1 ? '#fff' : '#8a1c7c', fillOpacity: 1 })
-            .bindTooltip(p.code + (p.name ? ' - ' + p.name : ''), { permanent: i === 0 || i === pts.length - 1 }).addTo(layer);
-        });
-        map.fitBounds(ll, { padding: [30, 30], maxZoom: 11 });
+        if (pts.length < 2) { av.drawRoute({ points: [] }); nmEl.textContent = ''; note.textContent = 'Pick a From and To airport to see the path.'; return; }
+        av.drawRoute(d);
         nmEl.textContent = d.nm + ' nm';
-        note.textContent = (d.straight ? 'Straight line, great circle.' : 'Along the route entered.') +
+        note.textContent = (d.straight ? 'Straight line (great circle), true courses.' : 'Along the route entered, true courses.') +
           (d.unresolved && d.unresolved.length ? ' Not found: ' + d.unresolved.join(', ') + '.' : '');
+        if (!d.straight && d.legs_info) {
+          var h = '<table class="table table-sm mb-0"><thead><tr><th>Leg</th><th>Via</th><th class="text-end">Course</th><th class="text-end">nm</th></tr></thead><tbody>';
+          d.legs_info.forEach(function (l) { h += '<tr><td>' + l.from + ' &rarr; ' + l.to + '</td><td>' + (l.via || 'direct') + '</td><td class="text-end">' + l.course + '&deg;</td><td class="text-end">' + l.nm.toFixed(1) + '</td></tr>'; });
+          tbl.innerHTML = h + '<tr class="fw-bold"><td colspan="3">Total</td><td class="text-end">' + d.nm.toFixed(1) + '</td></tr></tbody></table>';
+        }
       });
     }, 250);
   }

@@ -43,7 +43,7 @@ def import_ourairports(conn, d):
         lat, lon = _f(r.get("LATITUDE_DEG")), _f(r.get("LONGITUDE_DEG"))
         if lat is None or lon is None or r.get("TYPE") == "closed":
             continue
-        conn.execute("INSERT OR REPLACE INTO airports VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+        conn.execute("INSERT OR REPLACE INTO airports (ident,icao,iata,local,name,city,region,country,type,lat,lon,elev) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                      (r["IDENT"].upper(), (r.get("ICAO_CODE") or "").upper() or None, (r.get("IATA_CODE") or "").upper() or None,
                       (r.get("LOCAL_CODE") or "").upper() or None, r.get("NAME"), r.get("MUNICIPALITY"),
                       r.get("ISO_REGION"), r.get("ISO_COUNTRY"), r.get("TYPE"), lat, lon,
@@ -69,13 +69,11 @@ _ABBR = {"RGNL": "Regional", "INTL": "International", "MUNI": "Municipal", "ARPT
 
 
 def _nice(name):
+    import re
     out = []
     for w in (name or "").split():
         u = w.upper()
-        if u in _ABBR:
-            out.append(_ABBR[u])
-        else:
-            out.append("-".join(x.capitalize() for x in w.split("-")))
+        out.append(_ABBR[u] if u in _ABBR else re.sub(r"[A-Za-z]+", lambda m: m.group().capitalize(), w))
     return " ".join(out)
 
 
@@ -124,11 +122,12 @@ def import_nasr(conn, d):
             if kind == "small_airport" and r.get("FAR_139_TYPE_CODE"):
                 kind = "medium_airport"
             ident = icao or lid
-            conn.execute("INSERT OR REPLACE INTO airports VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            conn.execute("INSERT OR REPLACE INTO airports (ident,icao,iata,local,name,city,region,country,type,lat,lon,elev,tower) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
                          (ident, icao or None, iata.get(icao) or iata.get(lid), lid,
                           _best_name(r.get("ARPT_NAME"), oa_name.get(icao) or oa_name.get(lid)),
                           _nice(r.get("CITY")), "US-" + r.get("STATE_CODE", "") if r.get("COUNTRY_CODE") == "US" else r.get("STATE_CODE"),
-                          r.get("COUNTRY_CODE"), kind, lat, lon, int(_f(r.get("ELEV")) or 0)))
+                          r.get("COUNTRY_CODE"), kind, lat, lon, int(_f(r.get("ELEV")) or 0),
+                          1 if (r.get("TWR_TYPE_CODE") or "").startswith("ATCT") else 0))
             ap += 1
     p = os.path.join(d, "FIX_BASE.csv")
     if os.path.exists(p):
