@@ -108,18 +108,35 @@ def _row_airport(r):
             "lat": r["lat"], "lon": r["lon"], "kind": "airport"}
 
 
-def lookup_airport(conn, code):
-    """Airport by any of its codes (KPOU, POU, N89...). None if unknown."""
+_TYPE_RANK = {"large_airport": 0, "medium_airport": 1, "small_airport": 2, "seaplane_base": 3, "balloonport": 4, "heliport": 5}
+
+
+def _rank(r, code, near=None):
+    """Lower = better. A code that is the airport's CURRENT code (ICAO / local) beats one that is only its
+    old internal id; then bigger airports beat heliports; then nearest to `near`."""
+    current = 0 if code in (r["icao"], r["local"]) else (1 if code == r["ident"] else 2)
+    d = nm_between(near[0], near[1], r["lat"], r["lon"]) if near else 0
+    return (current, _TYPE_RANK.get(r["type"], 6), d)
+
+
+def lookup_airport(conn, code, near=None):
+    """Airport by any of its codes (KPOU, POU, N89...). None if unknown.
+    Several airports can share a small-field code in the source data; the best match wins
+    (current code > old id, bigger airport > heliport, then nearest to `near`)."""
     c = _norm(code)
     if not c:
         return None
     cands = [c]
     if len(c) == 3 and c.isalpha():
         cands.append("K" + c)
+    best = None
     for x in cands:
-        r = conn.execute("SELECT * FROM airports WHERE ident=? OR icao=? OR local=? OR iata=? LIMIT 1", (x, x, x, x)).fetchone()
-        if r:
-            return _row_airport(r)
+        rows = conn.execute("SELECT * FROM airports WHERE ident=? OR icao=? OR local=? OR iata=?", (x, x, x, x)).fetchall()
+        if rows:
+            best = min(rows, key=lambda r: _rank(r, x, near))
+            break
+    if best:
+        return _row_airport(best)
     if c == HOME_CODE:
         return dict(HOME)
     return None
@@ -153,8 +170,8 @@ def search_airports(conn, q, limit=8, near=None, freq=None):
         visits = freq.get(r["ident"], 0) + freq.get(r["icao"] or "", 0) + freq.get(r["local"] or "", 0)
         d = nm_between(near[0], near[1], r["lat"], r["lon"]) if near else 0
         # exact code match always first, then visited airports, then nearest
-        exact = 0 if qn in (r["ident"], r["icao"], r["local"]) else 1   # (IATA codes like KPO = Pohang must not beat KPOU)
-        return (tier, exact, 0 if visits else 1, -visits, d, r["ident"])
+        exact = 0 if qn in (r["icao"], r["local"]) else (1 if qn == r["ident"] else 2)   # (IATA codes like KPO = Pohang must not beat KPOU)
+        return (tier, exact, 0 if visits else 1, -visits, _TYPE_RANK.get(r["type"], 6) if d == 0 else 0, d, r["ident"])
 
     out = []
     for item in sorted(rows.values(), key=key)[:limit]:
@@ -172,7 +189,7 @@ def _find_point(conn, ident, near=None):
     if not c:
         return None
     cands = []
-    ap = lookup_airport(conn, c)
+    ap = lookup_airport(conn, c, near)
     if ap:
         cands.append(ap)
     for r in conn.execute("SELECT ident, type, name, lat, lon FROM navaids WHERE ident=?", (c,)):
