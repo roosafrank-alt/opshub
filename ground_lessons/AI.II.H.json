@@ -887,8 +887,8 @@
     }
    ],
    "check": {
-    "q": "ATC says 'stop altitude squawk, altitude differs by 300 feet.' What should your learner check first?",
-    "a": "The altimeter setting. The readout may be wrong, or the altimeter setting may be; an incorrect setting does not change the transmitted altitude but puts the airplane at the wrong true altitude [[33:223|AIM 4-1-20]]."
+    "q": "Approach gives your learner a new code, 7400, while she is squawking 0700 on a knob-type transponder. She reaches for the first knob. What do you teach?",
+    "a": "Set the other digits first (0700 to 0400, then 7400) so she never passes through 7700; routine code changes should avoid 7500, 7600 and 7700, which cause false alarms at automated ground facilities [[33:223|AIM 4-1-20]]."
    }
   },
   {
@@ -1446,7 +1446,7 @@
  "cfi_notes": [
   "The sources disagree on the crab-angle traffic picture: PHAK Figure 14-44 says aircraft A sees the 12 o'clock traffic at 1 o'clock [[1:360|PHAK 14-26]], while AIM FIG 4-1-1 says 2 o'clock for the same drawing [[33:216|AIM 4-1-15]]. Teach the AIM, and the real lesson: the controller sees only track.",
   "PHAK Figure 14-43 describes 'SQUAWK (number)' as operating on a code in Mode A/3 [[1:359|PHAK 14-25]]; the AIM phraseology says operate on the code with altitude reporting enabled [[33:224|AIM 4-1-20]]. Teach the AIM wording.",
-  "IFH 9-16 says the VOR check must be done 'with an appropriate endorsement' and gives 108.0 MHz as the VOT frequency [[23:259|IFH 9-16]]. 14 CFR 91.171 requires a signed log or record entry, not an endorsement [[60:471|14 CFR 91.171]], and the AIM gives 108.0 MHz as the frequency normally used by repair station test signals, with VOT locations in the Chart Supplement [[33:71|AIM 1-1-4]]. Teach the CFR and look up each VOT.",
+  "IFH 9-16 says the 30-day VOR check needs 'an appropriate endorsement' and tells you to tune 'the VOT frequency 108.0 MHz' [[23:259|IFH 9-16]]. 14 CFR 91.171 asks only that the person checking enter the date, place and bearing error and sign the aircraft log or other record [[60:471|14 CFR 91.171]]. The AIM just says to tune in the VOT frequency, and gives 108.0 MHz as the frequency normally approved for repair station test signals [[33:70|AIM 1-1-4]] [[33:71|AIM 1-1-4]]. Teach the CFR wording, and have learners look up each VOT's frequency instead of assuming 108.0.",
   "PHAK 16-32 says many VFR receivers and all hand-held units lack RAIM alerting [[1:419|PHAK 16-32]]; the AIM says VFR panel-mount and hand-held units have none [[33:90|AIM 1-1-17]]. Teach the AIM.",
   "The PHAK's tracking example starts with a 10 degree wind correction [[1:413|PHAK 16-26]], while the IFH says to begin with a 20 degree correction [[23:257|IFH 9-14]]. Both are starting points to bracket from; pick one and teach it consistently.",
   "The sources are silent on how to simulate a GPS or VOR failure in flight. The AIH only suggests an imaginary problem with the navigation equipment [[25:18|AIH 1-14]]; brief any simulated failure on the ground and never let it hide a real one.",
@@ -1527,7 +1527,7 @@
      "b": 1
     },
     {
-     "t": "Transponder in altitude reporting mode on the airport movement area",
+     "t": "Continuously monitoring the NDB identifier while navigating by ADF",
      "b": 1
     },
     {
@@ -1572,53 +1572,48 @@
      "why": "Distance = TAS x minutes flown / degrees of bearing change [[1:414|PHAK 16-27]]: 110 x 2.5 / 10 = 27.5 NM."
     },
     {
-     "q": "45 NM from a VOR the CDI shows you 4 degrees off the radial. About how far off course are you?",
-     "answer": 3,
+     "q": "Your learner is 75 NM from the VOR and the CDI shows she is 3 degrees off the selected radial. About how many NM is she off course?",
+     "answer": 3.75,
      "tol": 0.1,
      "unit": "NM",
-     "why": "Each degree is 1 NM wide at 60 NM and the width is proportional to distance [[1:414|PHAK 16-27]]: 45 / 60 = 0.75 NM per degree; 4 x 0.75 = 3 NM."
+     "why": "Each degree is 1 NM wide at 60 NM and the width is proportional to distance [[1:414|PHAK 16-27]]: 75 / 60 = 1.25 NM per degree; 3 x 1.25 = 3.75 NM."
     },
     {
-     "q": "Directly over a VORTAC at 12,152 ft AGL, about what will the DME read?",
-     "answer": 2,
-     "tol": 0.1,
-     "unit": "NM",
-     "why": "DME is slant range; at 6,076 ft AGL overhead it reads about 1.0 NM [[1:414|PHAK 16-27]] [[1:415|PHAK 16-28]]. 12,152 / 6,076 = 2.0 NM."
+     "q": "Your learner crosses directly over a VORTAC and the DME reads 1.3 NM. About how high above the station is the airplane, in feet?",
+     "answer": 7899,
+     "tol": 100,
+     "unit": "ft",
+     "why": "DME is slant range; directly over a VORTAC at 6,076 ft AGL it shows about 1.0 NM [[1:414|PHAK 16-27]] [[1:415|PHAK 16-28]]. 1.3 x 6,076 = 7,898.8, about 7,900 ft."
     }
    ]
   },
   {
    "type": "label",
    "key": "h4",
-   "after": 8,
-   "title": "Read the mode annunciators",
-   "figure": "f5",
-   "intro": "Drag each description to its numbered pin on the annunciator strip.",
+   "after": 11,
+   "title": "Read the crab, find the traffic",
+   "figure": "f6",
+   "intro": "The controller sees only each airplane's track. Drag each description to its numbered pin on the airplane it describes.",
    "pins": [
     {
-     "x": 6,
-     "y": 50,
-     "label": "Lateral approach mode armed, not yet engaged"
+     "x": 39,
+     "y": 24,
+     "label": "Eastbound, nose crabbed left into a north wind"
     },
     {
-     "x": 19,
-     "y": 50,
-     "label": "Lateral mode now steering the airplane"
+     "x": 61,
+     "y": 24,
+     "label": "Westbound, nose crabbed right into a north wind"
     },
     {
-     "x": 33,
-     "y": 50,
-     "label": "Autopilot engaged"
+     "x": 44,
+     "y": 82,
+     "label": "Northbound, crabbed left into a west wind: traffic called at 2 o'clock appears at 3 o'clock"
     },
     {
-     "x": 58,
-     "y": 50,
-     "label": "Vertical mode now holding the airplane"
-    },
-    {
-     "x": 95,
-     "y": 50,
-     "label": "Vertical approach mode armed, waiting to capture"
+     "x": 61,
+     "y": 74,
+     "label": "No crab needed (headwind): traffic called at 11 o'clock is where it was called"
     }
    ]
   },
@@ -1674,15 +1669,15 @@
      "why": "When advisory service is no longer desired, advise the controller before changing frequency, then change to 1200 if applicable [[33:215|AIM 4-1-15]]."
     },
     {
-     "s": "After landing, how do you start the debrief?",
+     "s": "On the return leg she tracks inbound to a VOR. The needle starts to swing, then the flag flips from TO to FROM and stays there. What do you want to hear and see?",
      "options": [
-      "List her errors",
-      "Ask for her self-assessment, then give yours and compare",
-      "Grade only the landing",
-      "Skip it; it went fine"
+      "Nothing yet; wait for the needle to center again",
+      "A callout of station passage, then the turn to the outbound heading and the new course set",
+      "A report to ATC that the VOR is unreliable",
+      "A switch to GPS because the VOR has failed"
      ],
      "answer": 1,
-     "why": "Collaborative assessment starts with the learner's self-assessment, followed by the instructor's assessment and a discussion comparing them [[25:176|AIH 9-6]]."
+     "why": "A fluctuating needle that settles with the TO/FROM flag changing to FROM is station passage [[1:413|PHAK 16-26]]; callouts, even single pilot, keep situational awareness [[1:70|PHAK 2-31]]."
     }
    ]
   },
