@@ -16,6 +16,12 @@
 <style>
   body { background: #0d1b2a; }
   .academy-card { border-radius: 12px; }
+  /* Filter dropdowns: always wide enough for the longest option (nothing cut off), even in a half-width window */
+  select.form-select[onchange] { flex:1 1 auto; width:auto !important; min-width:min(100%,26rem); max-width:100% !important; }
+  form:has(> select.form-select[onchange]) { flex:1 1 auto; justify-content:flex-end; }
+  .lb-hero .btn-outline-dark { color:#fff; border-color:rgba(255,255,255,.55); }
+  .lb-hero .btn-outline-dark:hover { background:#fff; color:#14213d; }
+  .lb-hero .btn-dark { background:#fff; color:#14213d; border-color:#fff; font-weight:700; }
   .lb-hero { --h:#3b82f6; color:#fff; border:0; background: linear-gradient(135deg,#14213d 0%,#1d3a6e 55%,var(--h) 160%); box-shadow:0 4px 14px rgba(0,0,0,.35); }
   .lb-hero .text-muted, .lb-hero .small.text-muted { color:rgba(255,255,255,.72) !important; }
   .lb-hero h4 { font-weight:800; letter-spacing:.2px; }
@@ -36,7 +42,7 @@
   {% if students %}
   <form method="get" class="mb-3 d-flex align-items-center gap-2">
     <label class="text-light small mb-0">Student</label>
-    <select name="student_id" class="form-select form-select-sm" style="max-width:280px;" onchange="this.form.submit()">
+    <select name="student_id" class="form-select form-select-sm" style="max-width:100%;" onchange="this.form.submit()">
       {% for s in students %}<option value="{{ s.id }}" {{ 'selected' if student and s.id == student.id }}>{{ s.name }}</option>{% endfor %}
     </select>
   </form>

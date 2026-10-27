@@ -101,8 +101,8 @@
     <a href="{{ url_for('pilotlog.entry', entry_id=e.id) }}" class="lb-row {{ 'pending' if e.status == 'pending' else ('imp' if e.source == 'foreflight') }} d-flex align-items-center gap-3 px-3 py-2 border-bottom text-decoration-none text-body">
       <div class="text-center flex-shrink-0 lb-date" style="width:2.8rem;"><div class="fw-bold lh-1">{{ (e.entry_date or '')[8:10]|int }}</div><div class="small text-muted">{{ (months[(mk[5:7]|int) - 1] if mk else '')[:3] }}</div></div>
       <div class="flex-grow-1" style="min-width:0;">
-        <div class="fw-semibold text-truncate">{{ e.tail or '-' }} <small class="text-muted fw-normal">{{ e.make_model or '' }}</small></div>
-        <div class="small text-muted text-truncate">{{ [e.route_from, e.route_to]|select|join(' - ') or '-' }}</div>
+        <div class="fw-semibold">{{ e.tail or '-' }} <small class="text-muted fw-normal">{{ e.make_model or '' }}</small></div>
+        <div class="small text-muted">{{ [e.route_from, e.route_to]|select|join(' - ') or '-' }}</div>
       </div>
       <div class="text-end flex-shrink-0">
         <div class="lb-hrs">{{ '%.1f'|format(e.total or 0) }}</div>
