@@ -3,8 +3,9 @@
 {% block content %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
-.covered-row input[type=checkbox]{accent-color:#6c757d;}
-.flight-done-box:checked{background-color:#6c757d;border-color:#6c757d;}
+/* Idea "Items completed on this flight": Flight and Home are separate. A Flight box already checked (this flight or an earlier one) is grey; Home stays blue the first time it is checked. */
+.flight-grey input[type=checkbox]{accent-color:#6c757d;}
+.home-blue input[type=checkbox]{accent-color:#0d6efd;}
 
 /* Phones have no number-input spinner arrows: show small up/down 0.1 buttons on the End Flight Hobbs/Tach End fields. Desktop keeps its native arrows. */
 .ef-step-wrap { position: relative; }
@@ -225,14 +226,14 @@
         <div class="modal-body">
           {#- Idea "Items completed on this flight": what was checked on the previous step stays editable from here. #}
           <button type="button" class="btn btn-sm btn-outline-secondary w-100 mb-2" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#acs-covered-modal-{{ f.id }}"><i class="bi bi-journal-check"></i> Items completed on this flight ({{ es.scores|length }}) - edit</button>
-          <div class="small text-muted mb-1">Green items were logged At standards (at ACS level), grey ones were covered this flight; untick any you do not want planned (Flight) or given as homework (Home). Ticked <strong>Flight</strong> items are worked on the next flight (carried over from earlier flights); tick or untick as needed, and tick <strong>Home</strong> to give a lesson as homework.</div>
+          <div class="small text-muted mb-1">Green items were logged At standards (at ACS level), grey ones were covered this flight; untick any you do not want planned (Flight) or given as homework (Home). A grey Flight check was already logged; Home turns blue the first time you tick it. Ticked <strong>Flight</strong> items are worked on the next flight (carried over from earlier flights); tick or untick as needed, and tick <strong>Home</strong> to give a lesson as homework.</div>
           {% for area in f.end_pick.areas %}
           <details class="mb-1"{% if area.tasks|selectattr('id', 'in', es.planned)|list or area.tasks|selectattr('id', 'in', es.scores)|list %} open{% endif %}><summary class="small fw-bold">{{ area.code }}. {{ area.title }}</summary>
             {% for t in area.tasks %}
             {#- Idea "Items completed on this flight": items covered this flight stay grey, but can be unticked right here. #}
             <div class="d-flex align-items-center gap-2 small ps-3 py-1 border-top{% if es.scores.get(t.id) == 'standards' %} bg-success-subtle text-success-emphasis covered-row{% elif t.id in es.scores %} bg-body-secondary text-muted covered-row{% endif %}">
-              <label class="mb-0" title="Next flight"><input type="checkbox" name="focus_task" value="{{ t.id }}"{% if t.id in es.planned %} checked{% endif %}> Flight</label>
-              <label class="mb-0" title="Homework"><input type="checkbox" name="hw_task" value="{{ t.id }}"{% if t.assigned %} checked{% endif %}> Home</label>{% if t.assigned %}<input type="hidden" name="was_hw" value="{{ t.id }}">{% endif %}
+              <label class="mb-0{% if t.id in es.planned or t.id in es.scores %} flight-grey{% endif %}" title="Next flight"><input type="checkbox" name="focus_task" value="{{ t.id }}"{% if t.id in es.planned %} checked{% endif %}> Flight</label>
+              <label class="mb-0 home-blue" title="Homework"><input type="checkbox" name="hw_task" value="{{ t.id }}"{% if t.assigned %} checked{% endif %}> Home</label>{% if t.assigned %}<input type="hidden" name="was_hw" value="{{ t.id }}">{% endif %}
               <span class="flex-grow-1">{{ t.code }}. {{ t.title }}{% if es.scores.get(t.id) == 'standards' %} <span class="badge text-bg-success">At ACS level</span>{% elif t.id in es.scores %} <span class="badge text-bg-secondary">Covered</span>{% endif %}</span>
             </div>
             {% endfor %}
