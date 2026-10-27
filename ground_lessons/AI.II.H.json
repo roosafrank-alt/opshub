@@ -1,0 +1,1743 @@
+{
+ "task_code": "AI.II.H",
+ "task_title": "Navigation Systems and Radar Services",
+ "area": "Area II. Technical Subject Areas",
+ "minutes": 91,
+ "objective": "By the end of this lesson you can explain VOR, DME, NDB and GPS navigation, VFR radar services, the transponder and ADS-B at commercial-pilot depth, and teach a learner to navigate with them as a thinking pilot who cross-checks, manages the automation and talks to ATC correctly, instead of a button-pusher who follows a magenta line.",
+ "why": "Glass panels, GPS and autopilots make navigation easy until something quietly goes wrong, and the FAA warns that humans are poor monitors of reliable automation and that pilots can drift into being a passenger in command [[1:69|PHAK 2-30]] [[1:70|PHAK 2-31]]. As the instructor you decide whether a learner understands the systems or only memorizes key presses. This lesson gives you the content, the traps the sources name, and teaching methods from the Aviation Instructor's Handbook to build real navigators.",
+ "prereading": [
+  {
+   "res": "1",
+   "pages": [
+    409,
+    410,
+    411,
+    413,
+    414,
+    415,
+    419,
+    420,
+    421
+   ],
+   "printed": "PHAK 16-22 to 16-34",
+   "label": "PHAK 16-22 to 16-34",
+   "what": "VOR, CDI, HSI and RMI, tracking and intercepts, time and distance checks, DME, NDB, VFR use of GPS, VFR waypoints and lost procedures."
+  },
+  {
+   "res": "33",
+   "pages": [
+    68,
+    69,
+    70,
+    71,
+    72,
+    73
+   ],
+   "printed": "AIM 1-1-1 to 1-1-8",
+   "label": "AIM 1-1-1 to 1-1-8",
+   "what": "NDB and VOR identification, accuracy and roughness, the VOR MON, receiver checks, DME identifiers and service volumes."
+  },
+  {
+   "res": "33",
+   "pages": [
+    89,
+    90,
+    91,
+    92,
+    99,
+    101,
+    118,
+    119,
+    120
+   ],
+   "printed": "AIM 1-1-17, 1-2-4",
+   "label": "AIM 1-1-17, 1-2-4",
+   "what": "GPS, RAIM and FDE, VFR and IFR use, database rules, equipment approvals, and recognizing GPS jamming and spoofing."
+  },
+  {
+   "res": "33",
+   "pages": [
+    214,
+    215,
+    216,
+    217,
+    218,
+    219,
+    220,
+    221,
+    222,
+    223
+   ],
+   "printed": "AIM 4-1-15 to 4-1-20",
+   "label": "AIM 4-1-15 to 4-1-20",
+   "what": "Radar traffic information, safety alerts, radar assistance to VFR aircraft, terminal radar services and transponder and ADS-B Out operation."
+  },
+  {
+   "res": "33",
+   "pages": [
+    300,
+    301,
+    302,
+    303,
+    304,
+    305,
+    306
+   ],
+   "printed": "AIM 4-5-7 to 4-5-9",
+   "label": "AIM 4-5-7 to 4-5-9",
+   "what": "ADS-B Out and In, FLT ID, anonymous mode, TIS-B and FIS-B and their limits."
+  },
+  {
+   "res": "30",
+   "pages": [
+    50,
+    51,
+    52,
+    53
+   ],
+   "printed": "RMH 7-1 to 7-4",
+   "label": "RMH 7-1 to 7-4",
+   "what": "Automation and flight path management: reliance on automation, choosing the level, and anticipate, act, verify."
+  },
+  {
+   "res": "25",
+   "pages": [
+    18,
+    22,
+    23,
+    32,
+    65,
+    66,
+    82,
+    175,
+    176,
+    177,
+    178,
+    180,
+    181
+   ],
+   "printed": "AIH 1-14, 1-18, 1-19, 1-28, 3-14, 3-15, 3-31, 9-5 to 9-11",
+   "label": "AIH 1-14, 1-18, 1-19, 1-28, 3-14, 3-15, 3-31, 9-5 to 9-11",
+   "what": "Complacency and situational awareness, automation management, SRM grading, levels of learning, scenario-based training, demonstration-performance and telling-and-doing."
+  }
+ ],
+ "warmup": "Think first: your new learner, a private pilot, flies beautifully with the GPS and autopilot. You pull the GPS display's circuit breaker in your head and ask, 'Which way is the VOR from us, and which radial are we on?' The learner turns the OBS until the needle centers, reads the number, and then points the wrong way. What level of learning is this, which FAA warnings about automation does it illustrate, and how would you build this pilot into a navigator rather than a button-pusher?",
+ "key_terms": [
+  {
+   "term": "Radial",
+   "def": "A line of magnetic bearing extending outward from a VOR station, numbered from 001 through 360 [[1:409|PHAK 16-22]]."
+  },
+  {
+   "term": "TO/FROM indicator",
+   "def": "Shows whether the selected course, if intercepted and flown, takes the aircraft to or from the station. It does not show which way the nose is pointing [[23:254|IFH 9-11]]."
+  },
+  {
+   "term": "Reverse sensing",
+   "def": "With the OBS set to the reciprocal of the intended course, the needle deflects away from the course and the pilot must turn away from it to correct [[23:257|IFH 9-14]]."
+  },
+  {
+   "term": "Slant range",
+   "def": "The straight-line distance DME measures from the aircraft to the station, so altitude is included; it is not horizontal distance [[33:72|AIM 1-1-7]]."
+  },
+  {
+   "term": "RAIM",
+   "def": "Receiver autonomous integrity monitoring: the receiver's check that satellite signals meet the integrity requirement for the phase of flight. It needs 5 satellites, or 4 plus baro-aiding [[33:89|AIM 1-1-17]]."
+  },
+  {
+   "term": "Basic radar service",
+   "def": "What all commissioned radar facilities give VFR aircraft: safety alerts, traffic advisories, limited vectoring when workload permits, and sequencing where established [[33:218|AIM 4-1-18]]."
+  },
+  {
+   "term": "Safety alert",
+   "def": "A controller's alert that an aircraft is, in the controller's judgment, in unsafe proximity to terrain, obstructions or other aircraft; the pilot alone decides what action to take [[33:216|AIM 4-1-16]]."
+  },
+  {
+   "term": "Mode C",
+   "def": "Automatic pressure altitude reporting that replies to Mode C interrogations with pressure altitude in 100-foot increments [[60:494|14 CFR 91.215]]."
+  },
+  {
+   "term": "ADS-B Out and ADS-B In",
+   "def": "Out is the aircraft's transmission of its GNSS-derived position and other data; In is the receipt of that information by an aircraft [[33:300|AIM 4-5-7]] [[33:301|AIM 4-5-7]]."
+  },
+  {
+   "term": "TIS-B",
+   "def": "Broadcast of ATC-derived traffic to ADS-B equipped aircraft; advisory only, and it shows only transponder-equipped aircraft [[33:305|AIM 4-5-8]] [[33:306|AIM 4-5-8]]."
+  },
+  {
+   "term": "Automation management",
+   "def": "The demonstrated ability to control and navigate an aircraft by means of its automated systems, including knowing when to use them and when not to [[25:23|AIH 1-19]]."
+  },
+  {
+   "term": "Rote learning",
+   "def": "The lowest level of learning: the ability to repeat something without understanding or being able to apply it [[25:65|AIH 3-14]]."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "The CFI standard and the real goal",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.H.K1",
+    "AI.II.H.K2",
+    "AI.II.H.K3",
+    "AI.II.H.K4",
+    "AI.II.H.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "This Task asks you to understand navigation systems and radar services, apply that knowledge, manage the risks, demonstrate the skills and provide effective instruction (ACS AI.II.H). For each skill element the applicant demonstrates and simultaneously explains, so expect to talk while you fly. The ACS note tells the evaluator to use the manufacturer's equipment supplements for limits and procedures (ACS AI.II.H)."
+    },
+    {
+     "table": {
+      "head": [
+       "Element",
+       "What you must be ready to teach"
+      ],
+      "rows": [
+       [
+        "K1 Ground-based navigation",
+        "VOR, DME and NDB: identification, orientation, course, equipment, tests, rules, interference, use of navigation data, signal integrity"
+       ],
+       [
+        "K2 Satellite-based navigation",
+        "GPS equipment and approvals, rules, authorized use of databases, RAIM"
+       ],
+       [
+        "K3 Radar assistance to VFR aircraft",
+        "How the service works, equipment, the services available, traffic advisories"
+       ],
+       [
+        "K4 Transponder and ADS-B",
+        "Modes A, C and S, ADS-B Out and In"
+       ],
+       [
+        "R1 to R5",
+        "Automation, distraction and disorientation, system limits, signal loss, EFB use"
+       ],
+       [
+        "S1 to S5",
+        "Use a system, find position, intercept and track, recognize passage, use radar services correctly"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "The deeper goal is a learner who navigates, not one who operates a box. The PHAK tells beginning pilots to use radio navigation to supplement pilotage, because visual navigation protects against disorientation if a radio fails [[1:409|PHAK 16-22]]. It also reminds us that only the pilot can navigate the aircraft; GPS is just one tool [[1:420|PHAK 16-33]]. The AIM says VFR pilots should integrate GPS with other electronic navigation, pilotage and dead reckoning [[33:90|AIM 1-1-17]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "You cannot teach equipment you do not know. The AIH says a flight instructor must be thoroughly familiar with the functions and proper use of all avionics used for training, especially with the wide variety of GPS and glass displays [[25:165|AIH 8-7]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "What does the PHAK say beginning pilots should do with radio navigation equipment?",
+    "a": "Use it to supplement navigation by pilotage, which safeguards against disorientation if a radio fails [[1:409|PHAK 16-22]]."
+   }
+  },
+  {
+   "title": "Teaching navigators, not button-pushers",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.H.R1",
+    "AI.II.H.S1",
+    "AI.II.H.K2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "A button-pusher is a learner stuck at the rote level. Rote is the ability to repeat something without understanding or being able to apply it [[25:65|AIH 3-14]]. Above it come understanding, application and correlation, and correlation, associating what was learned with other blocks of learning, should be the objective of aviation instruction [[25:66|AIH 3-15]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "The AIH warns that application is the level at which instructors are too often willing to stop, and that moving on at that point is piecemeal instruction [[25:66|AIH 3-15]]. In navigation, a learner at application can track a radial; a learner at correlation notices that the VOR picture and the moving map disagree and knows what that means."
+    },
+    {
+     "bullets": [
+      "Teach the concept before the knobs. The PHAK says learning knob-and-dial procedures is not enough; learning how the system works gives better memory for procedures and lets a pilot solve problems not seen before [[1:69|PHAK 2-30]].",
+      "Teach stop, look and read. New pilots often fixate on knobs and try to memorize every sequence; reading before pushing saves trouble [[1:69|PHAK 2-30]]. The AIH gives the same strategy as stop, look and analyze [[25:22|AIH 1-18]].",
+      "Use the right aids. Simulation software and manuals on the specific system are of great value to both instructor and learner [[25:22|AIH 1-18]], and most GPS receivers have a built-in simulator mode [[33:92|AIM 1-1-17]].",
+      "Build blocks. When a skill relates to something already learned, known to unknown works; when several skills are taught together, simple to complex works [[25:177|AIH 9-7]].",
+      "Grade progressively. The AIH example: automation management is a describe item on flight one, a practice item by flight three and a manage-decide item by flight five [[25:32|AIH 1-28]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: test for understanding with questions the box cannot answer for the learner, such as 'Which side of the station are we on?', 'What will the needle do if we keep this heading?' or 'What would you do if the map froze now?'. The AIH says the instructor can check situational awareness by asking where the aircraft is relative to references on the chart [[25:18|AIH 1-14]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Which level of learning does the AIH say should be the objective of aviation instruction?",
+    "a": "Correlation: associating what has been learned, understood and applied with other blocks of learning [[25:66|AIH 3-15]]."
+   }
+  },
+  {
+   "title": "Ground-based navigation: identify, orient, find the course",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.H.K1",
+    "AI.II.H.S1",
+    "AI.II.H.S2"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "VORs transmit between 108.0 and 117.95 MHz, so they are line of sight and range grows with altitude; at 1,000 ft AGL reception is generally about 40 to 45 miles [[1:409|PHAK 16-22]]. A radial is a magnetic bearing outward from the station [[1:409|PHAK 16-22]]."
+    },
+    {
+     "table": {
+      "head": [
+       "K1 item",
+       "What to teach"
+      ],
+      "rows": [
+       [
+        "Identification",
+        "The only positive identification is the Morse code or a recorded voice ending in the word 'VOR'. Never rely on an FSS or approach voice on the frequency [[33:68|AIM 1-1-3]] [[33:69|AIM 1-1-3]]. If the receiver decodes the identifier you need not listen; if it only shows the expected identifier from its database, match it to the audio [[33:69|AIM 1-1-3]]."
+       ],
+       [
+        "Orientation",
+        "The VOR does not account for heading; it gives the same indications whichever way the nose points. Center the needle with FROM and the index shows the radial you are on [[23:254|IFH 9-11]] [[23:257|IFH 9-14]]."
+       ],
+       [
+        "Course determination",
+        "Set the desired course with the OBS. With TO showing, the course under the index leads to the station; with FROM, away from it [[1:411|PHAK 16-24]]."
+       ],
+       [
+        "Equipment",
+        "CDI: full deflection means 12 degrees or more off course, the edge of the center circle is 2 degrees, each dot adds 2 [[23:254|IFH 9-11]]. HSI: combines the heading indicator and CDI for a picture of position and direction [[23:254|IFH 9-11]]. RMI: the pointer shows the course to the selected navaid with no course to set [[1:412|PHAK 16-25]]. DME: slant range up to 199 NM, accurate to 1/2 mile or 3 percent, whichever is greater [[33:72|AIM 1-1-7]]. ADF/NDB: needle points to the station; LF and MF signals are not line of sight [[1:416|PHAK 16-29]]."
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "p": "In the figure both airplanes have 180 set and a centered needle. The TO airplane is on the 360 radial and the FROM airplane on the 180 radial, whatever their headings [[23:254|IFH 9-11]] [[23:257|IFH 9-14]]. This is the single most useful picture to teach orientation."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The IFH lists turning in the wrong direction during orientation as a typical error, common until the pilot visualizes position rather than heading [[23:257|IFH 9-14]]. Make the learner say the position first ('south of the station, on the 180 radial') before any turn."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Teach the NDB's weak spot with the VOR's strength: ADF receivers have no flag, so the pilot must keep monitoring the NDB identifier; noisy identification usually comes with an erratic needle [[33:68|AIM 1-1-2]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "A learner's receiver shows the identifier 'ABC' from its database but does not decode the signal. Is the station identified?",
+    "a": "No. With that kind of equipment the displayed identifier only aids verification; the pilot must still match it to the audio Morse code [[33:69|AIM 1-1-3]]."
+   }
+  },
+  {
+   "title": "Tests, regulations and signal integrity",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.H.K1",
+    "AI.II.H.R3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "K1 item",
+       "What to teach"
+      ],
+      "rows": [
+       [
+        "Tests",
+        "VOT: center the needle and the OBS reads 0 with FROM or 180 with TO; an RMI shows 180 [[33:70|AIM 1-1-4]]. Sensitivity: moving the needle from center to the last dot should take no more than 10 or 12 degrees each side [[23:259|IFH 9-16]]. A receiver whose gain or modulation circuit is wearing out can pass near the VOT and be out of tolerance far away, so yearly calibration is recommended [[33:71|AIM 1-1-4]]."
+       ],
+       [
+        "Regulations",
+        "For IFR using VORs: maintained under an approved procedure, or operationally checked within the preceding 30 days. Limits: 4 degrees with a test signal or designated ground checkpoint, 6 degrees airborne or over an airway ground point, 4 degrees between dual receivers [[60:470|14 CFR 91.171]] [[60:471|14 CFR 91.171]]. The person checking enters date, place, bearing error and signs the log or other record [[60:471|14 CFR 91.171]]. For VFR there is no required tolerance; the PHAK suggests the IFR limits as a guide [[1:410|PHAK 16-23]]."
+       ],
+       [
+        "Interference",
+        "Some propeller RPM settings swing the CDI as much as 6 degrees each way; a small RPM change usually smooths it [[33:69|AIM 1-1-3]]. NDBs suffer from lightning and precipitation static and from distant stations at night [[33:68|AIM 1-1-2]]. Transmitting on a combined NAV/COM can flicker the TO/FROM like station passage [[23:259|IFH 9-16]]. Report interference such as a hum or tone on the identifier [[33:87|AIM 1-1-13]]."
+       ],
+       [
+        "Appropriate use of navigation data",
+        "Disregard any indication from a navaid NOTAMed unusable, however good it looks [[33:68|AIM 1-1-1]]. Disregard distance from automatically selected DME when the VOR has no DME [[33:73|AIM 1-1-7]]. The standard service volume does not protect against terrain blockage, and the cone above the station is generally unusable [[33:73|AIM 1-1-8]]."
+       ],
+       [
+        "Signal integrity",
+        "A flag means the signal is too weak, for example too far or too low [[1:410|PHAK 16-23]]. During maintenance the identifier is removed or the station sends T-E-S-T, a warning not to use it [[33:87|AIM 1-1-11]]. One DME identifier about every 30 seconds with no VOR identifier means the DME is working and the VOR may not be [[33:72|AIM 1-1-7]] [[33:73|AIM 1-1-7]]."
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Before you use any navaid: Tune, Identify, Flag clear, then Set the course. Say it out loud every time until the learner says it first."
+     }
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Apply no correction other than the manufacturer's correction card when making VOR receiver checks [[33:71|AIM 1-1-4]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: make the first VOT or ground checkpoint check a demonstration on the ramp, then have the learner do the next one and write the log entry. It turns a rule into a habit and costs no flight time."
+     }
+    }
+   ],
+   "check": {
+    "q": "On a VOR you hear a single coded identifier about every 30 seconds and nothing else. What does it tell you?",
+    "a": "The DME is operating; the VOR may not be [[33:72|AIM 1-1-7]] [[33:73|AIM 1-1-7]]."
+   }
+  },
+  {
+   "title": "GPS: equipment, rules, databases and RAIM",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.H.K2",
+    "AI.II.H.R3"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "The 24-satellite constellation is designed so at least five satellites are always visible, and a receiver needs four for a three-dimensional position [[33:89|AIM 1-1-17]]. RAIM checks the integrity of the signals for the phase of flight; without RAIM the pilot has no assurance of position integrity, and a bad satellite can take up to two hours for the control segment to catch [[33:89|AIM 1-1-17]]."
+    },
+    {
+     "table": {
+      "head": [
+       "K2 item",
+       "What to teach"
+      ],
+      "rows": [
+       [
+        "RAIM",
+        "Detect a fault: 5 satellites, or 4 plus baro-aiding. Detect and exclude (FDE): 6, or 5 plus baro-aiding. Enter the altimeter setting for baro-aiding; never use GPS altitude [[33:89|AIM 1-1-17]]. Two message types: not enough satellites (integrity unknown), or a detected error too large for the phase of flight [[33:90|AIM 1-1-17]]."
+       ],
+       [
+        "Equipment",
+        "VFR panel-mount and hand-held receivers have no RAIM alerting, so cross-check systematically and be suspicious when positions disagree [[33:90|AIM 1-1-17]]. VFR antennas are placed for convenience, and a suction-cup antenna can lose satellites behind the structure [[33:90|AIM 1-1-17]]. No design standard of accuracy or integrity applies to a VFR receiver [[33:91|AIM 1-1-17]]."
+       ],
+       [
+        "Regulations and approvals",
+        "IFR GPS must meet TSO-C129, C196, C145 or C146 and be installed per AC 20-138; VFR and hand-held units are not authorized for IFR navigation [[33:91|AIM 1-1-17]] [[33:92|AIM 1-1-17]]. A hand-held needs no approval, but a mounting bracket or external antenna is a modification that does [[33:101|AIM 1-1-17]]."
+       ],
+       [
+        "Authorized use of databases",
+        "Databases must be current for IFR and should be updated for all other operations, but VFR has no requirement. Do not use a moving map with an outdated database around critical airspace, and verify waypoints with current charts [[33:90|AIM 1-1-17]]. For IFR approaches, the procedure must be retrieved by name from the current database, never built from manually entered waypoints [[33:92|AIM 1-1-17]]."
+       ]
+      ]
+     }
+    },
+    {
+     "bullets": [
+      "VFR waypoints: five letters beginning with VP, not pronounceable and not for ATC use; load them on the ground and avoid programming routes or waypoint chains once airborne [[33:91|AIM 1-1-17]].",
+      "Mountain pass entry points are only for planning; flying from VFR waypoint to VFR waypoint does not create a path through the pass [[33:91|AIM 1-1-17]].",
+      "WAAS-only airplanes under part 91 need not carry VOR avionics, so prudent planning should consider a GPS outage [[33:70|AIM 1-1-3]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The PHAK says many pilots have flown into airspace they were trying to avoid by using an outdated database, and that a current database is needed to locate a named waypoint correctly [[1:419|PHAK 16-32]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner's VFR panel GPS shows a smooth, steady position. Why is that not proof the position is right?",
+    "a": "VFR panel-mount and hand-held receivers have no RAIM alerting, so a bad position may give no warning; cross-check with other navigation [[33:90|AIM 1-1-17]]."
+   }
+  },
+  {
+   "title": "Teaching intercepts, tracking and position fixing",
+   "kind": "skills",
+   "codes": [
+    "AI.II.H.S1",
+    "AI.II.H.S2",
+    "AI.II.H.S3"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Orient first, then intercept. The IFH steps: find the difference between the radial to intercept and the radial you are on, double it for the intercept angle (not less than 20 or more than 90 degrees), set the OBS, turn to the intercept heading, hold it until the CDI centers, and lead the turn onto the course [[23:257|IFH 9-14]]. The PHAK adds that the intercept angle must be greater than the degrees off course but should not exceed 90 [[1:414|PHAK 16-27]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "bullets": [
+      "Distance changes the picture: each radial is 1 NM wide at 60 NM, 2 NM at 120 NM and 1/2 NM at 30 NM, so the rate of intercept depends on distance from the station [[1:414|PHAK 16-27]].",
+      "Tracking: if the needle moves, correct toward it, starting with about 20 degrees; when it recenters, take out half the correction [[23:257|IFH 9-14]].",
+      "Fly TO with TO and FROM with FROM, or the needle reverses [[1:413|PHAK 16-26]]. Small fluctuations: wait a moment before changing heading [[1:413|PHAK 16-26]].",
+      "Just turning toward the needle produces overshoots and S-turns; that is homing, not tracking [[1:413|PHAK 16-26]].",
+      "Position (S2): one VOR gives a line; a second navaid fixes the point on it [[23:257|IFH 9-14]]. A radial plus DME locates you precisely on that radial [[1:415|PHAK 16-28]]. GPS gives distance and track to the next active waypoint, not to a navaid [[33:99|AIM 1-1-17]].",
+      "Time and distance without DME: with an RMI, seconds for a 10 degree bearing change divided by 10 gives minutes to the station, and minutes times NM per minute gives distance [[1:413|PHAK 16-26]] [[1:414|PHAK 16-27]]. Results are only approximate [[1:414|PHAK 16-27]]."
+     ]
+    },
+    {
+     "p": "How to teach it. Brief the intercept on the ground with a sketch of the station, the radial you are on and the one you want. In flight use telling-and-doing: you demonstrate while explaining, in the same sequence you briefed, because learners imitate the instructor [[25:177|AIH 9-7]]. Then the learner tells and you fly, which frees the learner to organize the steps and lets you check understanding before the learner is busy flying [[25:178|AIH 9-8]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: before the learner touches the OBS, ask 'Where are we, and where is the course?' If the answer is a heading, not a position, stop and draw it. The IFH also lists failure to parallel the desired radial as an error that makes intercepts confusing [[23:259|IFH 9-16]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Using the IFH method, you are on the 300 radial and want to intercept the 315 radial outbound. What intercept angle do you use?",
+    "a": "The difference is 15 degrees; doubled, 30 degrees, within the 20 to 90 degree limits [[23:257|IFH 9-14]]."
+   }
+  },
+  {
+   "title": "Station and waypoint passage",
+   "kind": "skills",
+   "codes": [
+    "AI.II.H.S4",
+    "AI.II.H.K1",
+    "AI.II.H.K2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "System",
+       "What passage looks like"
+      ],
+      "rows": [
+       [
+        "VOR with CDI",
+        "The needle fluctuates, then settles, and TO changes to FROM. Passing to one side, the needle swings toward the station side as the flag changes [[1:413|PHAK 16-26]]. Rapid or fluctuating movement means passage is near [[23:257|IFH 9-14]]."
+       ],
+       [
+        "Why it swings",
+        "A zone of confusion above the station, where the signal is inadequate and constantly changing [[23:257|IFH 9-14]]."
+       ],
+       [
+        "RMI",
+        "The pointer moves rapidly, or several corrections are needed to keep it on the wingtip [[1:414|PHAK 16-27]]."
+       ],
+       [
+        "DME",
+        "Over the station it still shows your height as distance: about 1.0 NM at 6,076 ft AGL [[1:414|PHAK 16-27]] [[1:415|PHAK 16-28]]."
+       ],
+       [
+        "GPS fly-by waypoint",
+        "The receiver starts the turn before the waypoint and rolls out on the next course [[33:110|AIM 1-2-1]]."
+       ],
+       [
+        "GPS fly-over waypoint",
+        "The aircraft must cross the point before the turn starts; a missed approach waypoint is always fly-over [[33:110|AIM 1-2-1]] [[33:99|AIM 1-1-17]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "False passage. In mountains a brief needle oscillation can look like approaching the station, so use the TO/FROM indicator for positive passage [[33:69|AIM 1-1-3]]. Transmitting on a NAV/COM without an ON/OFF flag can make the TO/FROM flicker; read the whole receiver and ignore readings taken while transmitting [[23:259|IFH 9-16]]. A GPS can sequence to the next waypoint while you are vectored or deviating, just from passing near a waypoint; the non-sequencing mode prevents that [[33:99|AIM 1-1-17]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "S4 asks the learner to recognize and describe passage. Have the learner call it every time: 'Needle swinging, flag FROM, station passage, turning to 095, OBS 095.' Callouts, even single pilot, maintain situational awareness [[1:70|PHAK 2-31]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner, en route on a VOR radial, sees the needle flick and the flag flash just as you key the mic. Is that station passage?",
+    "a": "Not necessarily. Transmitting on a combined NAV/COM can mimic passage; read the whole receiver and disregard readings taken while transmitting [[23:259|IFH 9-16]]."
+   }
+  },
+  {
+   "title": "Managing the automation: anticipate, act, verify",
+   "kind": "risk",
+   "codes": [
+    "AI.II.H.R1",
+    "AI.II.H.S1"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Automation takes the pilot's input, works out a solution and acts without continuous input; used properly it reduces workload and frees attention for the flight path [[30:50|RMH 7-1]]. It can also create more work and confusion, lull pilots into complacency and erode hand-flying skill [[30:51|RMH 7-2]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "bullets": [
+      "Anticipate: understand the system well enough to know what should happen before pushing a button. Act: make the entry. Verify: make sure the aircraft or avionics does what you expected [[30:51|RMH 7-2]].",
+      "Know at all times which modes are engaged and which are armed, and verify that armed modes such as navigation tracking or altitude capture engage when they should [[25:23|AIH 1-19]] [[1:70|PHAK 2-31]].",
+      "A change or disruption of the navigation source may drop the autopilot to wings-level mode [[30:52|RMH 7-3]]. On some autopilots, switching the HSI from GPS to VOR in NAV mode defaults lateral control to ROL until the pilot reengages NAV [[1:70|PHAK 2-31]].",
+      "Choose the level of automation for the job and change it as things change. One of the most common errors is failing to move to a lower level when the situation changes [[30:51|RMH 7-2]].",
+      "Know the disconnect procedures and where the checklists are; read the system documentation and AFM supplements [[30:53|RMH 7-4]]."
+     ]
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "p": "In the annunciator strip, the green modes are engaged: heading, autopilot and altitude hold at 9,000 ft. The white LOC and GS are armed, waiting to capture [[30:52|RMH 7-3]]. Teach learners to read that strip after every change, not the button they pressed."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Plan the autopilot failure before you need it. Known before departure, a dead autopilot changes the risk picture; failing at a high-workload moment, it can turn into an emergency unless the pilot has decided in advance how to handle it [[1:66|PHAK 2-27]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "The RMH says pilots should train with automation under VFR with a qualified, knowledgeable instructor before IFR, and that a simulation device lets them repeat procedures under a simulated high workload [[30:52|RMH 7-3]] [[30:53|RMH 7-4]]. The PHAK recommends occasionally disengaging the automation to hand-fly [[1:66|PHAK 2-27]]. Build both into your syllabus."
+     }
+    }
+   ],
+   "check": {
+    "q": "ATC unexpectedly cancels your learner's GPS route and gives vectors. What level of automation does the RMH example suggest?",
+    "a": "Lower it: use basic autopilot modes that control heading and altitude, so the pilot can reprogram while the flight path stays under control [[30:51|RMH 7-2]]."
+   }
+  },
+  {
+   "title": "Distraction, priorities, disorientation and the EFB",
+   "kind": "risk",
+   "codes": [
+    "AI.II.H.R2",
+    "AI.II.H.R5"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Navigation equipment is a classic distraction. Programming is simple, but these devices tend to capture the pilot's attention and hold it for long periods, so the pilot should plan in advance when and where to program, and when not to [[25:22|AIH 1-18]]. When information exceeds what the pilot can process, the choice is to shed unimportant tasks or do everything poorly [[25:22|AIH 1-18]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Risk",
+       "What to teach and watch for"
+      ],
+      "rows": [
+       [
+        "Distractions",
+        "Teach the learner to divide attention between the distracting task and aircraft control; the AIH list includes having the learner determine a heading to an airport using a chart [[25:180|AIH 9-10]]."
+       ],
+       [
+        "Task prioritization",
+        "Load waypoints before departure and minimize head-down time with a sharp lookout [[1:420|PHAK 16-33]]. Once airborne, budgeting time, prioritizing tasks or slowing down gives time to finish tasks without error [[30:47|RMH 6-4]]."
+       ],
+       [
+        "Loss of situational awareness",
+        "Highly reliable automation breeds complacency, and a pilot may follow it even when common sense says otherwise; be especially alert with experienced learners on a flight review [[25:18|AIH 1-14]]. Following only the magenta line can lead into high terrain or prohibited airspace [[1:69|PHAK 2-30]] [[1:70|PHAK 2-31]]."
+       ],
+       [
+        "Disorientation",
+        "If lost: climb (better radio, navigation and radar reception), use navigation radios or GPS to fix position, communicate with any facility, and in a threatening situation use 121.5 MHz and squawk 7700 [[1:421|PHAK 16-34]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Spotting it in the learner. Humans perform poorly as passive monitors of a GPS or autopilot, and the more reliable the system the worse they watch it [[25:82|AIH 3-31]]. Glance at the learner's eyes: a long stare at one display suggests fixation [[25:82|AIH 3-31]]. Ask about other traffic and the aircraft's position on the chart, or create an imaginary problem with the navigation equipment, and point out when control or scanning suffers [[25:18|AIH 1-14]]."
+    },
+    {
+     "table": {
+      "head": [
+       "EFB (R5): AC 91-78A says",
+       "Teaching point"
+      ],
+      "rows": [
+       [
+        "An EFB may replace paper if it replaces no required equipment, shows equivalent information, is current as verified by the pilot, and does not interfere with aircraft systems [[42:3|AC 91-78A 9.1]]",
+        "The tablet replaces charts, never a required radio, and currency is the pilot's job."
+       ],
+       [
+        "In-flight use is the operator's and PIC's decision; no formal approval if the AC is followed [[42:3|AC 91-78A 9.2]]",
+        "The learner owns the decision and its risk."
+       ],
+       [
+        "Assess workload, integration, display and lighting, shutdown and failures, placement and stowage [[42:4|AC 91-78A 11.1]]",
+        "Brief where the tablet lives for takeoff and what happens when it dies or overheats."
+       ],
+       [
+        "Train on preflight checks, each function used, when not to use it, and cross-checking data entry and computed results [[42:4|AC 91-78A 11.2]]",
+        "Have the learner check one computed number by hand each flight."
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The moving map is never meant to substitute for a VFR sectional [[1:66|PHAK 2-27]]. FIS-B weather on the tablet does not replace a preflight briefing and should not be the only source of weather [[33:306|AIM 4-5-9]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "How can you tell in flight whether a learner is fixating on the GPS?",
+    "a": "Watch where the learner looks: a long stare at one display suggests fixation; also ask about traffic and chart position to test situational awareness [[25:82|AIH 3-31]] [[25:18|AIH 1-14]]."
+   }
+  },
+  {
+   "title": "System limits and losing the signal",
+   "kind": "risk",
+   "codes": [
+    "AI.II.H.R3",
+    "AI.II.H.R4",
+    "AI.II.H.K1",
+    "AI.II.H.K2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "System",
+       "Limits (R3)",
+       "Signs of loss (R4)",
+       "What to do"
+      ],
+      "rows": [
+       [
+        "VOR",
+        "Line of sight; terrain blocks it; cone over the station [[33:68|AIM 1-1-3]] [[33:73|AIM 1-1-8]]",
+        "Flag, needle oscillation, missing or T-E-S-T identifier [[1:410|PHAK 16-23]] [[33:87|AIM 1-1-11]]",
+        "Climb, change navaid, use pilotage and dead reckoning [[1:421|PHAK 16-34]]"
+       ],
+       [
+        "DME",
+        "Slant range; groundspeed and time valid only flying directly to or from the station [[1:415|PHAK 16-28]]",
+        "No distance, or only the DME identifier [[33:73|AIM 1-1-7]]",
+        "Use cross radials or a time check [[1:413|PHAK 16-26]]"
+       ],
+       [
+        "NDB/ADF",
+        "Static from lightning; distant stations at night [[33:68|AIM 1-1-2]]",
+        "No flag; noisy identifier with erratic needle [[33:68|AIM 1-1-2]]",
+        "Monitor the identifier continuously [[33:68|AIM 1-1-2]]"
+       ],
+       [
+        "GPS (VFR)",
+        "No integrity standard or RAIM alerting; antenna placement [[33:90|AIM 1-1-17]] [[33:91|AIM 1-1-17]]",
+        "Large position jump, wrong clock time, position error warnings, other pilots reporting problems [[33:119|AIM 1-2-4]] [[33:120|AIM 1-2-4]]",
+        "Verify with conventional navaids, revert, and promptly tell ATC [[33:119|AIM 1-2-4]] [[33:120|AIM 1-2-4]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "GPS loss reaches beyond the map. Jamming or spoofing can also cause unreliable terrain alerts, a wrong position on the moving map and EFB, and lost or wrong ADS-B output [[33:119|AIM 1-2-4]]. RAIM is only partly effective against spoofing, so the pilot may see no warning and ATC may be the only one who notices [[33:87|AIM 1-1-13]]. Surveillance is line of sight too: low altitude or antenna shielding can cost radar or ADS-B contact, and climbing helps [[33:222|AIM 4-1-20]]."
+    },
+    {
+     "bullets": [
+      "Before departure: know the risk areas, check NOTAMs, plan fuel contingencies, plan to use conventional navaids at the destination [[33:119|AIM 1-2-4]].",
+      "The VOR MON keeps nearly continuous VOR coverage at 5,000 ft AGL outside the western mountains and a non-GPS approach airport within 100 NM [[33:69|AIM 1-1-3]] [[33:70|AIM 1-1-3]].",
+      "If automation misbehaves, reduce the level of automation, fly manually and take time to sort it out [[30:51|RMH 7-2]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Teaching signal loss: the AIH suggests focusing the learner's attention on an imaginary problem with the navigation equipment and watching whether control and scanning hold up [[25:18|AIH 1-14]]. Application: say 'Your GPS just failed' and let the learner find the position with VOR and the chart before you allow the map back."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why might a spoofed GPS give no warning at all?",
+    "a": "RAIM is only partly effective against spoofing, so the pilot may not see erroneous indications; ATC may be the only one to notice [[33:87|AIM 1-1-13]]."
+   }
+  },
+  {
+   "title": "Radar assistance to VFR aircraft",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.H.K3",
+    "AI.II.H.S5"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Operations. Radar traffic information warns a pilot of targets close enough to the route to need attention; it never relieves the pilot of seeing and avoiding [[33:214|AIM 4-1-15]]. Workload, radar limits, traffic volume and frequency congestion can stop it, and the controller's reason need not be given [[33:214|AIM 4-1-15]] [[33:215|AIM 4-1-15]]."
+    },
+    {
+     "table": {
+      "head": [
+       "K3 item",
+       "What to teach"
+      ],
+      "rows": [
+       [
+        "Equipment",
+        "Surveillance radar shows no altitude unless the aircraft has Mode C and the facility can display it [[33:214|AIM 4-1-15]]. Facilities display primary and secondary radar and ADS-B; with primary radar out, only transponder or ADS-B aircraft appear [[33:215|AIM 4-1-15]]."
+       ],
+       [
+        "Available services",
+        "Basic radar service at all commissioned facilities: safety alerts, traffic advisories, limited vectoring and sequencing where established [[33:218|AIM 4-1-18]]. TRSA: separation of participating VFR from IFR and other participants, by 500 ft vertical, visual separation or target resolution; participation urged, not mandatory [[33:219|AIM 4-1-18]] [[33:220|AIM 4-1-18]]. Class C adds IFR/VFR separation and VFR arrival sequencing; Class B adds separation based on IFR, VFR and/or weight [[33:220|AIM 4-1-18]]."
+       ],
+       [
+        "Traffic advisories",
+        "Given by 12-hour clock azimuth, distance in NM, direction of flight, and type and altitude if known [[33:215|AIM 4-1-15]]. The controller sees only your track, so a crab angle shifts where the traffic really is [[33:216|AIM 4-1-15]]."
+       ],
+       [
+        "Vectors and safety alerts",
+        "Vectors to VFR aircraft are advisory and never authorize breaking a regulation; tell ATC about weather ahead because controllers may not know if a vector leads into clouds [[33:217|AIM 4-1-17]]. VFR pilots with Mode C may request MSAW monitoring; after a safety alert, what to do is the pilot's decision [[33:216|AIM 4-1-16]] [[33:217|AIM 4-1-16]]."
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "Communication procedures (S5). Initial contact: facility name, full call sign, and the request, for example 'request VFR traffic advisories' [[33:228|AIM 4-2-3]]. Arriving pilots give position, altitude, call sign, type, beacon code, destination and request traffic information [[33:218|AIM 4-1-18]]. Departing VFR pilots ask ground control or clearance delivery on initial contact, with direction of flight [[33:219|AIM 4-1-18]]. Report your exact altitude to the nearest hundred feet on initial contact [[33:223|AIM 4-1-20]]."
+    },
+    {
+     "bullets": [
+      "'Radar contact' means you are identified and radar flight following will be provided until radar service is terminated [[34:401|AIM PCG R-2]].",
+      "Answer traffic calls with 'traffic in sight' or 'negative contact'; negative contact may be followed by a request for help avoiding the traffic [[34:432|AIM PCG T-9]] [[34:385|AIM PCG N-2]].",
+      "Monitor the frequency at all times and advise ATC when changing VFR cruising altitude [[33:215|AIM 4-1-15]].",
+      "'Resume own navigation' after vectors means you are responsible for your own navigation again [[34:406|AIM PCG R-7]].",
+      "To leave, advise the controller before changing frequency, then squawk 1200 if applicable [[33:215|AIM 4-1-15]]. Arriving VFR, service ends automatically on landing at a tower airport with basic radar service, or elsewhere when told to change to tower or advisory frequency [[33:218|AIM 4-1-18]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "These services do not relieve pilots of seeing and avoiding traffic, avoiding wake turbulence, keeping terrain and obstruction clearance, or staying in VFR weather minimums. If an assigned route, heading or altitude would compromise those, tell approach control and get a revised instruction [[33:220|AIM 4-1-18]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "In a TRSA, approach assigns your VFR learner 3,500 ft. Leaving the TRSA you hear 'resume appropriate VFR altitudes.' What must the learner do?",
+    "a": "Return to an altitude that conforms to 14 CFR 91.159 as soon as practicable [[33:220|AIM 4-1-18]]."
+   }
+  },
+  {
+   "title": "Transponder Modes A, C and S, and ADS-B",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.H.K4",
+    "AI.II.H.S5"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "System",
+       "What it does",
+       "Teaching point"
+      ],
+      "rows": [
+       [
+        "Mode A",
+        "Replies with a four-digit code, one of 4,096 [[33:222|AIM 4-1-20]] [[1:359|PHAK 14-25]]",
+        "VFR code 1200 unless ATC assigns another [[33:222|AIM 4-1-20]]"
+       ],
+       [
+        "Mode C",
+        "Adds pressure altitude in 100-foot increments [[60:494|14 CFR 91.215]]; encoders are preset to standard pressure and ATC applies the local setting [[33:223|AIM 4-1-20]]",
+        "Installed equipment must have been tested to report within 125 ft of the altimeter reference [[60:495|14 CFR 91.217]]"
+       ],
+       [
+        "Mode S",
+        "Replies to Mode A interrogations with the ATC code and to Mode S interrogations per TSO-C112 [[60:493|14 CFR 91.215]] [[60:494|14 CFR 91.215]]; most Mode S units also report altitude [[33:222|AIM 4-1-20]]",
+        "Mode S data link carries TIS traffic to equipped aircraft near Mode S radars [[33:297|AIM 4-5-6]] [[23:125|IFH 5-30]]"
+       ],
+       [
+        "ADS-B Out",
+        "Broadcasts GNSS position about once a second on 1090ES or 978 MHz UAT; 1090ES is required at and above 18,000 ft [[33:300|AIM 4-5-7]] [[33:301|AIM 4-5-7]]",
+        "If installed, transmit at all times unless ATC says otherwise [[60:499|14 CFR 91.225]]"
+       ],
+       [
+        "ADS-B In",
+        "Receives other ADS-B traffic plus TIS-B traffic and FIS-B information [[33:301|AIM 4-5-7]]",
+        "Advisory only; no avoidance maneuvers just because a target appears [[33:304|AIM 4-5-7]]"
+       ]
+      ]
+     }
+    },
+    {
+     "bullets": [
+      "Operate transponder and ADS-B in altitude reporting mode on any airport movement area [[33:221|AIM 4-1-20]]. In controlled airspace an installed transponder must be on with Mode C [[60:494|14 CFR 91.215]].",
+      "Press IDENT only when ATC asks [[33:223|AIM 4-1-20]]. When changing codes, avoid passing through 7500, 7600 or 7700; never use 7777 [[33:223|AIM 4-1-20]].",
+      "'Stop altitude squawk, altitude differs by...' may mean a bad encoder or a wrong altimeter setting. A wrong setting does not change the transmitted altitude but makes you fly at the wrong true altitude [[33:223|AIM 4-1-20]].",
+      "Test and inspect the transponder within the preceding 24 calendar months [[60:525|14 CFR 91.413]].",
+      "FLT ID must match the aircraft identification on the flight plan or a call sign mismatch can delay services [[33:303|AIM 4-5-7]]. UAT anonymous mode is only for code 1200 with no ATC services; turn it off before requesting flight following [[33:303|AIM 4-5-7]].",
+      "TIS-B shows only transponder-equipped aircraft, updates every 3 to 13 seconds, can show your own target or duplicate shadows, and gives no sign when you are outside coverage [[33:306|AIM 4-5-8]]."
+     ]
+    },
+    {
+     "p": "Where they are required: in general, Mode C and ADS-B Out in Class A, B and C, above the ceiling and within the lateral limits of Class B or C up to 10,000 ft MSL, in Class E at and above 10,000 ft MSL in the 48 states and DC except at and below 2,500 ft AGL, and within 30 NM of a Class B primary airport below 10,000 ft MSL [[33:223|AIM 4-1-20]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "An unequipped airplane that ATC clears into ADS-B airspace: acknowledge and fly the clearance, but tell the controller you are not ADS-B equipped and have no authorization [[33:304|AIM 4-5-7]]. A good scenario question for a learner flying an older trainer."
+     }
+    }
+   ],
+   "check": {
+    "q": "ATC says 'stop altitude squawk, altitude differs by 300 feet.' What should your learner check first?",
+    "a": "The altimeter setting. The readout may be wrong, or the altimeter setting may be; an incorrect setting does not change the transmitted altitude but puts the airplane at the wrong true altitude [[33:223|AIM 4-1-20]]."
+   }
+  },
+  {
+   "title": "How to teach it: the lesson flow",
+   "kind": "skills",
+   "codes": [
+    "AI.II.H.S1",
+    "AI.II.H.S2",
+    "AI.II.H.S3",
+    "AI.II.H.S4",
+    "AI.II.H.S5"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The demonstration-performance method has four phases: explanation, demonstration, learner performance with instructor supervision, and evaluation [[25:175|AIH 9-5]]. Telling-and-doing adds the key middle step where the learner tells and the instructor does [[25:177|AIH 9-7]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "table": {
+      "head": [
+       "Phase",
+       "Navigation lesson example"
+      ],
+      "rows": [
+       [
+        "Explanation (ground)",
+        "Objective and completion standards; sketch orientation and the intercept; brief which systems will be 'failed'. Encourage questions before leaving the ground [[25:175|AIH 9-5]]."
+       ],
+       [
+        "Instructor tells, instructor does",
+        "Tune, identify, check the flag, intercept and track while talking, in the same order you briefed. If the demo departs from the explanation, say so at once [[25:175|AIH 9-5]] [[25:177|AIH 9-7]]."
+       ],
+       [
+        "Learner tells, instructor does",
+        "The learner talks you through the next intercept; misunderstandings get fixed before the learner is busy flying [[25:178|AIH 9-8]]."
+       ],
+       [
+        "Learner tells, learner does",
+        "The learner flies and thinks out loud, so you can tell a misconception from a motor-skill error [[25:178|AIH 9-8]]."
+       ],
+       [
+        "Evaluation",
+        "Collaborative assessment: learner self-assessment first, then your detailed assessment and a discussion comparing them [[25:176|AIH 9-6]]."
+       ]
+      ]
+     }
+    },
+    {
+     "bullets": [
+      "Use scenarios. A good scenario has clear objectives, fits the learner and uses the local environment [[25:82|AIH 3-31]]. Application: a real diversion near your local Class C with flight following beats a canned VOR drill.",
+      "Integrate instruments and outside references from the start, so the learner keeps monitoring aircraft performance [[25:180|AIH 9-10]] [[25:181|AIH 9-11]].",
+      "Keep see and avoid alive. Learners who think the instructor watches for traffic never build the habit, and flight instructors were aboard in 37 percent of the midair collisions in one study [[25:181|AIH 9-11]].",
+      "Be clear about who is flying during head-down tasks; the preflight briefing should include the positive exchange of flight controls [[25:178|AIH 9-8]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: sequence the blocks from known to unknown. Raw VOR and the chart first, then the HSI picture, then GPS on the same route, then the autopilot coupled to it. Each new layer is checked against the one below it."
+     }
+    }
+   ],
+   "check": {
+    "q": "What two benefits does the AIH give for the 'learner tells, instructor does' step?",
+    "a": "The learner, free of flying, organizes the steps and techniques; and the instructor can evaluate the learner's understanding before the learner performs [[25:178|AIH 9-8]]."
+   }
+  },
+  {
+   "title": "Common errors: spot and fix",
+   "kind": "skills",
+   "codes": [
+    "AI.II.H.S1",
+    "AI.II.H.S2",
+    "AI.II.H.S3",
+    "AI.II.H.S4",
+    "AI.II.H.S5"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Error",
+       "What you see",
+       "How to fix it"
+      ],
+      "rows": [
+       [
+        "Careless tuning and identification [[23:257|IFH 9-14]]",
+        "Learner flies a needle before the identifier is confirmed",
+        "Tune, identify by audio or decoded ID, flag clear, then set the course [[33:69|AIM 1-1-3]]"
+       ],
+       [
+        "Turning the wrong way during orientation [[23:257|IFH 9-14]]",
+        "Turn toward the wrong side after centering the needle",
+        "Have the learner state position, not heading, before turning [[23:257|IFH 9-14]]"
+       ],
+       [
+        "Not checking TO/FROM, reverse sensing [[23:257|IFH 9-14]]",
+        "Corrections drive the needle further off",
+        "Set the OBS to agree with the intended course [[23:257|IFH 9-14]]"
+       ],
+       [
+        "Overshooting and overcontrolling near the station [[23:259|IFH 9-16]]",
+        "S-turns across the radial close in",
+        "Lead the turn and use smaller corrections as the needle gets more sensitive [[1:414|PHAK 16-27]]"
+       ],
+       [
+        "Chasing the CDI (homing) [[23:259|IFH 9-16]]",
+        "Heading changes every time the needle moves",
+        "Bracket the wind: correct, then halve the correction [[23:257|IFH 9-14]]"
+       ],
+       [
+        "Misreading station passage [[23:259|IFH 9-16]]",
+        "Calls passage while transmitting or at a mountain needle swing",
+        "Read the whole receiver and confirm with TO/FROM [[23:259|IFH 9-16]] [[33:69|AIM 1-1-3]]"
+       ],
+       [
+        "Mode confusion [[1:70|PHAK 2-31]]",
+        "Airplane wings level after a source change; learner does not notice",
+        "Read the annunciators after every entry and call out armed and engaged modes [[1:70|PHAK 2-31]]"
+       ],
+       [
+        "Programming in flight [[33:91|AIM 1-1-17]]",
+        "Head down, altitude and heading drifting",
+        "Load routes on the ground; one entry at a time with eyes outside between [[1:420|PHAK 16-33]]"
+       ],
+       [
+        "Trusting GPS without a cross-check [[1:420|PHAK 16-33]]",
+        "Cannot name a VOR radial or landmark that confirms the map",
+        "Make the learner confirm position by a second method each leg [[1:70|PHAK 2-31]]"
+       ],
+       [
+        "Poor radar service etiquette [[33:215|AIM 4-1-15]]",
+        "Leaves the frequency or changes altitude without telling ATC",
+        "Advise before leaving, squawk 1200; report altitude changes [[33:215|AIM 4-1-15]]"
+       ],
+       [
+        "Looking for traffic off the nose while crabbing [[33:216|AIM 4-1-15]]",
+        "Learner cannot find called traffic",
+        "Adjust the clock position for the crab angle [[33:216|AIM 4-1-15]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "When an error repeats, reteach it: demonstrate, let the learner practice under direction, then evaluate by watching the performance [[25:181|AIH 9-11]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner corrects toward the needle and it moves further away. What is the likely error and the fix?",
+    "a": "Reverse sensing from an OBS set to the reciprocal of the course; set the OBS to agree with the intended course [[23:257|IFH 9-14]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "CA.VI.B-2.jpg",
+   "res": "23",
+   "page": 256,
+   "caption": "Figure 9-15. CDI interpretation. The CDI as typically found on analog systems (right) and as found on electronic flight instruments (left). (IFH 9-13)",
+   "alt": "A VOR station in the center with a compass rose. One airplane north of the station on the 360 line heads southwest; its analog CDI and electronic HSI both show course 180, needle centered, TO. Another airplane south of the station on the 180 line heads northwest; its instruments show course 180, needle centered, FROM.",
+   "source": "IFH, PDF p. 256"
+  },
+  "f2": {
+   "file": "PA.VI.B-3.jpg",
+   "res": "23",
+   "page": 258,
+   "caption": "Figure 9-16. Course interception (VOR). (IFH 9-15)",
+   "alt": "An airplane inbound on the 160 radial with heading 340 turns to a 295 heading to intercept, then turns to 025 and tracks inbound to VOR A on the 205 radial, with an HSI view shown at each step.",
+   "source": "IFH, PDF p. 258"
+  },
+  "f3": {
+   "file": "AI.II.H-1.jpg",
+   "res": "25",
+   "page": 66,
+   "caption": "Figure 3-10. Learning is progressive and occurs at several basic levels. (AIH 3-15)",
+   "alt": "A four-tier stacked cake labeled from bottom to top Rote, Understanding, Application and Correlation. Beside each tier a text box: the ability to repeat something back which was learned but not understood; to comprehend or grasp the nature or meaning of something; the act of putting something to use that has been learned and understood; associating what has been learned, understood and applied with previous or subsequent learning.",
+   "source": "AIH, PDF p. 66"
+  },
+  "f4": {
+   "file": "AI.II.H-2.jpg",
+   "res": "30",
+   "page": 52,
+   "caption": "Figure 7-2. Steps for interacting with automation. (RMH 7-3)",
+   "alt": "A circle split into three colored segments joined by arrows in a loop: Anticipate in orange at the top, Act in blue at the lower right, and Verify in green at the lower left, then back to Anticipate.",
+   "source": "RMH, PDF p. 52"
+  },
+  "f5": {
+   "file": "AI.II.H-3.jpg",
+   "res": "30",
+   "page": 52,
+   "caption": "Figure 7-3. Flight mode annunciators on a general aviation primary flight display. (RMH 7-3)",
+   "alt": "A black strip of annunciators reading, left to right: LOC in white, HDG in green, AP in green, ALT in green, 9000FT in green, and GS in white.",
+   "source": "RMH, PDF p. 52"
+  },
+  "f6": {
+   "file": "CA.VI.B-6.jpg",
+   "res": "33",
+   "page": 216,
+   "caption": "FIG 4-1-1 and FIG 4-1-2. Induced Error in Position of Traffic. (AIM 4-1-15)",
+   "alt": "Top: with a wind from the north, airplane A tracks east while its nose points left of track, and airplane B tracks west with its nose pointing right of track. The example text says traffic called at 12 o'clock appears at 2 o'clock to A and 10 o'clock to B. Bottom: with a wind from the west, airplane C tracks north crabbed left, and airplane D tracks west with no crab.",
+   "source": "AIM, PDF p. 216"
+  },
+  "f7": {
+   "file": "AI.II.H-4.jpg",
+   "res": "25",
+   "page": 177,
+   "caption": "Figure 9-7. Comparison of the teaching process, the demonstration-performance method and the telling-and-doing technique. (AIH 9-7)",
+   "alt": "A three-column table. Traditional teaching process: preparation, presentation, application, review and evaluation. Demonstration-performance method: explanation, demonstration, learner performance supervision, evaluation. Telling-and-doing technique: preparation; instructor tells, instructor does; an orange arrow box learner tells, instructor does; learner tells, learner does; learner does, instructor evaluates.",
+   "source": "AIH, PDF p. 177"
+  }
+ },
+ "scenario": {
+  "title": "The magenta-line pilot meets a GPS test NOTAM",
+  "codes": [
+   "AI.II.H.K2",
+   "AI.II.H.K3",
+   "AI.II.H.K4",
+   "AI.II.H.R1",
+   "AI.II.H.R2",
+   "AI.II.H.R3",
+   "AI.II.H.R4",
+   "AI.II.H.S1",
+   "AI.II.H.S2",
+   "AI.II.H.S5"
+  ],
+  "setup": "Your learner is a 70-hour private pilot who bought a glass-panel trainer with a WAAS navigator, autopilot, a single VOR receiver and UAT ADS-B. She has not used the VOR since her checkride. Tomorrow you fly a dual 110 NM cross-country past a Class C airport with flight following. A GPS interference test NOTAM covers the middle third of the route.",
+  "questions": [
+   {
+    "q": "On the ground, how do you find out whether she understands her navigation systems or only knows the button sequences?",
+    "a": "Ask questions the box cannot answer: where the airplane is relative to chart references, which side of a station she is on. Rote learning is repeating without understanding [[25:65|AIH 3-14]], and asking about position on the chart tests situational awareness [[25:18|AIH 1-14]]."
+   },
+   {
+    "q": "What do you plan because of the GPS test NOTAM?",
+    "a": "Know the risk area, plan fuel contingencies and plan to use conventional navaids at the destination [[33:119|AIM 1-2-4]]. Check the VOR receiver, for example at a VOT [[33:70|AIM 1-1-4]], and draw the route on a sectional for pilotage."
+   },
+   {
+    "q": "Before taxi she has the route loaded. What check do you teach?",
+    "a": "Compare every leg with a paper log of headings and distances, and if they disagree do not assume the computer is right [[1:70|PHAK 2-31]]. Load all waypoints on the ground, not in the air [[33:91|AIM 1-1-17]]."
+   },
+   {
+    "q": "She is about to call approach for flight following with UAT anonymous mode on. What do you coach?",
+    "a": "Turn anonymous mode off first; it is only for code 1200 with no ATC services [[33:303|AIM 4-5-7]]. Then call with facility, full call sign and request [[33:228|AIM 4-2-3]], and report exact altitude to the nearest hundred feet [[33:223|AIM 4-1-20]]."
+   },
+   {
+    "q": "In the test area the map jumps 4 NM and the coupled autopilot begins to turn. What should she do?",
+    "a": "Reduce the automation level, fly heading and altitude by hand or in basic modes [[30:51|RMH 7-2]], verify position with the VOR and pilotage, and promptly tell ATC if she needs help [[33:120|AIM 1-2-4]]. Expect ADS-B and the EFB map to be affected too [[33:119|AIM 1-2-4]]."
+   },
+   {
+    "q": "How do you run the debrief?",
+    "a": "Collaborative assessment: her self-assessment first, then yours, then compare [[25:176|AIH 9-6]]. Grade automation management progressively from describe to practice to manage-decide over several flights [[25:32|AIH 1-28]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "AI.II.H.S1",
+   "do": "Use an airborne electronic navigation system while simultaneously explaining it from the right seat. The ACS sets no numeric tolerance for this CFI element; the examiner looks for correct tuning and identification, a flag check, the right course and source, mode awareness on the autopilot, and an explanation a learner could follow (ACS AI.II.H.S1).",
+   "practice": "Talk through tune, identify, flag, set, and anticipate, act, verify [[30:51|RMH 7-2]] on every flight. Use your receiver's simulator mode [[33:92|AIM 1-1-17]] to rehearse the explanation."
+  },
+  {
+   "code": "AI.II.H.S2",
+   "do": "Determine the airplane's position with the navigation system and explain how: cross radials, radial and DME, or a time check, and confirm the GPS position by a second method (ACS AI.II.H.S2).",
+   "practice": "Fix position with two VORs and with a radial and DME [[1:415|PHAK 16-28]], then do an RMI or CDI time and distance check [[1:413|PHAK 16-26]] [[1:414|PHAK 16-27]] and compare."
+  },
+  {
+   "code": "AI.II.H.S3",
+   "do": "Intercept and track a given course, radial or bearing while explaining the intercept angle, the wind correction and why you are not homing (ACS AI.II.H.S3).",
+   "practice": "Use the IFH double-the-difference method [[23:257|IFH 9-14]] on several intercepts at different distances from the station, and practice explaining while you bracket the wind."
+  },
+  {
+   "code": "AI.II.H.S4",
+   "do": "Recognize and describe the indications of station or waypoint passage out loud as they happen, including fly-by versus fly-over behavior on GPS (ACS AI.II.H.S4).",
+   "practice": "Fly over a VOR and call each indication [[1:413|PHAK 16-26]]; fly a GPS route with fly-by and fly-over waypoints and describe the turns [[33:110|AIM 1-2-1]]."
+  },
+  {
+   "code": "AI.II.H.S5",
+   "do": "Use proper communication procedures with radar services: correct initial contact, exact altitude report, traffic replies, altitude change reports and leaving the frequency, and explain each to the examiner as a learner would hear it (ACS AI.II.H.S5).",
+   "practice": "Request VFR traffic advisories on every practice flight using the AIM format [[33:228|AIM 4-2-3]] and close with the controller before changing frequency [[33:215|AIM 4-1-15]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "According to the AIH, at what level of learning do instructors too often stop, producing piecemeal instruction?",
+   "options": [
+    "Rote",
+    "Understanding",
+    "Application",
+    "Correlation"
+   ],
+   "answer": 2,
+   "why": "Application is a major level, and one at which the instructor is too often willing to stop [[25:66|AIH 3-15]]."
+  },
+  {
+   "q": "Why must a pilot keep monitoring the identifier of an NDB?",
+   "options": [
+    "NDB identifiers change at night",
+    "ADF receivers have no flag to warn of erroneous bearings",
+    "The AIM requires a log entry for each NDB used",
+    "NDBs are line of sight"
+   ],
+   "answer": 1,
+   "why": "ADF receivers have no flag, so the pilot should continuously monitor the identification [[33:68|AIM 1-1-2]]."
+  },
+  {
+   "q": "Under 14 CFR 91.171, what must the person who does a VOR operational check record?",
+   "options": [
+    "Date, place, bearing error and signature",
+    "Only the date and the VOR used",
+    "The tachometer time and the radial",
+    "Nothing if the error is under 4 degrees"
+   ],
+   "answer": 0,
+   "why": "The person enters the date, place, bearing error and signs the aircraft log or other record [[60:471|14 CFR 91.171]]."
+  },
+  {
+   "q": "A GPS receiver with FDE capability needs how many satellites to detect and exclude a bad satellite without baro-aiding?",
+   "options": [
+    "4",
+    "5",
+    "6",
+    "7"
+   ],
+   "answer": 2,
+   "why": "FDE requires 6 satellites, or 5 with baro-aiding [[33:89|AIM 1-1-17]]."
+  },
+  {
+   "q": "What does 'Anticipate' mean in the RMH's anticipate, act, verify steps?",
+   "options": [
+    "Expect the autopilot to fail",
+    "Understand the system well enough to know what should happen before pushing a button",
+    "Program the route before engine start",
+    "Predict ATC instructions"
+   ],
+   "answer": 1,
+   "why": "Anticipate means knowing what should happen before pushing a button or turning a knob [[30:51|RMH 7-2]]."
+  },
+  {
+   "q": "Which does the RMH call one of the most common automation errors?",
+   "options": [
+    "Using the autopilot below 1,000 ft",
+    "Failing to move to lower levels of automation as the environment changes",
+    "Hand-flying too often",
+    "Using the flight director without the autopilot"
+   ],
+   "answer": 1,
+   "why": "One of the most common errors is failing to move to lower levels of automation suitable to a changing environment [[30:51|RMH 7-2]]."
+  },
+  {
+   "q": "Under AC 91-78A, which is part of the recommended EFB training?",
+   "options": [
+    "Annual recurrent training with an FAA inspector",
+    "Procedures for cross-checking data entry and computed information",
+    "A logbook endorsement from a CFI",
+    "Memorizing the app's menu structure"
+   ],
+   "answer": 1,
+   "why": "Training should include preflight checks, each function used, when not to use the EFB, and cross-checking data entry and computed information [[42:4|AC 91-78A 11.2]]."
+  },
+  {
+   "q": "Participating VFR aircraft in a TRSA are separated from IFR aircraft by which of these?",
+   "options": [
+    "1,000 ft vertical only",
+    "500 ft vertical, visual separation or target resolution",
+    "3 NM lateral only",
+    "No separation is provided"
+   ],
+   "answer": 1,
+   "why": "TRSA service uses 500 ft vertical separation, visual separation or target resolution [[33:219|AIM 4-1-18]] [[33:220|AIM 4-1-18]]."
+  },
+  {
+   "q": "When should a VFR pilot press the transponder IDENT button?",
+   "options": [
+    "On every initial contact",
+    "When entering Class C",
+    "Only when ATC requests it",
+    "Whenever changing codes"
+   ],
+   "answer": 2,
+   "why": "Activate IDENT only when requested by ATC [[33:223|AIM 4-1-20]]."
+  },
+  {
+   "q": "Installed altitude reporting equipment must have been tested to report altitude within how many feet of the altimeter reference?",
+   "options": [
+    "50 ft",
+    "100 ft",
+    "125 ft",
+    "200 ft"
+   ],
+   "answer": 2,
+   "why": "14 CFR 91.217 requires correspondence within 125 feet on a 95 percent probability basis [[60:495|14 CFR 91.217]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "Your flight review client has 900 hours, flies his own glass airplane and follows the magenta line flawlessly. Which AIH warning applies most?",
+   "options": [
+    "Experienced pilots rarely need automation training",
+    "Be especially alert to complacency in learners with significant experience, such as on a flight review",
+    "Glass airplanes cannot be used for flight reviews",
+    "Grade him only on stick-and-rudder skills"
+   ],
+   "answer": 1,
+   "why": "Highly reliable automation can induce complacency, and the AIH tells instructors to be especially alert to it in experienced learners on a flight review [[25:18|AIH 1-14]]."
+  },
+  {
+   "q": "Your learner's autopilot is in NAV on GPS. She switches the HSI source to VOR to cross-check, and the airplane quietly holds wings level and drifts off course. What happened?",
+   "options": [
+    "The VOR failed",
+    "On some autopilots a source change drops NAV mode to ROL until NAV is reengaged",
+    "The GPS lost RAIM",
+    "The autopilot disconnected completely"
+   ],
+   "answer": 1,
+   "why": "Changing the navigation source in NAV mode can make lateral control default to ROL (wings level) [[1:70|PHAK 2-31]] [[30:52|RMH 7-3]]."
+  },
+  {
+   "q": "Planning a VFR route through a mountain pass, your learner wants to fly direct from one VFR waypoint entry point to the next. What do you teach?",
+   "options": [
+    "That is the published path through the pass",
+    "The points do not create a path through the pass; choosing a suitable route is the PIC's job",
+    "Only with a current database",
+    "Only with flight following"
+   ],
+   "answer": 1,
+   "why": "Mountain pass entry points are for convenience and do not create a path through the pass [[33:91|AIM 1-1-17]]."
+  },
+  {
+   "q": "Cruising at a certain RPM, the CDI wanders about 5 degrees either side of center on a VOR that was fine yesterday. What should the learner try before reporting the station?",
+   "options": [
+    "Switch to the second VOR only",
+    "Change the RPM slightly",
+    "Reset the OBS 180 degrees",
+    "Climb 2,000 ft"
+   ],
+   "answer": 1,
+   "why": "Certain propeller RPM settings can swing the CDI as much as 6 degrees; slight RPM changes normally smooth it, and pilots should check for this before reporting [[33:69|AIM 1-1-3]]."
+  },
+  {
+   "q": "You are training a learner in an older trainer with no ADS-B Out. ATC turns you onto a heading that will cross ADS-B rule airspace. What should she say and do?",
+   "options": [
+    "Refuse the heading",
+    "Fly it without comment; ATC knows",
+    "Acknowledge and fly it, but advise she is not ADS-B equipped and has no authorization",
+    "Squawk 7600"
+   ],
+   "answer": 2,
+   "why": "The AIM says to acknowledge and execute the clearance but advise that the aircraft is not ADS-B equipped and has no authorization; ATC then continues or modifies it [[33:304|AIM 4-5-7]]."
+  },
+  {
+   "q": "After a series of vectors around traffic, approach says 'resume own navigation.' Your learner keeps flying the last heading. What does the phrase mean?",
+   "options": [
+    "Keep the last heading until told otherwise",
+    "Radar service is terminated",
+    "The pilot is again responsible for navigation",
+    "Squawk 1200"
+   ],
+   "answer": 2,
+   "why": "'Resume own navigation' advises the pilot to resume his or her own navigational responsibility after vectors [[34:406|AIM PCG R-7]]."
+  },
+  {
+   "q": "Your learner is departing VFR from a towered airport with radar sequencing service and wants traffic advisories. When and how should she ask?",
+   "options": [
+    "Call approach after takeoff on the sectional frequency",
+    "Tell ground control or clearance delivery on initial contact, with direction of flight",
+    "Ask tower on the runway",
+    "File a VFR flight plan"
+   ],
+   "answer": 1,
+   "why": "Departing VFR pilots are encouraged to request radar traffic information from ground control or clearance delivery on initial contact, with the proposed direction of flight [[33:219|AIM 4-1-18]]."
+  },
+  {
+   "q": "In flight you say, 'Talk me through the next intercept and I'll fly it.' Which telling-and-doing step is this and why use it?",
+   "options": [
+    "Instructor tells, instructor does; the learner watches passively",
+    "Learner tells, instructor does; the learner organizes the steps and you check understanding",
+    "Learner tells, learner does; habits form",
+    "Learner does, instructor evaluates; you grade"
+   ],
+   "answer": 1,
+   "why": "In 'learner tells, instructor does' the learner, freed from flying, organizes the steps, and the instructor evaluates understanding [[25:178|AIH 9-8]]."
+  },
+  {
+   "q": "By the fifth flight of a glass-cockpit transition, how does the AIH example grade automation management?",
+   "options": [
+    "Describe",
+    "Explain",
+    "Practice",
+    "Manage-decide"
+   ],
+   "answer": 3,
+   "why": "The example grades automation management as describe on flight one, practice by flight three and manage-decide by flight five [[25:32|AIH 1-28]]."
+  },
+  {
+   "q": "Your learner hears a 'low altitude alert' from approach while VFR in hilly terrain. Who decides the response?",
+   "options": [
+    "The controller, who will issue a mandatory climb",
+    "The pilot alone",
+    "The tower",
+    "The pilot and controller decide jointly"
+   ],
+   "answer": 1,
+   "why": "Once a safety alert is issued, it is solely the pilot's prerogative to decide what action, if any, to take [[33:216|AIM 4-1-16]]."
+  },
+  {
+   "q": "A flight school operator asks what to assess before adopting tablets in its trainers. Which list matches AC 91-78A?",
+   "options": [
+    "Price, brand and battery size",
+    "Workload, flight deck integration, display and lighting, shutdown and failures, placement and stowage",
+    "Only the FAA approval number of the app",
+    "Wi-Fi coverage at the airport"
+   ],
+   "answer": 1,
+   "why": "AC 91-78A lists workload, integration, display and lighting, system shutdown and failures, and placement and stowage [[42:4|AC 91-78A 11.1]]."
+  },
+  {
+   "q": "Flying a VOR at 9,000 ft AGL in rugged terrain, your learner sees a brief needle oscillation but the flag still reads TO. What do you teach?",
+   "options": [
+    "That is station passage; turn outbound",
+    "At some mountain stations a brief oscillation can mimic approaching the station; use the TO/FROM indicator for positive passage",
+    "The VOR is out of service",
+    "Switch to GPS and ignore the VOR"
+   ],
+   "answer": 1,
+   "why": "At a few stations, usually in mountains, a brief oscillation resembles approaching the station; use the TO/FROM indicator to determine positive passage [[33:69|AIM 1-1-3]]."
+  },
+  {
+   "q": "Your learner on flight following sees a target on the ADS-B display closing from the right in clear weather but has not spotted it. What is correct?",
+   "options": [
+    "Turn away based on the display",
+    "Use the display only to help find the traffic visually; no avoidance maneuvers are authorized just because a target is shown",
+    "Ask ATC for an IFR clearance",
+    "Ignore the display; it is unreliable"
+   ],
+   "answer": 1,
+   "why": "ADS-B traffic displays are only to help visual acquisition; no avoidance maneuvers are authorized as a direct result of a displayed target [[33:304|AIM 4-5-7]]."
+  }
+ ],
+ "takeaways": [
+  "Teach the concept before the knobs: a learner who can say where the airplane is relative to the station and the chart is navigating; one who repeats key presses is at the rote level.",
+  "Tune, identify, flag clear, then set the course; the VOR ignores heading, and position, not heading, decides which way to turn.",
+  "VOR checks are required only for IFR (30 days, 4 and 6 degree limits, a signed entry); for VFR use the IFR limits as a guide.",
+  "VFR GPS has no RAIM alerting and no integrity standard; load the route on the ground, keep the database current near critical airspace, and always cross-check.",
+  "Anticipate, act, verify: read the mode annunciators after every entry and step down the automation when things change.",
+  "Radar services are advisory and workload-permitting; they never relieve see and avoid, wake avoidance, terrain clearance or VFR minimums.",
+  "Teach with telling-and-doing and real local scenarios, then debrief with the learner's self-assessment first."
+ ],
+ "cfi_notes": [
+  "The sources disagree on the crab-angle traffic picture: PHAK Figure 14-44 says aircraft A sees the 12 o'clock traffic at 1 o'clock [[1:360|PHAK 14-26]], while AIM FIG 4-1-1 says 2 o'clock for the same drawing [[33:216|AIM 4-1-15]]. Teach the AIM, and the real lesson: the controller sees only track.",
+  "PHAK Figure 14-43 describes 'SQUAWK (number)' as operating on a code in Mode A/3 [[1:359|PHAK 14-25]]; the AIM phraseology says operate on the code with altitude reporting enabled [[33:224|AIM 4-1-20]]. Teach the AIM wording.",
+  "IFH 9-16 says the VOR check must be done 'with an appropriate endorsement' and gives 108.0 MHz as the VOT frequency [[23:259|IFH 9-16]]. 14 CFR 91.171 requires a signed log or record entry, not an endorsement [[60:471|14 CFR 91.171]], and the AIM gives 108.0 MHz as the frequency normally used by repair station test signals, with VOT locations in the Chart Supplement [[33:71|AIM 1-1-4]]. Teach the CFR and look up each VOT.",
+  "PHAK 16-32 says many VFR receivers and all hand-held units lack RAIM alerting [[1:419|PHAK 16-32]]; the AIM says VFR panel-mount and hand-held units have none [[33:90|AIM 1-1-17]]. Teach the AIM.",
+  "The PHAK's tracking example starts with a 10 degree wind correction [[1:413|PHAK 16-26]], while the IFH says to begin with a 20 degree correction [[23:257|IFH 9-14]]. Both are starting points to bracket from; pick one and teach it consistently.",
+  "The sources are silent on how to simulate a GPS or VOR failure in flight. The AIH only suggests an imaginary problem with the navigation equipment [[25:18|AIH 1-14]]; brief any simulated failure on the ground and never let it hide a real one.",
+  "Examiners for this Task will likely play a learner who has a misconception, such as reading the TO/FROM flag as 'toward the nose'. Rehearse the correction with the IFH picture [[23:254|IFH 9-11]].",
+  "Flight following is a gift for teaching radio work: the AIH says scenarios should exploit the local environment [[25:82|AIH 3-31]]. Use the nearest approach control on every cross-country lesson.",
+  "Brief the learner that a simulated failure may come at any time and who flies while the learner is head down; the AIH wants a clear understanding of who has the controls at all times [[25:178|AIH 9-8]]."
+ ],
+ "gaps": [
+  "How a specific navigator, autopilot or EFB app behaves (mode names, source-change logic, CDI scaling annunciations): only its AFM supplement and pilot guide, as the ACS note says.",
+  "Mode S is described here only through 14 CFR 91.215 (TSO-C112 replies) and its TIS data link role; the handbooks give no plain explanation of selective interrogation.",
+  "No source gives a required VOR check interval or tolerance for VFR; the PHAK only suggests the IFR limits [[1:410|PHAK 16-23]].",
+  "The AIM says there is no indication when an aircraft is inside or outside TIS-B coverage [[33:306|AIM 4-5-8]], and no source says how to judge it in flight.",
+  "AC 91-78A lists EFB training topics but gives no syllabus or completion standard; the CFI builds that."
+ ],
+ "activities": [
+  {
+   "type": "match",
+   "key": "h1",
+   "after": 2,
+   "title": "Which level of learning is this?",
+   "intro": "Tap a level, then the navigation example that shows it.",
+   "pairs": [
+    {
+     "l": "Rote",
+     "r": "Recites 'tune, identify, twist, center' but cannot say which radial the airplane is on"
+    },
+    {
+     "l": "Understanding",
+     "r": "Explains why the TO/FROM flag, not the heading, tells which side of the station you are on"
+    },
+    {
+     "l": "Application",
+     "r": "Intercepts and tracks an assigned radial in a crosswind"
+    },
+    {
+     "l": "Correlation",
+     "r": "Uses VOR cross radials to catch a moving map that has quietly shifted"
+    },
+    {
+     "l": "Manage-decide (SRM grade)",
+     "r": "Gathers the data, weighs the options and picks the automation level with no instructor help"
+    }
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h2",
+   "after": 4,
+   "title": "Rule or recommendation?",
+   "intro": "Tap an item, then tap whether 14 CFR requires it or the AIM or PHAK only recommends it.",
+   "buckets": [
+    "Required by 14 CFR",
+    "Recommended practice"
+   ],
+   "items": [
+    {
+     "t": "VOR check within 30 days before using VORs under IFR",
+     "b": 0
+    },
+    {
+     "t": "VOR accuracy check before a VFR cross-country",
+     "b": 1
+    },
+    {
+     "t": "Yearly VOR receiver calibration by a repair facility",
+     "b": 1
+    },
+    {
+     "t": "Transponder test and inspection within 24 calendar months",
+     "b": 0
+    },
+    {
+     "t": "Installed ADS-B Out transmitting at all times unless ATC says otherwise",
+     "b": 0
+    },
+    {
+     "t": "Updating the GPS database for VFR navigation",
+     "b": 1
+    },
+    {
+     "t": "Transponder in altitude reporting mode on the airport movement area",
+     "b": 1
+    },
+    {
+     "t": "Transponder with Mode C on in controlled airspace when installed",
+     "b": 0
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h3",
+   "after": 6,
+   "title": "Work the position numbers",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "With the RMI pointer on the wingtip, a 10 degree bearing change takes 90 seconds. How many minutes to the station?",
+     "answer": 9,
+     "tol": 0.1,
+     "unit": "minutes",
+     "why": "Seconds divided by degrees of bearing change gives minutes to the station [[1:413|PHAK 16-26]]: 90 / 10 = 9 minutes."
+    },
+    {
+     "q": "Same check, groundspeed 120 knots. How far to the station?",
+     "answer": 18,
+     "tol": 0.5,
+     "unit": "NM",
+     "why": "Distance is NM per minute times minutes [[1:414|PHAK 16-27]]: 120 knots = 2 NM per minute; 2 x 9 = 18 NM."
+    },
+    {
+     "q": "Using the CDI method, the OBS is moved 10 degrees and the needle takes 2.5 minutes to center again. Time to the station?",
+     "answer": 15,
+     "tol": 0.1,
+     "unit": "minutes",
+     "why": "Time = 60 x minutes flown / degrees of bearing change [[1:414|PHAK 16-27]]: 60 x 2.5 / 10 = 15 minutes."
+    },
+    {
+     "q": "Same check at a TAS of 110 knots. Distance to the station?",
+     "answer": 27.5,
+     "tol": 0.5,
+     "unit": "NM",
+     "why": "Distance = TAS x minutes flown / degrees of bearing change [[1:414|PHAK 16-27]]: 110 x 2.5 / 10 = 27.5 NM."
+    },
+    {
+     "q": "45 NM from a VOR the CDI shows you 4 degrees off the radial. About how far off course are you?",
+     "answer": 3,
+     "tol": 0.1,
+     "unit": "NM",
+     "why": "Each degree is 1 NM wide at 60 NM and the width is proportional to distance [[1:414|PHAK 16-27]]: 45 / 60 = 0.75 NM per degree; 4 x 0.75 = 3 NM."
+    },
+    {
+     "q": "Directly over a VORTAC at 12,152 ft AGL, about what will the DME read?",
+     "answer": 2,
+     "tol": 0.1,
+     "unit": "NM",
+     "why": "DME is slant range; at 6,076 ft AGL overhead it reads about 1.0 NM [[1:414|PHAK 16-27]] [[1:415|PHAK 16-28]]. 12,152 / 6,076 = 2.0 NM."
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h4",
+   "after": 8,
+   "title": "Read the mode annunciators",
+   "figure": "f5",
+   "intro": "Drag each description to its numbered pin on the annunciator strip.",
+   "pins": [
+    {
+     "x": 6,
+     "y": 50,
+     "label": "Lateral approach mode armed, not yet engaged"
+    },
+    {
+     "x": 19,
+     "y": 50,
+     "label": "Lateral mode now steering the airplane"
+    },
+    {
+     "x": 33,
+     "y": 50,
+     "label": "Autopilot engaged"
+    },
+    {
+     "x": 58,
+     "y": 50,
+     "label": "Vertical mode now holding the airplane"
+    },
+    {
+     "x": 95,
+     "y": 50,
+     "label": "Vertical approach mode armed, waiting to capture"
+    }
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h5",
+   "after": 10,
+   "title": "Dual cross-country with a GPS-trusting learner",
+   "intro": "You are the CFI on a dual VFR cross-country in a glass-panel trainer with GPS, autopilot and one VOR. Your learner is flying.",
+   "steps": [
+    {
+     "s": "Before taxi, the learner has the route loaded and wants to go. What do you have her do?",
+     "options": [
+      "Nothing; the database is current",
+      "Compare each leg with a paper log of headings and distances and recheck if they differ",
+      "Load the route again from scratch",
+      "Add extra waypoints in flight later"
+     ],
+     "answer": 1,
+     "why": "Verify programming against a paper log before departure and do not assume the computer is right if they differ [[1:70|PHAK 2-31]]."
+    },
+    {
+     "s": "En route she is head down adding a waypoint, and the airplane has drifted 200 ft high. What do you do?",
+     "options": [
+      "Fix it yourself without comment",
+      "Point out that control is slipping, have her fly first, then make one entry at a time",
+      "Take the tablet away",
+      "Let her finish; altitude is not critical VFR"
+     ],
+     "answer": 1,
+     "why": "Point out when too much attention leaves aircraft control or scanning [[25:18|AIH 1-14]]; minimize head-down time and avoid programming in flight [[1:420|PHAK 16-33]] [[33:91|AIM 1-1-17]]."
+    },
+    {
+     "s": "You announce, 'Your GPS has just failed.' What should she do first?",
+     "options": [
+      "Pull out the tablet's GPS map",
+      "Keep flying, then fix position with the VOR, the chart and landmarks",
+      "Call 121.5",
+      "Turn back immediately"
+     ],
+     "answer": 1,
+     "why": "Use VOR to back up GPS [[1:70|PHAK 2-31]] and integrate pilotage and dead reckoning [[33:90|AIM 1-1-17]]. An imaginary equipment problem is the AIH's suggested test [[25:18|AIH 1-14]]."
+    },
+    {
+     "s": "Approaching her destination's CTAF, she starts to switch frequencies while still on flight following. What do you coach?",
+     "options": [
+      "Just switch; ATC will notice",
+      "Advise the controller before changing frequency, then squawk 1200 if applicable",
+      "Squawk 7600",
+      "Stay with approach until landing"
+     ],
+     "answer": 1,
+     "why": "When advisory service is no longer desired, advise the controller before changing frequency, then change to 1200 if applicable [[33:215|AIM 4-1-15]]."
+    },
+    {
+     "s": "After landing, how do you start the debrief?",
+     "options": [
+      "List her errors",
+      "Ask for her self-assessment, then give yours and compare",
+      "Grade only the landing",
+      "Skip it; it went fine"
+     ],
+     "answer": 1,
+     "why": "Collaborative assessment starts with the learner's self-assessment, followed by the instructor's assessment and a discussion comparing them [[25:176|AIH 9-6]]."
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h6",
+   "after": 11,
+   "title": "True or false: radar services",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "A controller must tell you why traffic advisories cannot be provided.",
+     "a": false,
+     "why": "False. The reason is not subject to question and need not be communicated [[33:215|AIM 4-1-15]]."
+    },
+    {
+     "s": "VFR radar advisory service includes vectors away from traffic only if you ask.",
+     "a": true,
+     "why": "True. It does not include vectors away from conflicting traffic unless requested [[33:215|AIM 4-1-15]]."
+    },
+    {
+     "s": "Participation in TRSA service is mandatory for VFR pilots.",
+     "a": false,
+     "why": "False. Participation is urged but not mandatory [[33:219|AIM 4-1-18]]."
+    },
+    {
+     "s": "Class C service separates IFR from VFR aircraft.",
+     "a": true,
+     "why": "True. Class C service adds approved separation between IFR and VFR aircraft [[33:220|AIM 4-1-18]]."
+    },
+    {
+     "s": "During a radar outage you no longer need a clearance to enter Class B airspace.",
+     "a": false,
+     "why": "False. Absence of radar does not negate the Class B clearance requirement [[33:220|AIM 4-1-18]]."
+    },
+    {
+     "s": "With the primary radar out, aircraft without a transponder or ADS-B may not show on the controller's display.",
+     "a": true,
+     "why": "True. Only aircraft with transponders and ADS-B in use are depicted then [[33:215|AIM 4-1-15]]."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h7",
+   "after": 13,
+   "title": "Telling-and-doing a VOR intercept",
+   "intro": "Use the arrows to put the telling-and-doing steps in order, then tap Check.",
+   "steps": [
+    "Preparation: brief the objective and sketch the intercept on the ground",
+    "Instructor tells, instructor does: demonstrate the intercept while explaining",
+    "Learner tells, instructor does: the learner talks you through the next one",
+    "Learner tells, learner does: the learner flies and thinks out loud",
+    "Learner does, instructor evaluates"
+   ]
+  }
+ ]
+}
