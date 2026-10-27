@@ -5,7 +5,27 @@
    so it reads as an editable spot. Save confirms the adjustment on screen;
    the figure is stored with the flight when the session is logged. #}
 <div class="form-text text-center mt-2 mb-0" id="instructor-minutes-note-{{ f.id }}">Timer ran over? Fix the minutes here. Your name is saved with the change.</div>
-<div class="d-flex align-items-center justify-content-center flex-wrap gap-2 mt-1 p-2 rounded instructor-time-box" style="background:rgba(255,255,255,.55)" data-change="CFI-TIME" data-flight-id="{{ f.id }}" data-original="{{ (f.instructor_clock_hours * 60)|round|int }}">
+<div class="d-flex align-items-center justify-content-center flex-wrap gap-2 mt-1 p-2 rounded instructor-time-box" style="background:#e7f1ff;border:1px solid #9ec5fe" data-change="CFI-TIME" data-flight-id="{{ f.id }}" data-original="{{ (f.instructor_clock_hours * 60)|round|int }}">
   <label class="form-label small mb-0 fw-bold" for="instructor-minutes-{{ f.id }}">Instructor time (min)</label>
-  <input type="number" min="0" step="1" inputmode="numeric" name="instructor_minutes" id="instructor-minutes-{{ f.id }}" class="form-control form-control-sm" value="{{ (f.instructor_clock_hours * 60)|round|int }}" style="max-width:6rem" aria-describedby="instructor-minutes-note-{{ f.id }}">
+  <input type="number" min="0" step="1" inputmode="numeric" name="instructor_minutes" id="instructor-minutes-{{ f.id }}" class="form-control form-control-sm" value="{{ (f.instructor_clock_hours * 60)|round|int }}" style="max-width:6rem;background:#f4f9ff;border-color:#6ea8fe" aria-describedby="instructor-minutes-note-{{ f.id }}">
+  <button type="button" class="btn btn-sm btn-primary instructor-time-save" id="instructor-save-{{ f.id }}"><i class="bi bi-check2"></i> Save</button>
+  <div class="small fw-bold text-success w-100 d-none instructor-time-saved" id="instructor-saved-{{ f.id }}" role="status"></div>
 </div>
+<script>
+(function () {
+  var box = document.currentScript.previousElementSibling;
+  var input = box.querySelector('input'), btn = box.querySelector('.instructor-time-save'), msg = box.querySelector('.instructor-time-saved');
+  var orig = parseInt(box.dataset.original, 10);
+  function save() {
+    var v = parseInt(input.value, 10);
+    if (isNaN(v) || v < 0) { input.focus(); return; }
+    input.dispatchEvent(new Event('input', {bubbles: true}));
+    msg.textContent = v === orig ? 'Saved: timer time kept (' + v + ' min).'
+      : 'Saved: adjusted from ' + orig + ' to ' + v + ' min. Your name is recorded when you log the session.';
+    msg.classList.remove('d-none');
+  }
+  btn.addEventListener('click', save);
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); save(); } });
+  input.addEventListener('input', function () { msg.classList.add('d-none'); });
+})();
+</script>
