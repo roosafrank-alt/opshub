@@ -190,10 +190,18 @@ class CoverAndDeleteTest(PhotoBase):
 class UploadLimitsTest(PhotoBase):
     """Size and emptiness checks on uploads (QA night of Oct 26)."""
 
-    @open_finding("qa-photo-upload-no-size-limit")
     def test_upload_size_has_a_ceiling(self):
         # With no ceiling, one giant upload can fill the Pi's storage.
         self.assertIsNotNone(self._app_module.app.config.get("MAX_CONTENT_LENGTH"))
+
+    def test_oversize_upload_gets_friendly_message_and_is_not_saved(self):
+        part = self.make_part()
+        self.login("shop_admin")
+        big = io.BytesIO(b"0" * (25 * 1024 * 1024 + 1024))
+        r = self.client.post(f"/parts/{part}/photos", data={"photos": [(big, "huge.jpg")]},
+                             content_type="multipart/form-data", follow_redirects=True)
+        self.assertIn(b"too big (max 25 MB)", r.data)
+        self.assertEqual(len(self.photos("part_id", part)), 0)
 
     def test_empty_file_is_not_saved_as_a_photo(self):
         part = self.make_part()

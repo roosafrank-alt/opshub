@@ -13,6 +13,7 @@ import time
 import logging
 import math
 from datetime import date, datetime, timedelta, timezone
+from urllib.parse import urlsplit
 from flask import (Flask, render_template, request, redirect, url_for, jsonify, flash, abort,
                     Response, session, got_request_exception, g as flask_g)
 
@@ -79,6 +80,7 @@ def _load_or_create_secret_key():
 
 app = Flask(__name__)
 app.secret_key = _load_or_create_secret_key()
+app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024  # one giant upload must not fill the Pi's storage; every upload in the app (photos, tool certs, intake files) is far smaller
 app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(days=180)  # keeps a login valid for months - mainly for the kiosk display, which should stay logged in across reboots rather than showing the login screen every time
 app.register_blueprint(flight_bp)
 app.register_blueprint(logbook_bp)
@@ -9380,6 +9382,15 @@ def _customer_view_stays_in_the_portal():
         return None
     flash("You're looking at a customer's portal, so that page isn't available. Use Back from customer view when you're done.", "warning")
     return redirect(url_for("customer.customer_dashboard"))
+
+
+@app.errorhandler(413)
+def _upload_too_big(e):
+    """Upload over MAX_CONTENT_LENGTH: say so plainly and go back to the page."""
+    flash("That file is too big (max 25 MB). Please choose a smaller one.", "danger")
+    ref = urlsplit(request.referrer or "")
+    back = _local_path(ref.path + ("?" + ref.query if ref.query else "")) if ref.netloc == request.host else ""
+    return redirect(back or url_for("home_launcher"))
 
 
 @app.errorhandler(403)
