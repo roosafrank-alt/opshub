@@ -3,6 +3,9 @@
 {% block content %}
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
 <style>
+.covered-row input[type=checkbox]{accent-color:#6c757d;}
+.flight-done-box:checked{background-color:#6c757d;border-color:#6c757d;}
+
 /* Phones have no number-input spinner arrows: show small up/down 0.1 buttons on the End Flight Hobbs/Tach End fields. Desktop keeps its native arrows. */
 .ef-step-wrap { position: relative; }
 .ef-step { display: none; }
@@ -227,7 +230,7 @@
           <details class="mb-1"{% if area.tasks|selectattr('id', 'in', es.planned)|list or area.tasks|selectattr('id', 'in', es.scores)|list %} open{% endif %}><summary class="small fw-bold">{{ area.code }}. {{ area.title }}</summary>
             {% for t in area.tasks %}
             {#- Idea "Items completed on this flight": items covered this flight stay grey, but can be unticked right here. #}
-            <div class="d-flex align-items-center gap-2 small ps-3 py-1 border-top{% if es.scores.get(t.id) == 'standards' %} bg-success-subtle text-success-emphasis{% elif t.id in es.scores %} bg-body-secondary text-muted{% endif %}">
+            <div class="d-flex align-items-center gap-2 small ps-3 py-1 border-top{% if es.scores.get(t.id) == 'standards' %} bg-success-subtle text-success-emphasis covered-row{% elif t.id in es.scores %} bg-body-secondary text-muted covered-row{% endif %}">
               <label class="mb-0" title="Next flight"><input type="checkbox" name="focus_task" value="{{ t.id }}"{% if t.id in es.planned %} checked{% endif %}> Flight</label>
               <label class="mb-0" title="Homework"><input type="checkbox" name="hw_task" value="{{ t.id }}"{% if t.assigned %} checked{% endif %}> Home</label>{% if t.assigned %}<input type="hidden" name="was_hw" value="{{ t.id }}">{% endif %}
               <span class="flex-grow-1">{{ t.code }}. {{ t.title }}{% if es.scores.get(t.id) == 'standards' %} <span class="badge text-bg-success">At ACS level</span>{% elif t.id in es.scores %} <span class="badge text-bg-secondary">Covered</span>{% endif %}</span>

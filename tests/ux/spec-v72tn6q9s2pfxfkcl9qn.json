@@ -62,14 +62,22 @@
      "Items completed on this flight (2) - edit"
     ],
     [
+     "tap",
+     "[id^='end-flight-modal-'] .covered-row [name='focus_task'] >> nth=0"
+    ],
+    [
+     "tap",
+     "[id^='end-flight-modal-'] .covered-row [name='focus_task'] >> nth=0"
+    ],
+    [
      "shot",
      {
-      "caption": "The planning box now has an Items completed button, so what was checked can still be edited",
+      "caption": "Covered items show grey check marks in the planning box, with an Items completed button",
       "focus": "[id^='end-flight-modal-'] .modal-content",
       "changed": [
        {
-        "sel": "[id^='end-flight-modal-'] .btn-outline-secondary",
-        "note": "New: edit the completed items from here"
+        "sel": "[id^='end-flight-modal-'] .covered-row",
+        "note": "Grey checks on items covered this flight"
        }
       ]
      }
