@@ -928,7 +928,11 @@
       keptPlane = {kept: kept ? kept.textContent.split(' - ')[0] : 'that plane', usual: pb};
     } else if (pb) { pb.click(); autoPlane = String(u.asset_id); bits.push('<strong>' + pb.textContent.split(' - ')[0] + '</strong>'); }
     var cs = document.getElementById('cfi-select');
-    if (cs && u.cfi_id && !u.solo) {
+    // Staff booking (the first choice is "Unassigned (assign later)"): leave the instructor unassigned
+    // instead of copying the student's last instructor. A student's own request still gets the usual one.
+    var staffBooking = cs && cs.options.length && /Unassigned/.test(cs.options[0].text);
+    if (cs && staffBooking && !u.solo) { cs.value = ''; cs.dispatchEvent(new Event('change')); bits.push('<strong>Instructor unassigned</strong>'); }
+    else if (cs && u.cfi_id && !u.solo) {
       cs.value = String(u.cfi_id); cs.dispatchEvent(new Event('change'));
       if (cs.selectedIndex > 0) bits.push('<strong>' + cs.options[cs.selectedIndex].text + '</strong>');
     } else if (u.solo) { bits.push('<strong>Solo</strong>'); }
