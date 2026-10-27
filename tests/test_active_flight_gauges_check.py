@@ -42,3 +42,10 @@ class ActiveFlightGaugesCheckTest(OpsHubTestCase):
         r = self.row()
         self.assertTrue(r["gauges_checked_at"])
         self.assertEqual(r["gauges_note"], "Hobbs reads 1233.4")
+
+    def test_verified_shows_who(self):
+        r = self.client.post("/flight/log/%d/toggle_gauges" % self.fid, headers={"X-Requested-With": "fetch"})
+        self.assertTrue(r.get_json()["by"])
+        html = self.client.get("/flight/log/active").get_data(as_text=True)
+        self.assertIn("Hobbs and Tach times are good", html)
+        self.assertIn("Verified by", html)

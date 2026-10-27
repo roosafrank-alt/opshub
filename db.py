@@ -2841,7 +2841,8 @@ def _migrate(conn):
     # Active flight page: the pilot/CFI ticks that the starting Hobbs and Tach
     # match the gauges, or writes what is off.
     for _col, _ddl in (("gauges_checked_at", "ALTER TABLE flights ADD COLUMN gauges_checked_at TEXT"),
-                       ("gauges_note", "ALTER TABLE flights ADD COLUMN gauges_note TEXT")):
+                       ("gauges_note", "ALTER TABLE flights ADD COLUMN gauges_note TEXT"),
+                       ("gauges_checked_by", "ALTER TABLE flights ADD COLUMN gauges_checked_by TEXT")):
         if _col not in flight_cols_sent_back:
             conn.execute(_ddl)
             conn.commit()

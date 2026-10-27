@@ -8676,10 +8676,11 @@ def log_toggle_gauges(flight_id):
         conn.close()
         return jsonify({"ok": False, "message": "Gauges aren't checked for this aircraft."}), 400
     checked = None if f["gauges_checked_at"] else now_iso()
-    conn.execute("UPDATE flights SET gauges_checked_at=? WHERE id=?", (checked, flight_id))
+    by = session.get("user_name") if checked else None
+    conn.execute("UPDATE flights SET gauges_checked_at=?, gauges_checked_by=? WHERE id=?", (checked, by, flight_id))
     conn.commit()
     conn.close()
-    return jsonify({"ok": True, "checked": bool(checked)})
+    return jsonify({"ok": True, "checked": bool(checked), "by": by})
 
 
 @flight_bp.route("/log/<int:flight_id>/update_progress", methods=["POST"])
