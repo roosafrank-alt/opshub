@@ -71,7 +71,7 @@ Shop / inventory
 - [ ] Pi health / System page (`/admin/system`, `pi_health.py`) once it's live: temperature parsing, alert thresholds, no duplicate alerts
 - [ ] Project lifecycle: new, intake, edit, status, trash/restore/purge, renumber after delete
 - [x] Project sub-areas: add, rename (history follows), complete, then inspector confirm or send back
-- [ ] Squawks: new, acknowledge, assign, repair, worker acknowledge (both `kind`s)
+- [x] Squawks: new, acknowledge, assign, repair, worker acknowledge (both `kind`s)
 - [ ] Assets: new, quick new, edit, hours update (can hours go backwards?), trash/restore/purge
 - [ ] Maintenance items: new, edit, complete, due/overdue math around hours and dates
 - [ ] Logbook entries: create, edit, print, starter templates
@@ -117,3 +117,7 @@ clock-independent. The schedule-part2 fixes went live, so their markers were rem
 ## Oct 26 note
 
 Health check (live vs queued, identical): the same ~22 clock/network-dependent failures as Oct 25, no regressions. `qa-section-confirm-twice` went live; marker removed. New: photo upload has no size ceiling and accepts empty files (cards `qa-photo-upload-no-size-limit`, `qa-photo-empty-file-saved`).
+
+## Oct 27 note
+
+Health check (live vs queued, identical, no regressions): same ~26 clock/network-dependent failures as Oct 25-26. The photo size ceiling and empty-file fixes went live; markers removed. Squawks area re-covered (missing records on every step, reopen rules, odd estimate numbers): no new bugs.
