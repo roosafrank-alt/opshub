@@ -2,7 +2,7 @@
    sim, student's own plane, ground and anything added later): included from
    the live total in log_active.html; flight.log_end reads instructor_minutes
    for all of them. Needs f (the flight) and uses the lighter-blue field shade
-   so it reads as an editable spot. Save confirms the adjustment on screen;
+   so it reads as an editable spot. Save underlines the instructor time in the math above and confirms the adjustment on screen;
    the figure is stored with the flight when the session is logged. #}
 <div class="form-text text-center mt-2 mb-0" id="instructor-minutes-note-{{ f.id }}">Timer ran over? Fix the minutes here. Your name is saved with the change.</div>
 <div class="d-flex align-items-center justify-content-center flex-wrap gap-2 mt-1 p-2 rounded instructor-time-box" style="background:#e7f1ff;border:1px solid #9ec5fe" data-change="CFI-TIME" data-flight-id="{{ f.id }}" data-original="{{ (f.instructor_clock_hours * 60)|round|int }}">
@@ -16,16 +16,19 @@
   var box = document.currentScript.previousElementSibling;
   var input = box.querySelector('input'), btn = box.querySelector('.instructor-time-save'), msg = box.querySelector('.instructor-time-saved');
   var orig = parseInt(box.dataset.original, 10);
+  var totalBox = box.closest('[id^="flight-total-"]');
   function save() {
     var v = parseInt(input.value, 10);
     if (isNaN(v) || v < 0) { input.focus(); return; }
     input.dispatchEvent(new Event('input', {bubbles: true}));
+    // Underline the instructor time in the math above once it's saved.
+    if (totalBox) { totalBox.dataset.instrSaved = '1'; if (window.computeFlightTotal) window.computeFlightTotal(totalBox.id.replace('flight-total-', '')); }
     msg.textContent = v === orig ? 'Saved: timer time kept (' + v + ' min).'
       : 'Saved: adjusted from ' + orig + ' to ' + v + ' min. Your name is recorded when you log the session.';
     msg.classList.remove('d-none');
   }
   btn.addEventListener('click', save);
   input.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); save(); } });
-  input.addEventListener('input', function () { msg.classList.add('d-none'); });
+  input.addEventListener('input', function () { msg.classList.add('d-none'); if (totalBox) delete totalBox.dataset.instrSaved; });
 })();
 </script>

@@ -1503,7 +1503,9 @@ function computeFlightTotal(fId) {
     function rate(r) { return '$' + (r % 1 === 0 ? r.toFixed(0) : r.toFixed(2)) + '/hr'; }
     function hrs(h, label) { return h.toFixed(1) + ' ' + label + (h === 1 ? '' : 's'); }
     var lines = [];
-    if (!b.solo) lines.push('Instructor: ' + hrs(b.instructorHours, 'timer hr') + ' x ' + rate(b.instructorRate) + ' = ' + money(b.instructorCost));
+    // Once the instructor minutes are Saved, that amount is underlined so it's clear what changed.
+    var instrSaved = display.dataset.instrSaved === '1';
+    if (!b.solo) lines.push({pre: 'Instructor: ', mark: hrs(b.instructorHours, 'timer hr'), post: ' x ' + rate(b.instructorRate) + ' = ' + money(b.instructorCost), underline: instrSaved});
     // Tach time (End Flight's Tach End minus Tach Start) shown beside the plane's Hobbs hours, so the
     // instructor can see both the timer and tach figures that make up the total. Billing stays on Hobbs.
     var tachS = document.getElementById('tach-start-' + fId), tachE = document.getElementById('tach-end-' + fId);
@@ -1513,7 +1515,17 @@ function computeFlightTotal(fId) {
       + ' x ' + rate(b.planeRate) + ' = ' + money(b.planeCost));
     if (b.groundHours > 0) lines.push('Ground: ' + hrs(b.groundHours, 'hr') + ' x ' + rate(b.instructorRate) + ' = ' + money(b.groundCost));
     breakdownEl.innerHTML = '';
-    lines.forEach(function (t) { var d = document.createElement('div'); d.textContent = t; breakdownEl.appendChild(d); });
+    lines.forEach(function (t) {
+      var d = document.createElement('div');
+      if (typeof t === 'string') { d.textContent = t; }
+      else {
+        d.appendChild(document.createTextNode(t.pre));
+        var m = document.createElement('span'); m.textContent = t.mark;
+        if (t.underline) { m.style.textDecoration = 'underline'; m.className = 'instructor-time-changed'; }
+        d.appendChild(m); d.appendChild(document.createTextNode(t.post));
+      }
+      breakdownEl.appendChild(d);
+    });
   }
 }
 document.addEventListener('click', function (e) {
