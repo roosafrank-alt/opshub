@@ -1,0 +1,1641 @@
+{
+ "task_code": "AI.XII.C",
+ "task_title": "Systems and Equipment Malfunctions",
+ "area": "Area XII. Emergency Operations",
+ "minutes": 90,
+ "objective": "By the end of this lesson you can explain how each system in a training airplane fails, how a pilot recognizes it and what the sources say to do, simulate those failures for a learner without creating a real one, and spot and fix the learner's errors in recognition, priorities and checklist use.",
+ "why": "The AFH says instruction in emergencies is not limited to power failures: fire, electrical and hydraulic malfunctions and the emergency operation of airplane systems should be explained, demonstrated and practiced if practicable [[24:200|AFH 9-29]]. Many system failures are benign until the pilot's reaction makes them dangerous, as with an open door [[24:366|AFH 18-17]] or a vacuum failure whose off flags go unnoticed [[23:332|IFH 11-7]]. How you simulate failures, and what you never actually switch off, decides whether your learner gets the practice or a real emergency [[25:191|AIH 10-7]].",
+ "prereading": [
+  {
+   "res": "24",
+   "pages": [
+    358,
+    359,
+    360,
+    361,
+    362,
+    363,
+    364,
+    365,
+    366
+   ],
+   "printed": "AFH 18-9 to 18-17",
+   "what": "In-flight fires, flap, elevator and gear malfunctions, electrical and pitot-static failures, abnormal engine indications and door opening in flight.",
+   "label": "AFH 18-9 to 18-17"
+  },
+  {
+   "res": "23",
+   "pages": [
+    328,
+    329,
+    330,
+    331,
+    332,
+    333
+   ],
+   "printed": "IFH 11-3 to 11-8",
+   "what": "Display failure and reversionary mode, alternator failure and the standby battery, analog, pneumatic and pitot-static failures.",
+   "label": "IFH 11-3 to 11-8"
+  },
+  {
+   "res": "24",
+   "pages": [
+    36,
+    199,
+    200
+   ],
+   "printed": "AFH 1-15, 9-28 to 9-29",
+   "what": "Checklist discipline, and how an instructor runs simulated emergencies and teaches the critical items.",
+   "label": "AFH 1-15, 9-28 to 9-29"
+  },
+  {
+   "res": "24",
+   "pages": [
+    284,
+    285
+   ],
+   "printed": "AFH 13-35 to 13-36",
+   "what": "Training considerations for simulated emergencies: briefing, no pulled circuit breakers, the airplane as a ground procedures trainer, memory items then checklist. Written in the twin chapter; the principles carry over.",
+   "label": "AFH 13-35 to 13-36"
+  },
+  {
+   "res": "24",
+   "pages": [
+    107,
+    108
+   ],
+   "printed": "AFH 5-2 to 5-3",
+   "what": "Mechanical factors and diversion of attention as upset causes, task saturation, and surprise and startle.",
+   "label": "AFH 5-2 to 5-3"
+  },
+  {
+   "res": "1",
+   "pages": [
+    197,
+    198,
+    199,
+    200,
+    201
+   ],
+   "printed": "PHAK 7-37 to 7-41",
+   "what": "Oxygen systems, their fire hazard and checks, and anti-ice and deice systems.",
+   "label": "PHAK 7-37 to 7-41"
+  },
+  {
+   "res": "30",
+   "pages": [
+    44,
+    45,
+    46,
+    47,
+    48
+   ],
+   "printed": "RMH 6-1 to 6-5",
+   "what": "Threats (including system malfunctions), errors, the undesired aircraft state and the pilot's defenses, checklists among them.",
+   "label": "RMH 6-1 to 6-5"
+  }
+ ],
+ "warmup": "Think first: your learner handles every simulated failure well when you say \"simulated alternator failure\" and tap the ammeter. On her solo cross-country the low-voltage light came on behind an open chart and she noticed it 20 minutes later. What did your training teach her, what did it leave out, and how would you change the next lesson?",
+ "key_terms": [
+  {
+   "term": "Essential bus",
+   "def": "The bus a standby battery powers after a charging failure; it usually feeds the AHRS, ADC, PFD, nav radio 1, com radio 1 and the standby indicator light [[23:331|IFH 11-6]]."
+  },
+  {
+   "term": "Standby battery",
+   "def": "A reserve battery in glass-panel airplanes that comes online when main battery voltage drops to about 19 volts, if its switch is in ARM [[23:331|IFH 11-6]]."
+  },
+  {
+   "term": "Load shedding",
+   "def": "Turning off nonessential electrical equipment right after the generating source fails, to stretch battery time [[24:362|AFH 18-13]]."
+  },
+  {
+   "term": "Reversionary mode",
+   "def": "The composite display a glass system reverts to when a screen fails, which drops the moving map [[23:329|IFH 11-4]]."
+  },
+  {
+   "term": "Alternate static source",
+   "def": "A valve that lets static pressure in from the flight deck when the outside static ports are blocked; flight deck pressure is lower than outside static pressure [[1:213|PHAK 8-11]]."
+  },
+  {
+   "term": "AHRS",
+   "def": "Attitude and heading reference system; when it fails, all heading and attitude indications on the PFD are lost [[23:217|IFH 7-56]]."
+  },
+  {
+   "term": "Split flap (asymmetric)",
+   "def": "One flap moves while the other stays put, shown by a pronounced roll toward the wing with the least flap deflection [[24:359|AFH 18-10]] [[24:360|AFH 18-11]]."
+  },
+  {
+   "term": "Trim runaway",
+   "def": "An electric trim that keeps driving; the AFH response is to assess it, then use the trim disconnect if installed or pull the trim power circuit breaker [[24:348|AFH 17-14]]."
+  },
+  {
+   "term": "Startle",
+   "def": "An uncontrollable, automatic muscle reflex with raised heart rate and blood pressure, set off by a sudden, intense event that violates expectations [[24:108|AFH 5-3]]."
+  },
+  {
+   "term": "Undesired aircraft state",
+   "def": "Incorrect position, speed, attitude or configuration, a situation that causes confusion and workload, or reduced safety margins [[30:46|RMH 6-3]]."
+  },
+  {
+   "term": "Immediate action items",
+   "def": "Steps best committed to memory, then compared with the checklist as workload permits [[24:284|AFH 13-35]] [[24:348|AFH 17-14]]."
+  },
+  {
+   "term": "Procedures trainer",
+   "def": "Using the parked airplane, engine off, to introduce and practice normal, abnormal and emergency procedures [[24:284|AFH 13-35]]."
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "AI.II.E-3.jpg",
+   "res": "24",
+   "page": 365,
+   "caption": "Figure 18-11. Commonly experienced in-flight abnormal engine instrument indications, their possible causes, and corrective actions. (AFH 18-16)",
+   "alt": "A three-column table: Malfunction, Probable Cause, Corrective Action. Rows include loss of rpm or manifold pressure in cruise (carburetor or induction icing, turbocharger failure), high and low oil temperature and pressure, high and low cylinder head temperature, ammeter indicating discharge, surging rpm, loss of airspeed with manifold pressure and rpm constant, rough running engine and loss of fuel pressure.",
+   "source": "AFH, PDF p. 365"
+  },
+  "f2": {
+   "file": "AI.XII.C-1.jpg",
+   "res": "23",
+   "page": 331,
+   "caption": "Figure 11-6. The double rocker switch and the standby battery switch; the standby battery must be armed to work correctly, and arming should be done before departure. (IFH 11-6)",
+   "alt": "A gray panel. At top, a red toggle labeled STBY BATT with positions OFF, ARM and TEST, and a green TEST light beside it. Below, a red split rocker switch labeled MASTER with ALT on the left half and BAT on the right half, both marked ON.",
+   "source": "IFH, PDF p. 331"
+  },
+  "f3": {
+   "file": "AI.VI.A-4.jpg",
+   "res": "24",
+   "page": 363,
+   "caption": "Figure 18-9. Electrical load for light single. (AFH 18-14)",
+   "alt": "A table of electrical loads with number of units and total amperes. Continuous loads include pitot heating 3.30, four wingtip lights 3.00, fuel indicator 0.40, two overhead instrument lights 0.60, engine indicator 0.30 and compass light 0.20. Intermittent loads include starter 100.00, two landing lights 17.80, heater blower 14.00, flap motor 13.00, landing gear motor 10.00 and stall warning horn 1.50.",
+   "source": "AFH, PDF p. 363"
+  },
+  "f4": {
+   "file": "PA.IX.C-5.jpg",
+   "res": "24",
+   "page": 364,
+   "caption": "Figure 18-10. Effects of blocked pitot-static sources. (AFH 18-15)",
+   "alt": "Airspeed, altimeter and vertical speed gauges above a table. Pitot source blocked: airspeed increases with altitude gain and decreases with altitude loss, altitude and vertical speed unaffected. One static source blocked: inaccurate while sideslipping. Both static sources blocked: airspeed decreases with altitude gain, altitude and vertical speed do not change. Both static and pitot blocked: all indications stay constant.",
+   "source": "AFH, PDF p. 364"
+  },
+  "f5": {
+   "file": "PA.IX.C-6.jpg",
+   "res": "23",
+   "page": 332,
+   "caption": "Figure 11-7. Emergency instrumentation available to the pilot on electronic flight instrumented aircraft. (IFH 11-7)",
+   "alt": "A faded glass-panel instrument panel with red X marks on the left display. Highlighted are three round standby gauges below the displays (airspeed, attitude and altimeter), a magnetic compass on top of the glareshield, and the standby battery and master switches at the far left.",
+   "source": "IFH, PDF p. 332"
+  },
+  "f6": {
+   "file": "AI.XII.C-2.jpg",
+   "res": "24",
+   "page": 362,
+   "caption": "Figure 18-8. Landing with nose-wheel retracted. (AFH 18-13)",
+   "alt": "A low-wing single touching down on its main wheels in a nose-high attitude, nose wheel retracted, propeller turning, runway and grass below.",
+   "source": "AFH, PDF p. 362"
+  },
+  "f7": {
+   "file": "CA.IX.B-2.jpg",
+   "res": "24",
+   "page": 200,
+   "caption": "Figure 9-29. Sample emergency checklist. (AFH 9-29)",
+   "alt": "A printed checklist page with numbered items. Engine failure during flight (restart procedures): airspeed 70 KIAS, carburetor heat on, fuel selector both, mixture rich, ignition both, primer in and locked. Emergency landing without engine power: airspeed, mixture idle cut-off, fuel selector off, ignition off, wing flaps as required, master off, doors unlatch prior to touchdown, touchdown slightly tail low, brakes apply heavily.",
+   "source": "AFH, PDF p. 200"
+  }
+ },
+ "chunks": [
+  {
+   "title": "What this Task asks of an instructor",
+   "kind": "knowledge",
+   "codes": [
+    "AI.XII.C.K2",
+    "AI.XII.C.R2",
+    "AI.XII.C.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "This Task is the widest in the emergency area. K1 to K5 cover power loss, six named system failures, smoke and fire, other installed systems and an open door. On the checkride the evaluator gives you simulated emergencies from at least three of those elements or sub-elements and watches what you decide (ACS AI.XII.C.S1)."
+    },
+    {
+     "p": "Two rules frame everything. First, the AFH's emergency guidance is generic: the manufacturer's procedures in the AFM/POH take precedence if they conflict [[24:350|AFH 18-1]]. Second, instruction in emergencies is not limited to power failures. Fire in flight, electrical or hydraulic malfunctions, engine overheating, imminent fuel exhaustion and the emergency operation of airplane systems should be explained, demonstrated and practiced if practicable [[24:200|AFH 9-29]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Element",
+       "Where this lesson teaches it",
+       "Related lessons"
+      ],
+      "rows": [
+       [
+        "K1 Power loss causes",
+        "Chunk 2",
+        "PA.IX.C and CA.IX.C (carburetor ice, detonation, turbochargers); AI.XII.B for the glide and landing"
+       ],
+       [
+        "K2a to K2f System malfunctions",
+        "Chunks 3 to 6",
+        "AI.XI.A to AI.XI.E for partial panel flying and unusual attitude recovery after a gyro or AHRS failure"
+       ],
+       [
+        "K3 Smoke and fire",
+        "Chunk 7",
+        "AI.XII.A for the emergency descent itself"
+       ],
+       [
+        "K4 Oxygen, deicing and other systems",
+        "Chunk 8",
+        "CA.IX.C for icing in depth"
+       ],
+       [
+        "K5 Door or window opening",
+        "Chunk 9",
+        ""
+       ],
+       [
+        "R1 to R4, K6, S1 to S3",
+        "Chunks 10 to 14",
+        ""
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "The learner side (what each gauge does, carburetor ice charts, battery examples) is in PA.IX.C and CA.IX.C. This lesson adds the instructor's side: what fails, how your learner should notice it, what the sources say to do, and how you put each failure in front of a learner without creating a real one."
+     }
+    }
+   ],
+   "check": {
+    "q": "Besides power failures, which emergencies does the AFH say should be explained, demonstrated and practiced if practicable?",
+    "a": "Fire in flight, electrical or hydraulic system malfunctions, unexpected severe weather, engine overheating, imminent fuel exhaustion and the emergency operation of airplane systems and equipment [[24:200|AFH 9-29]]."
+   }
+  },
+  {
+   "title": "K1: Why the engine quits or loses power, by powerplant type",
+   "kind": "knowledge",
+   "codes": [
+    "AI.XII.C.K1"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "K1 says \"related to the specific type of powerplant.\" Teach the learner the causes that fit the engine in front of them, and how each one shows up on the gauges."
+    },
+    {
+     "table": {
+      "head": [
+       "Powerplant",
+       "Causes the sources name",
+       "How it shows up"
+      ],
+      "rows": [
+       [
+        "Carbureted (float type)",
+        "Carburetor ice from fuel vaporization and low venturi pressure, most likely below 70 F with humidity above 80 percent, possible up to 100 F and humidity as low as 50 percent [[1:169|PHAK 7-9]]",
+        "Fixed-pitch: rpm drops, maybe roughness. Constant-speed: manifold pressure drops with no rpm change [[1:170|PHAK 7-10]]"
+       ],
+       [
+        "Fuel injected",
+        "Less prone to icing, but impact ice can block the air intake; vapor lock on the ground on hot days; hard restarts after fuel starvation [[1:172|PHAK 7-12]]",
+        "Plugged nozzle gives a rough engine; loss of fuel pressure points to the engine-driven pump or no fuel [[24:365|AFH 18-16]]"
+       ],
+       [
+        "Turbocharged",
+        "Turbocharger failure [[24:365|AFH 18-16]]",
+        "Loss of manifold pressure in cruise; possible exhaust leak, so use the lowest practicable power and land as soon as possible [[24:365|AFH 18-16]]"
+       ],
+       [
+        "Any piston engine",
+        "Detonation from low-grade fuel, high manifold pressure with low rpm, or high power with too lean a mixture; preignition from a hot spot [[1:179|PHAK 7-19]]. Water and contamination in the fuel [[1:187|PHAK 7-27]] [[1:188|PHAK 7-28]]. A fuel selector left on an empty tank [[24:200|AFH 9-29]]",
+        "Detonation: high cylinder head temperature, roughness, power loss [[1:179|PHAK 7-19]]. Airspeed loss with manifold pressure and rpm constant may mean loss of one or more cylinders: land as soon as possible [[24:365|AFH 18-16]]"
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "p": "**The habit you are building.** The AFH wants the critical items checked so often in training that, in a real failure, the pilot checks them while choosing a field: fuel selector position and quantity, fuel pressure (and whether the electric pump is needed), mixture, magnetos and carburetor heat. Many real emergency landings were later traced to a selector on an empty tank with fuel in the other one, and the AFH suggests switching tanks even when the gauge shows fuel, since gauges can be inaccurate [[24:200|AFH 9-29]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Simulate power loss only with the throttle, with the \"simulated\" call, and keep the engine warm and cleared. Either you or the learner has complete control of the throttle, never both, because many near accidents came from that confusion [[24:199|AFH 9-28]] [[24:200|AFH 9-29]]. Simulated engine failures done incorrectly have created real emergencies and caused accidents [[25:191|AIH 10-7]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "In a constant-speed propeller airplane, what does carburetor ice usually look like, and why does it fool a learner trained in a fixed-pitch trainer?",
+    "a": "A drop in manifold pressure with no drop in rpm, because the governor adjusts pitch to hold rpm [[1:170|PHAK 7-10]]. The learner who waits for an rpm drop will not see one."
+   }
+  },
+  {
+   "title": "K2a: Electrical malfunction",
+   "kind": "knowledge",
+   "codes": [
+    "AI.XII.C.K2",
+    "AI.XII.C.K2a"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "**Electrical malfunction: what fails.** Most in-flight electrical failures are in the alternator or generator; once it goes off line, the battery is the only source [[24:362|AFH 18-13]]. In a traditional six-pack airplane that was an abnormality; in an airplane whose AHRS, air data computer and engine indications run on electricity, the IFH calls it an emergency [[23:331|IFH 11-6]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Step",
+       "What the sources say"
+      ],
+      "rows": [
+       [
+        "Recognize",
+        "Ammeter: a full-scale minus deflection means an alternator or generator malfunction; full-scale plus means a regulator malfunction; some airplanes have only a discharge warning light [[1:191|PHAK 7-31]]. A loadmeter reading zero means the same as an ammeter discharge [[24:365|AFH 18-16]]. In some airplanes the light sits low on the left and charts can hide it, so keep it visible [[23:330|IFH 11-5]]"
+       ],
+       [
+        "Act",
+        "Follow the POH alternator failure procedure; if it will not reset, advise ATC of the impending electrical failure [[23:332|IFH 11-7]]. Shed nonessential loads at once and plan to land at the nearest suitable airport [[24:362|AFH 18-13]]; notify ATC and ask for vectors [[24:363|AFH 18-14]]"
+       ],
+       [
+        "Plan the arrival",
+        "Electric gear and flaps may not work on a partly depleted battery, and selecting their motors may cause an immediate total loss of power. Expect a no-flap landing and a manual gear extension [[24:362|AFH 18-13]] [[24:363|AFH 18-14]]"
+       ],
+       [
+        "Time available",
+        "Not predictable: a 25 amp-hour battery might give 5 amps for 5 hours but 10 amps for only 2 hours [[24:362|AFH 18-13]]; the IFH gives about 40 minutes as an approximation not to be relied on [[23:330|IFH 11-5]], and elsewhere 45 minutes or only minutes [[23:331|IFH 11-6]]. Never continue a flight once the charging system has failed [[23:330|IFH 11-5]]"
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "**Glass-panel airplanes.** The standby battery comes online when the main battery drops to about 19 volts, but generally only if its switch is in ARM. One technique is to switch the MASTER (battery) side off so the standby battery runs the essential bus en route, saving the main battery for flaps, gear and lights on the approach. Once the standby battery is exhausted, the flight deck may go dark [[23:331|IFH 11-6]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "**How to teach it.** Night training with the flight deck lights off simulates an electrical or instrument light failure [[24:224|AFH 11-7]]. In the run-up and before departure, make arming the standby battery part of the learner's flow [[23:331|IFH 11-6]]. On the ground, have the learner point to and name each switch and circuit breaker the POH procedure uses."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Do not pull circuit breakers to create a training failure. The AFH says it is not recommended for training and can lead to a gear-up landing [[24:284|AFH 13-35]]. Pulling breakers to isolate loads is something the IFH lists for a real failure [[23:330|IFH 11-5]], not for a practice one."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why does the AFH tell a pilot with a failed alternator to plan the arrival early in an airplane with electric gear and flaps?",
+    "a": "Gear and flap motors draw far more current than most equipment and may not work on a partly depleted battery; selecting them may cause an immediate total loss of power, so expect a no-flap landing and a manual gear extension [[24:362|AFH 18-13]] [[24:363|AFH 18-14]]."
+   }
+  },
+  {
+   "title": "K2b and K2c: Vacuum and pitot-static failures",
+   "kind": "knowledge",
+   "codes": [
+    "AI.XII.C.K2",
+    "AI.XII.C.K2b",
+    "AI.XII.C.K2c"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Malfunction",
+       "What fails",
+       "How the pilot recognizes it",
+       "What the sources say to do"
+      ],
+      "rows": [
+       [
+        "Vacuum/pressure and associated flight instrument malfunctions",
+        "The engine-driven vacuum pump; the attitude and heading indicators slow down and wander, and if they feed an autopilot or flight director they can drive it wrong [[23:332|IFH 11-7]]",
+        "Off flags, or an attitude indicator that disagrees with the supporting instruments [[23:332|IFH 11-7]]; suction below the normal range, usually 4.5 to 5.5 \"Hg [[1:218|PHAK 8-16]]. Many small airplanes have no vacuum warning, so the gauge must be in the scan [[23:332|IFH 11-7]] [[23:333|IFH 11-8]]",
+        "Keep control first, expedite the cross-check, compare the attitude indicator with the turn indicator and VSI, try the power source or a backup, cover the failed instruments, advise ATC and declare an emergency if needed [[23:332|IFH 11-7]]. In VFR, stay VFR and land as soon as practicable [[23:333|IFH 11-8]]"
+       ],
+       [
+        "Pitot-static system malfunction",
+        "Pitot tube, drain hole or static ports blocked by ice, dirt, moisture or insects [[1:212|PHAK 8-10]]",
+        "Pitot blocked with the drain open: airspeed falls to zero. Pitot and drain blocked: airspeed acts like an altimeter [[1:212|PHAK 8-10]]. Static blocked: altimeter frozen, VSI at zero, airspeed wrong [[1:213|PHAK 8-11]]. Partial static blockage may show nothing until the descent: too high, too fast, descending slower than wanted [[24:363|AFH 18-14]] [[24:364|AFH 18-15]]",
+        "Confirm by opening the alternate static source while climbing or descending; if the needles move significantly, use it for the rest of the flight [[24:364|AFH 18-15]]. Check the POH for airspeed corrections on alternate static [[1:213|PHAK 8-11]]. With no alternate source in an unpressurized airplane, breaking the VSI glass gives static pressure, with added errors [[23:333|IFH 11-8]]"
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "p": "**The glass-panel twist.** Many light airplanes with glass displays feed the backup instruments from the same pitot-static inputs, so a blockage can take out both; some combine the air data computer and AHRS, so a blockage can affect the attitude display too [[24:364|AFH 18-15]]."
+    },
+    {
+     "p": "**How to teach it.** Vacuum failure is the easy one to simulate: cover the attitude and heading indicators. All the basic instrument maneuvers except the takeoff can be flown that way [[23:162|IFH 7-1]], and the IFH says covering failed instruments may help a pilot keep control [[23:332|IFH 11-7]]. The flying itself is taught in AI.XI.A to AI.XI.E. For pitot-static failures, teach recognition from Figure 18-10 on the ground, then let the learner open the alternate static source in a climb or descent as the AFH check describes, so they see what \"the needles move\" looks like in your airplane [[24:364|AFH 18-15]]. Application: never tape over a port or the pitot tube to create the failure."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Gyros lie quietly, static lies in the descent. A vacuum failure hides behind off flags; a partial static blockage hides until you start down."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner sees the attitude indicator showing a bank the other instruments do not agree with. Which comparison does the IFH give to find the failed system?",
+    "a": "Compare the attitude indicator right away with the rate-of-turn indicator and the VSI; that checks the vacuum or pressure system against the electrical and static systems [[23:332|IFH 11-7]]."
+   }
+  },
+  {
+   "title": "K2d: Electronic flight deck display malfunction",
+   "kind": "knowledge",
+   "codes": [
+    "AI.XII.C.K2",
+    "AI.XII.C.K2d"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "**Electronic flight deck display malfunction** covers a dead screen, a failed AHRS or air data computer, and the loss of the moving map the learner had come to depend on."
+    },
+    {
+     "bullets": [
+      "**A screen fails.** The system reverts to a composite (reversionary) mode that combines the PFD with the engine indications and drops the moving map [[23:329|IFH 11-4]]. Engine instruments normally on the MFD appear on the remaining screen [[1:215|PHAK 8-13]].",
+      "**The map is gone.** A pilot who used the display as the main navigation source may not know position or the nearest airport. The IFH treats the display as supplementary and wants the flight followed on the en route chart [[23:329|IFH 11-4]].",
+      "**The AHRS fails.** All attitude and heading indications on the PFD go, along with unusual attitude protection and every autopilot mode except roll and altitude hold [[23:217|IFH 7-56]].",
+      "**A red X or a blank screen.** The AFH LSA section gives an EFIS red X across the airspeed tape as an example; if POH steps do not reset a blank EFIS, the pilot may have to land without airspeed, altitude or vertical speed information [[24:348|AFH 17-14]].",
+      "**What is left.** A standby attitude indicator, altimeter, airspeed indicator and magnetic compass, with navigation by pilotage and dead reckoning unless a handheld GPS is aboard [[23:331|IFH 11-6]]."
+     ]
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "p": "**Why this one is hard to teach.** Glass failure indications are not standardized, and the primary and backup displays may respond differently from each other and from round gauges. The AFH says pilots need equipment-specific information, and that the difficulty or inability to simulate failure modes can limit training [[24:364|AFH 18-15]] [[24:365|AFH 18-16]]. Emergency procedures that would be dangerous or impossible in the airplane can be done in a flight training device or simulator [[24:285|AFH 13-36]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: in the airplane, a screen cover or a sticky note over the PFD gives a safe \"failed display\" to fly from the standby instruments. Have the learner say what is left before touching anything: \"PFD gone, I have standby attitude, altitude, airspeed and the compass.\""
+     }
+    }
+   ],
+   "check": {
+    "q": "After an AHRS failure in the IFH example system, which autopilot modes remain?",
+    "a": "Only roll and altitude hold; all other modes are lost, along with attitude, heading and unusual attitude protection on the PFD [[23:217|IFH 7-56]]."
+   }
+  },
+  {
+   "title": "K2e and K2f: Landing gear or flap malfunction, and inoperative trim",
+   "kind": "knowledge",
+   "codes": [
+    "AI.XII.C.K2",
+    "AI.XII.C.K2e",
+    "AI.XII.C.K2f"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Malfunction",
+       "How the pilot recognizes it",
+       "What the sources say to do"
+      ],
+      "rows": [
+       [
+        "Flap malfunction: total flap failure",
+        "Flaps do not extend",
+        "No-flap approach and landing, which needs substantially more runway, up to 50 percent more. Fly a wider, longer pattern rather than diving; expect a nose-high attitude that hides the runway and feels close to a stall; do not force it on fast or flare so much the tail strikes [[24:359|AFH 18-10]] [[24:360|AFH 18-11]]"
+       ],
+       [
+        "Flap malfunction: asymmetric (split) flap",
+        "A pronounced roll toward the wing with the least flap deflection as flaps move [[24:360|AFH 18-11]]",
+        "Opposite aileron and substantial opposite rudder, a cross-controlled condition. Approach faster than normal, do not land with a crosswind from the side of the deployed flap, and fly it onto the runway rather than flaring hard [[24:360|AFH 18-11]]"
+       ],
+       [
+        "Landing gear malfunction",
+        "A leg will not respond to the normal or alternate extension in the AFM/POH [[24:361|AFH 18-12]]",
+        "Choose an airport with crash and rescue if possible and ask for equipment standing by; consider burning off fuel. One main up: burn fuel from that side, land nose-high wings level and hold that wing up; or land with all gear up if directional control matters most [[24:361|AFH 18-12]]. Nose wheel up: hold the nose off until almost full up-elevator, then let it settle; no brakes unless needed [[24:361|AFH 18-12]] [[24:362|AFH 18-13]]"
+       ],
+       [
+        "Inoperative trim",
+        "Electric trim that runs away; or pressure you must hold because trim will not move (the PHAK's cue for needing trim is constant control pressure [[1:158|PHAK 6-10]])",
+        "Runaway: assess it, press the trim disconnect if installed or pull the trim circuit breaker, then consider a no-flap landing if the flap pitching moment would be too much to hold [[24:348|AFH 17-14]]. In training airplanes most pilots can overpower the trim [[24:121|AFH 5-16]]"
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "**Inoperative trim: what to brief.** The sources give no step list for a trim that is simply stuck, so build the lesson from what they do say. With nose-up trim set for the approach, adding go-around power raises the nose and calls for considerable forward pressure [[24:182|AFH 9-11]], and flap retraction brings rapid pitch force changes [[24:235|AFH 12-4]]. The elevator trim stall demonstration shows exactly those forces at a safe altitude [[24:126|AFH 5-21]]. Trim is also a backup: if the elevator linkage fails, the trim tab can move the elevator within limits, usually enough for a safe landing [[24:360|AFH 18-11]]. Application: a learner with stuck trim should plan smaller configuration changes and expect to hold pressure through the go-around."
+    },
+    {
+     "p": "**How to teach it.** No-flap approaches are a normal maneuver you can fly for real; the AFH calls them not particularly difficult or dangerous in light airplanes [[24:359|AFH 18-10]]. A split flap and a gear leg that will not come down cannot be safely created, so teach them on the ground with the POH and the AFH figures, and in a training device if one is available [[24:285|AFH 13-36]]."
+    }
+   ],
+   "check": {
+    "q": "On a split-flap approach, why does the AFH tell the pilot not to land with a crosswind from the side of the deployed flap?",
+    "a": "Almost full aileron may already be needed to keep the wings level, so the extra roll control the crosswind needs may not be available [[24:360|AFH 18-11]]."
+   }
+  },
+  {
+   "title": "K3: Smoke and fire on board",
+   "kind": "knowledge",
+   "codes": [
+    "AI.XII.C.K3"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "A fire in flight demands immediate, decisive action and familiarity with the AFM/POH procedure. The AFH sorts fires into engine, electrical and cabin fires [[24:358|AFH 18-9]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Fire",
+       "Causes",
+       "Recognition",
+       "Remedies the AFH gives (unless the AFM/POH says otherwise)"
+      ],
+      "rows": [
+       [
+        "Engine compartment",
+        "Fuel, oil or hydraulic fluid on a hot surface, from engine or accessory failure, induction or exhaust defects, a broken line or maintenance errors [[24:358|AFH 18-9]]",
+        "Smoke or flames from the cowling, or discolored, bubbling or melting cowling skin [[24:358|AFH 18-9]]",
+        "Shut off fuel with the mixture at idle cutoff and the fuel selector off; leave the ignition on to burn the fuel in the lines; no restart if the fire goes out. Thick black smoke means oil-fed: consider stopping the propeller. Think before turning the master off: unless the fire is electrical or a crash landing is imminent, it costs the radios and the transponder [[24:358|AFH 18-9]]. A single then makes a forced landing [[24:359|AFH 18-10]]"
+       ],
+       [
+        "Electrical",
+        "Faulty circuit [[24:359|AFH 18-10]]",
+        "Usually the odor of burning insulation [[24:359|AFH 18-10]]",
+        "Check circuit breakers, instruments, avionics and lights to find the circuit; if not found and conditions permit, battery master and alternator off. If power is essential, master off, all switches off, master on, then switches back one at a time while watching for smoke. That recreates the problem; landing as soon as possible is the prudent course [[24:359|AFH 18-10]]"
+       ],
+       [
+        "Cabin",
+        "Careless smoking, electrical malfunctions, heating system malfunctions [[24:359|AFH 18-10]]",
+        "Smoke or fire in the cabin",
+        "Identify and shut down the faulty system. Use the extinguisher first, then open vents to purge; close them at once if smoke increases. Open the foul weather windows if equipped, close them if the fire grows; masks if available and an immediate descent if smoke is severe. Lowering gear or flaps can make cabin smoke worse in some airplanes [[24:359|AFH 18-10]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**After an engine fire.** A fire that seems out can rekindle with changes in airflow and airspeed, the structure may be damaged, and the airplane is expendable: only the people matter [[24:359|AFH 18-10]]. The descent itself is AI.XII.A."
+    },
+    {
+     "p": "**How to teach it.** Nothing about fire is simulated with real smoke or switches. Teach it in the passenger briefing (the SAFETY list includes the fire extinguisher's location and operation [[1:64|PHAK 2-25]]), on the ground as a procedures trainer, touching each control the POH names [[24:284|AFH 13-35]], and in flight as a verbal scenario where the learner calls each action and points to the control."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The most common teaching gap is the master switch. Some light airplane checklists say to turn it off for any fire; the AFH asks the pilot to consider what that costs when the fire is not electrical [[24:358|AFH 18-9]]. Teach the POH procedure for your airplane and the reason behind each step [[24:350|AFH 18-1]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why does the AFH leave the ignition switch on after shutting off fuel for an engine compartment fire?",
+    "a": "To use up the fuel remaining in the lines and components between the selector valve and the engine, which may starve the fire [[24:358|AFH 18-9]]."
+   }
+  },
+  {
+   "title": "K4: Oxygen, ice protection and other installed systems",
+   "kind": "knowledge",
+   "codes": [
+    "AI.XII.C.K4"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "K4 reaches whatever else is installed in the airplane. In training singles that is usually supplemental oxygen and ice protection, from a heated pitot tube up to boots."
+    },
+    {
+     "bullets": [
+      "**Supplemental oxygen.** The required crew must use it above 12,500 feet cabin altitude up to 14,000 feet for the part of the flight over 30 minutes, and for the entire time above 14,000 feet; above 15,000 feet every occupant must be provided with it [[60:491|14 CFR 91.211]]. Hypoxia can affect some pilots lower, which is why the PHAK encourages oxygen above 10,000 feet by day and 5,000 feet at night [[1:197|PHAK 7-37]].",
+      "**Oxygen hazards and checks.** Materials nearly fireproof in air may burn in oxygen; oils and greases may ignite, and smoking is prohibited while oxygen equipment is in use. Inspect and test the system, mask and supply before each flight [[1:197|PHAK 7-37]]. A pulse oximeter lets crew and passengers check their actual need [[1:199|PHAK 7-39]].",
+      "**Ice protection.** Most light airplanes have only a heated pitot tube and are not certificated for icing; those must exit icing conditions immediately [[1:200|PHAK 7-40]]. Ice protection is not meant to sustain long-term flight in icing [[1:201|PHAK 7-41]]. When ice is detected, leave the precipitation or go to an altitude above freezing, or land at the nearest suitable airport if neither is possible, and report it to ATC [[23:327|IFH 11-2]].",
+      "**Equipment failures inside ice protection.** An electrically heated windshield can cause compass deviation of as much as 40 degrees, and a propeller boot that fails to heat one blade can cause severe vibration [[1:201|PHAK 7-41]]."
+     ]
+    },
+    {
+     "p": "**How to teach it.** Teach these systems from the POH and supplements on the ground, then in a scenario: \"Your oxygen flow indicator has gone dark at 13,500.\" Many cannulas have a flow meter whose green indicator belongs in the scan [[1:198|PHAK 7-38]]. CA.IX.C covers icing in depth."
+    }
+   ],
+   "check": {
+    "q": "A non-icing-certificated trainer picks up ice. What does the PHAK say, and what options does the IFH give?",
+    "a": "It must exit icing conditions immediately [[1:200|PHAK 7-40]]: leave the area of precipitation or go to an altitude above freezing, or land at the nearest suitable airport if neither works [[23:327|IFH 11-2]]."
+   }
+  },
+  {
+   "title": "K5: Inadvertent door or window opening",
+   "kind": "knowledge",
+   "codes": [
+    "AI.XII.C.K5"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Inadvertent door or window opening** is the clearest case in this Task of a small malfunction made dangerous by the reaction. An open cabin door in a light airplane seldom if ever compromises the ability to fly; accidents come from the pilot's distraction or loss of control [[24:366|AFH 18-17]]."
+    },
+    {
+     "bullets": [
+      "**Recognize:** a sudden loud noise, a sustained noise level and possibly vibration or buffeting [[24:366|AFH 18-17]].",
+      "**Fly first:** concentrate on flying; any roll or yaw can usually be overcome easily [[24:366|AFH 18-17]].",
+      "**Do not rush:** after lift-off, climb to pattern altitude, fly a normal pattern and land normally; hurrying can mean steep turns at low altitude [[24:366|AFH 18-17]].",
+      "**Leave it alone:** do not release the seat belt and shoulder harness to reach it; close it on the ground. A slip toward the door may open it wider, a slip away may push it closed [[24:366|AFH 18-17]].",
+      "**Finish the job:** complete all landing checklist items [[24:366|AFH 18-17]]."
+     ]
+    },
+    {
+     "p": "**The same door, two risks.** The PHAK's example is a door opening on a clear day: alarming, quickly judged minor, and the pilot returns to secure it after landing. The same door in IMC with turbulence and a new clearance is a higher risk, not because the problem changed but because of the workload around it [[1:59|PHAK 2-20]] [[1:63|PHAK 2-24]]. It may startle the pilot; the key is to stop, think and analyze [[1:60|PHAK 2-21]]."
+    },
+    {
+     "p": "**Prevention you can teach.** The AFH preflight starts with the cabin door; a door that is hard to close, fits poorly or latches roughly calls for a look at the doorpost [[24:41|AFH 2-4]]. Light-sport airplanes may have different latches, and a gull-wing door or sliding canopy that pops open can become an emergency in seconds, so practice latching on the ground [[24:346|AFH 17-12]]. Brief passengers on how to secure and open the exit doors [[1:64|PHAK 2-25]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Application: never open a door or window in flight to demonstrate this. The sources describe no such demonstration. Teach it by briefing, by scenario (\"simulated: your door just popped open\") and by watching that the learner keeps flying."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why does the AFH tell a pilot whose door opens after lift-off not to rush back to the runway?",
+    "a": "Trying to get on the ground as quickly as possible may result in steep turns at low altitude; a normal climb, pattern and landing is the safer plan [[24:366|AFH 18-17]]."
+   }
+  },
+  {
+   "title": "R1: Startle, and how to train for it",
+   "kind": "risk",
+   "codes": [
+    "AI.XII.C.R1"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Surprise is an unexpected event that violates expectations. Startle is the uncontrollable reflex that can come with it: muscle reflex, raised heart rate and blood pressure [[24:108|AFH 5-3]]. A real failure arrives without a \"simulated\" in front of it."
+    },
+    {
+     "bullets": [
+      "**What it looks like.** Under anxiety some people react well and fast; many freeze; others act without rational thought [[25:45|AIH 2-12]]. Normal responses are often automatic, which is why training in emergency operations has to come before the real emergency [[25:48|AIH 2-15]].",
+      "**The AFH's psychological hazards.** Reluctance to accept the emergency, undue concern about getting hurt, and the desire to save the airplane [[24:350|AFH 18-1]] [[24:351|AFH 18-2]].",
+      "**What protects against it.** Scenario-based training with realistic distractions, carrying enough perceived risk to raise stress, can prepare a pilot for the psychological and physiological reactions of a real event [[24:108|AFH 5-3]]. Announcing every failure and pointing at the gauge removes the surprise; the AFH makes the same point about eyes-closed unusual attitude training [[24:107|AFH 5-2]].",
+      "**The pause.** The PHAK's answer to the startled pilot with the open door is to stop, think and analyze; there is usually time [[1:60|PHAK 2-21]]. Its twin-engine example shows the opposite: a pilot who acted without identifying the problem, with time to spare [[1:59|PHAK 2-20]]."
+     ]
+    },
+    {
+     "p": "**The tension you have to manage.** The AFH also says surprising a learner with an emergency without a thorough briefing creates a hazard, and wants a clear understanding of how simulated emergencies will be introduced and what the learner is expected to do [[24:284|AFH 13-35]]. Brief the how and the what, then vary the when and the where."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Teach the anxious learner what to expect first, and treat fear as normal [[25:45|AIH 2-12]]. Build up as the AIH low-fuel example does: talk it through in the classroom, then fly it at the home airport, then on a cross-country while the learner is busy with other duties [[25:82|AIH 3-31]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why can a learner who flawlessly handles every announced failure still freeze in a real one?",
+    "a": "Announced failures remove surprise; real ones can bring startle, and the AFH says scenario-based training with realistic distractions and some perceived risk is what prepares a pilot for it [[24:108|AFH 5-3]]."
+   }
+  },
+  {
+   "title": "R2 and S2: Checklist discipline when something breaks",
+   "kind": "risk",
+   "codes": [
+    "AI.XII.C.R2",
+    "AI.XII.C.S2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The checklist is a memory aid, but it is worthless if the pilot is not committed to using it; pilots who stop taking it seriously drift to memory alone [[24:36|AFH 1-15]]. Neglect of checklists is on the PHAK's list of operational pitfalls [[1:61|PHAK 2-22]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Principle",
+       "Source"
+      ],
+      "rows": [
+       [
+        "Immediate action items are best memorized; then, as workload permits, compare what was done with the checklist",
+        "[[24:284|AFH 13-35]]"
+       ],
+       [
+        "Respond to immediate action items from memory and find the emergency procedures quickly",
+        "[[24:348|AFH 17-14]]"
+       ],
+       [
+        "A checklist need not be a do-list: act, then use it to make sure all was done",
+        "[[24:36|AFH 1-15]]"
+       ],
+       [
+        "Use the manufacturer's checklist or one that matches it; where they differ, the AFM/POH wins",
+        "[[24:284|AFH 13-35]]"
+       ],
+       [
+        "In simulated emergencies, call each step out to the instructor; a checklist is strongly recommended",
+        "[[24:200|AFH 9-29]]"
+       ],
+       [
+        "Read it aloud and touch each critical control",
+        "[[1:62|PHAK 2-23]]"
+       ],
+       [
+        "The POH must be aboard and is essential for resolving in-flight malfunctions",
+        "[[1:62|PHAK 2-23]]"
+       ],
+       [
+        "Naturalistic, fast decisions do not replace memory items or a checklist procedure",
+        "[[30:56|RMH 8-3]]"
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "**What you watch for.** A verbal checklist can become so automatic that the recitation is decoupled from the actions it should trigger [[25:79|AIH 3-28]]. Watch hands and eyes, not just words: the learner who says \"fuel selector, both\" without looking at it is reciting. Visible reminders reduce errors only when actively used [[25:85|AIH 3-34]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "In an in-flight emergency requiring immediate action, the pilot in command may deviate from any rule of part 91 to the extent required, and must send a written report if the Administrator asks [[60:435|14 CFR 91.3]]. Under IFR in controlled airspace, malfunctions of navigation, approach or communication equipment must be reported to ATC as soon as practical [[60:483|14 CFR 91.187]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner runs the whole alternator failure from memory and never opens the checklist. What do the sources say she should have done?",
+    "a": "Memory items are fine for immediate actions, but afterward she should compare what she did with the checklist as workload permits [[24:284|AFH 13-35]]; the emphasis is on the check [[24:36|AFH 1-15]]."
+   }
+  },
+  {
+   "title": "R3 and R4: Distraction, priorities and the undesired aircraft state",
+   "kind": "risk",
+   "codes": [
+    "AI.XII.C.R3",
+    "AI.XII.C.R4"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "**Distraction (R3).** An anomaly can cause an upset by pulling attention from flying the airplane [[24:107|AFH 5-2]]. Many flight deck distractions start as a minor problem, such as a gauge that does not read correctly, and end in accidents because the pilot neglected control [[1:63|PHAK 2-24]]. Inoperative equipment is on the IFH's list of things that reduce situational awareness, and a pneumatic failure can leave a pilot in an unusual attitude [[23:337|IFH 11-12]]."
+    },
+    {
+     "bullets": [
+      "**Task prioritization.** When overloaded, stop, think, slow down and prioritize [[1:63|PHAK 2-24]]. During an emergency there may be no time to contact ATC [[30:56|RMH 8-3]], yet declaring an emergency gets extra help and priority [[30:47|RMH 6-4]].",
+      "**Ask early.** An aircraft is in at least an urgency condition the moment the pilot is doubtful about anything that could affect safety; that is the time to ask for help [[34:28|AIM 6-1-2]].",
+      "**Disorientation.** A slowly failing gyro can be followed into a turn the airplane is not making; missing the off flags can turn a benign failure into a hazardous one [[23:332|IFH 11-7]].",
+      "**Spotting fixation.** Glance at the learner's eyes: a long stare at one instrument suggests fixation; eyes that never reach the engine gauges suggest inattention [[25:82|AIH 3-31]]."
+     ]
+    },
+    {
+     "p": "**Undesired aircraft state (R4).** Crew error creates one: wrong position, speed, attitude or configuration, a situation that confuses and loads the pilot, or reduced margins [[30:46|RMH 6-3]]. Some failures can cause one directly, such as asymmetric flaps, binding controls and runaway trim [[24:107|AFH 5-2]]. Others cause one through the pilot: an autopilot that disconnects when it runs out of authority leaves the airplane in an undesired state [[30:51|RMH 7-2]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Defense layer (RMH)",
+       "In a malfunction lesson"
+      ],
+      "rows": [
+       [
+        "Anticipate and prevent threats",
+        "Preflight, systems knowledge, standby battery armed, POH procedure reviewed [[30:48|RMH 6-5]] [[23:331|IFH 11-6]]"
+       ],
+       [
+        "Recognize and trap errors",
+        "Checklists and SOPs as provided defenses [[30:46|RMH 6-3]]"
+       ],
+       [
+        "Recover from the undesired state",
+        "Flying skills are the last resort when other defenses fail [[30:47|RMH 6-4]]"
+       ]
+      ]
+     }
+    }
+   ],
+   "check": {
+    "q": "Which three things does the RMH list as an undesired aircraft state?",
+    "a": "Incorrect position, speed, attitude or configuration; a situation that causes confusion and more workload; and reduced safety margins with increased risk [[30:46|RMH 6-3]]."
+   }
+  },
+  {
+   "title": "How to teach it: simulating malfunctions safely",
+   "kind": "skills",
+   "codes": [
+    "AI.XII.C.S1",
+    "AI.XII.C.R1",
+    "AI.XII.C.R4",
+    "AI.XII.C.K2"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Your job is to give the learner a realistic failure while every real system keeps working. The AFH's training advice is blunt: simulated failures approached carelessly can become actual emergencies, a briefing is the normal mitigation, and pulling circuit breakers is not recommended [[24:284|AFH 13-35]]. That guidance sits in the twin chapter, but the AIH says the same of simulated engine failures in general [[25:191|AIH 10-7]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Failure",
+       "How to simulate it",
+       "What you never actually do"
+      ],
+      "rows": [
+       [
+        "Power loss (K1)",
+        "Throttle to idle with a clear \"simulated\" call; keep the engine warm and cleared [[24:199|AFH 9-28]] [[24:200|AFH 9-29]]",
+        "Application: no mixture cutoff, fuel selector off or magneto off in flight"
+       ],
+       [
+        "Electrical (K2a)",
+        "Verbal call plus a pointed gauge; night blackout training [[24:224|AFH 11-7]]; switches touched and named",
+        "Pull circuit breakers [[24:284|AFH 13-35]]"
+       ],
+       [
+        "Vacuum (K2b)",
+        "Cover the attitude and heading indicators [[23:162|IFH 7-1]]",
+        "Application: nothing that disables the pump"
+       ],
+       [
+        "Pitot-static (K2c)",
+        "Ground study of Figure 18-10; open the alternate static source in a climb or descent as the AFH check describes [[24:364|AFH 18-15]]",
+        "Application: no tape or covers on the pitot tube or static ports in flight"
+       ],
+       [
+        "Display (K2d)",
+        "Cover the PFD; use a training device for failure modes the airplane cannot show [[24:285|AFH 13-36]]",
+        "Pull the display or AHRS breaker [[24:284|AFH 13-35]]"
+       ],
+       [
+        "Gear or flap (K2e)",
+        "Fly real no-flap landings [[24:359|AFH 18-10]]; talk through the gear cases on the ground",
+        "Pull gear motor breakers: the AFH links that to gear-up landings [[24:284|AFH 13-35]]"
+       ],
+       [
+        "Trim (K2f)",
+        "Call \"trim inoperative\" and the learner leaves it alone; elevator trim stall demonstration at altitude [[24:126|AFH 5-21]]",
+        "Application: no runaway created on purpose"
+       ],
+       [
+        "Smoke, fire, oxygen, ice, door (K3 to K5)",
+        "Ground procedures trainer, then verbal scenario in flight [[24:284|AFH 13-35]]",
+        "Application: no smoke, no real door opening"
+       ]
+      ]
+     }
+    },
+    {
+     "bullets": [
+      "**Brief it.** Before the flight, agree on the objectives, how simulated emergencies will be introduced and what the learner is expected to do [[24:284|AFH 13-35]], and on who has the flight controls [[24:37|AFH 1-16]].",
+      "**Ground first.** Many abnormal and emergency procedures can be practiced in the parked airplane with the engine off; afterward, restore every item to its proper position [[24:284|AFH 13-35]].",
+      "**End it cleanly.** Terminate a simulation as soon as the outcome is clear, never to the point of undue hazard [[24:200|AFH 9-29]], and say \"simulation over\" before the next task. Application: if anything real happens, the training stops and you both deal with the real event.",
+      "**Grade the decision, not just the switches.** Simulated emergencies and heavy workload are valuable for assessing judgment, workload and stress management [[25:32|AIH 1-28]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Know the airplane before you teach its failures. The AIH wants instructors familiar with the aircraft model and avionics before instructing, from the POH and avionics manuals or time in the equipment [[25:191|AIH 10-7]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "What does the AFH say to do after using the parked airplane as a procedures trainer?",
+    "a": "Take care to restore every item to its proper position [[24:284|AFH 13-35]]."
+   }
+  },
+  {
+   "title": "Common errors: spot and fix",
+   "kind": "skills",
+   "codes": [
+    "AI.XII.C.K6",
+    "AI.XII.C.S3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The sources do not give one list of common errors for this Task, so this table gathers the errors each section warns about. Each has something you can see from the right seat."
+    },
+    {
+     "table": {
+      "head": [
+       "Error",
+       "What you see",
+       "How to fix it"
+      ],
+      "rows": [
+       [
+        "Fixing the problem before flying the airplane [[24:366|AFH 18-17]] [[1:63|PHAK 2-24]]",
+        "Head down at the gauge or door; altitude and heading wander",
+        "\"Fly first\" callout; trim, then troubleshoot; stop, think, slow down, prioritize [[1:63|PHAK 2-24]]"
+       ],
+       [
+        "Acting before identifying [[1:59|PHAK 2-20]]",
+        "A switch moved within a second of the cue",
+        "Require the learner to name the failure and its evidence before any input"
+       ],
+       [
+        "Missing off flags and the suction gauge [[23:332|IFH 11-7]] [[23:333|IFH 11-8]]",
+        "Following a wandering attitude indicator",
+        "Put flags and the suction gauge in the scan; cross-check against the turn indicator and VSI [[23:332|IFH 11-7]]"
+       ],
+       [
+        "Late detection of a charging failure [[24:362|AFH 18-13]] [[23:330|IFH 11-5]]",
+        "Charts over the annunciator; ammeter never checked",
+        "Keep indicators visible and the ammeter in cruise checks"
+       ],
+       [
+        "Not shedding load, or using electric gear or flaps on a weak battery [[24:362|AFH 18-13]]",
+        "Everything still on; flap switch selected on downwind",
+        "Shed at once; plan a no-flap landing and manual gear extension [[24:363|AFH 18-14]]"
+       ],
+       [
+        "Master off for a non-electrical fire [[24:358|AFH 18-9]]",
+        "Radios and transponder lost with no reason",
+        "Teach the POH step and the AFH reason"
+       ],
+       [
+        "Venting smoke before using the extinguisher, or leaving vents open as smoke grows [[24:359|AFH 18-10]]",
+        "Vents opened first",
+        "Extinguisher, then vents; close them if smoke increases"
+       ],
+       [
+        "Not confirming a static problem in a climb or descent [[24:364|AFH 18-15]]",
+        "Alternate static opened in level flight, \"no change\"",
+        "Open it while climbing or descending"
+       ],
+       [
+        "Diving or flaring too much without flaps, or a big flare with a split flap [[24:360|AFH 18-11]]",
+        "Steep descent to lose height; high flare; float",
+        "Wider pattern; fly it onto the runway above flaps-up stall speed"
+       ],
+       [
+        "Reaching for an open door, or rushing to land [[24:366|AFH 18-17]]",
+        "Harness released; tight, steep turns to final",
+        "Leave it; normal pattern and landing checklist"
+       ],
+       [
+        "Reciting the checklist without doing it [[25:79|AIH 3-28]]",
+        "Words without eyes or hands on the item",
+        "Read aloud and touch each critical control [[1:62|PHAK 2-23]]"
+       ],
+       [
+        "Trying to save the airplane at any cost [[24:351|AFH 18-2]]",
+        "Stretching a glide or turning back with too little altitude",
+        "Brief that the airplane is expendable; people come first [[24:359|AFH 18-10]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Fly, identify, checklist, land. Every row above breaks one of those four, in that order."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner opens the alternate static source in level cruise, sees no change and says the static system is fine. What is the error?",
+    "a": "The AFH check is made while climbing or descending; that is when a significant needle movement shows a static pressure problem [[24:364|AFH 18-15]]."
+   }
+  }
+ ],
+ "scenario": {
+  "title": "Night cross-country, retractable single, a real smell of burning",
+  "codes": [
+   "AI.XII.C.R1",
+   "AI.XII.C.R2",
+   "AI.XII.C.R3",
+   "AI.XII.C.R4"
+  ],
+  "setup": "You are giving a commercial learner a night cross-country in a retractable-gear single with electric gear and flaps. You briefed that you will introduce two simulated malfunctions with the word \"simulated.\" Before you give the first one, both of you smell burning insulation and the ammeter shows a discharge. The nearest suitable airport is 15 minutes away; your destination is 50 minutes away.",
+  "questions": [
+   {
+    "q": "Your learner hesitates and asks, \"Is this one of yours?\" What do you say, and why does it matter?",
+    "a": "\"No, this is real, I'll fly while you run the checklist,\" with a clear exchange of controls [[24:37|AFH 1-16]]. Application: real events end the simulation at once. Startle and surprise can freeze a pilot or prompt irrational action [[24:108|AFH 5-3]] [[25:45|AIH 2-12]], so a clear answer removes doubt."
+   },
+   {
+    "q": "What are the first actions for the burning-insulation odor?",
+    "a": "Try to find the faulty circuit through circuit breakers, instruments, avionics and lights; if it cannot be found quickly and conditions permit, turn off the battery master and alternator. The prudent course is to land as soon as possible [[24:359|AFH 18-10]]. Follow the POH procedure where it differs [[24:350|AFH 18-1]]."
+   },
+   {
+    "q": "Destination or the nearer airport?",
+    "a": "The nearer airport. Once the charging system fails the pilot should not continue but land at the nearest suitable airport [[23:330|IFH 11-5]], and an electrical fire also calls for landing as soon as possible [[24:359|AFH 18-10]]."
+   },
+   {
+    "q": "With the master off it is very dark and quiet. How do you two divide the work?",
+    "a": "One pilot flies while the other handles the checklist and communication; crews should share reasoning and actions [[30:47|RMH 6-4]]. Overload calls for stopping, thinking, slowing down and prioritizing [[1:63|PHAK 2-24]]. Application: you fly, the learner reads, a flashlight on the checklist."
+   },
+   {
+    "q": "Power is needed for the radio, gear and flaps. What does your learner have to plan for?",
+    "a": "Gear and flaps may not work on a partly depleted battery, and selecting their motors may cause total loss of power: plan early, expect a no-flap landing and a manual gear extension, and notify ATC [[24:362|AFH 18-13]] [[24:363|AFH 18-14]]. Restoring power to isolate the circuit recreates the problem [[24:359|AFH 18-10]]."
+   },
+   {
+    "q": "In the debrief, which undesired aircraft state did you two avoid, and what defense worked?",
+    "a": "Wrong configuration and an overloaded crew with reduced margins, which the RMH defines as undesired states [[30:46|RMH 6-3]]. The defenses were the checklist, clear communication and dividing the work [[30:46|RMH 6-3]] [[30:47|RMH 6-4]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "AI.XII.C.S1",
+   "do": "\"Determine appropriate action for simulated emergencies specified by the evaluator, from at least three of the elements or sub-elements listed in K1 through K5\" (ACS AI.XII.C.S1). The evaluator picks at least three, for example a vacuum failure, an electrical fire and an open door. For each you name the failure and its evidence, state what the POH and sources say to do and why, and explain how you would teach and safely simulate it. The ACS gives no numeric tolerance for this skill.",
+   "practice": "Make a card for each of the 11 items in K1 to K5 (each K2 sub-item separately) with recognition, actions and the simulation method, and have another applicant draw three at random [[24:200|AFH 9-29]] [[24:284|AFH 13-35]]."
+  },
+  {
+   "code": "AI.XII.C.S2",
+   "do": "\"Complete the appropriate checklist(s)\" (ACS AI.XII.C.S2). The evaluator sees you do memory items first when the procedure has them, then open the AFM/POH checklist and confirm each item by reading aloud and touching the control.",
+   "practice": "Sit in the parked airplane with the POH emergency section and run each procedure as a procedures trainer, then restore every switch [[24:284|AFH 13-35]] [[1:62|PHAK 2-23]]."
+  },
+  {
+   "code": "AI.XII.C.S3",
+   "do": "\"Analyze and correct common errors related to this Task\" (ACS AI.XII.C.S3). When the evaluator, playing a learner, turns the master off for an engine fire, chases an open door or reads the checklist without doing it, you name the error, its cause and the fix.",
+   "practice": "Learn the error table in this lesson with a \"what you see\" for each row, and role-play them with another applicant [[24:358|AFH 18-9]] [[24:366|AFH 18-17]] [[25:79|AIH 3-28]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Before a hot-day departure in a fuel-injected trainer, which fuel injection drawback from the PHAK list is most worth briefing?",
+   "options": [
+    "Vapor locks during ground operations on hot days",
+    "Evaporative icing forming in the venturi on climbout",
+    "Detonation caused by an excessively rich mixture",
+    "Loss of rpm from a clogged carburetor float bowl"
+   ],
+   "answer": 0,
+   "why": "The PHAK lists vapor lock during ground operations on hot days, along with hot starts and restarts after fuel starvation [[1:172|PHAK 7-12]]. Fuel injection reduces evaporative icing; detonation comes from too lean a mixture [[1:169|PHAK 7-9]]."
+  },
+  {
+   "q": "Which of these is NOT on the IFH list of components the essential bus usually powers?",
+   "options": [
+    "The air data computer",
+    "Navigation radio number 1",
+    "The landing lights",
+    "The attitude and heading reference system"
+   ],
+   "answer": 2,
+   "why": "The essential bus usually powers the AHRS, ADC, PFD, nav radio 1, com radio 1 and the standby indicator light [[23:331|IFH 11-6]]."
+  },
+  {
+   "q": "In its night training section, what does the AFH say practicing with all the flight deck lights off simulates?",
+   "options": [
+    "A gradual vacuum pump failure",
+    "An electrical or instrument light failure",
+    "A complete pitot and static blockage",
+    "Loss of night vision from mild hypoxia"
+   ],
+   "answer": 1,
+   "why": "Blackout training with the flight deck lights off simulates an electrical or instrument light failure [[24:224|AFH 11-7]]."
+  },
+  {
+   "q": "An unpressurized airplane has a blocked static system and no alternate static source. What does the IFH say the pilot could do?",
+   "options": [
+    "Turn on pitot heat to clear the static ports",
+    "Fly the rest of the flight by GPS altitude only",
+    "Open a cabin window to vent the instruments",
+    "Break the glass on the vertical speed indicator"
+   ],
+   "answer": 3,
+   "why": "Breaking the VSI glass gives the altimeter and airspeed indicator a static source; the VSI is not required for instrument flight, and the procedure may add errors [[23:333|IFH 11-8]]."
+  },
+  {
+   "q": "A learner has come to rely on the moving map. What does the IFH say keeps situational awareness if the display fails?",
+   "options": [
+    "Keeping the nearest airport page on the MFD",
+    "Following the flight on the en route chart",
+    "Writing down the GPS position every 10 minutes",
+    "Setting the autopilot to hold the GPS course"
+   ],
+   "answer": 1,
+   "why": "The display is a supplementary source and does not replace en route charts; follow the flight on the chart while monitoring the PFD [[23:329|IFH 11-4]]."
+  },
+  {
+   "q": "In the AFH trim runaway example, why might the pilot need a no-flap landing even after stopping the runaway?",
+   "options": [
+    "The flap pitching moment may add control forces the pilot cannot hold",
+    "Pulling the trim breaker also removes power from the flap motor",
+    "The trim disconnect locks the flaps in their current position",
+    "A runaway trim always jams the elevator against its stop"
+   ],
+   "answer": 0,
+   "why": "Depending on the control forces needed to hold pitch attitude, the pilot may need a no-flap landing because of the flap pitching moments [[24:348|AFH 17-14]]."
+  },
+  {
+   "q": "Which three sources of cabin fires does the AFH list?",
+   "options": [
+    "Fuel leaks, oil leaks and hydraulic fluid leaks",
+    "Static discharge, lightning and hot exhaust",
+    "Careless smoking, electrical malfunctions and heating malfunctions",
+    "Oxygen bottles, portable batteries and heated seats"
+   ],
+   "answer": 2,
+   "why": "Cabin fires generally result from careless smoking, electrical system malfunctions or heating system malfunctions [[24:359|AFH 18-10]]."
+  },
+  {
+   "q": "Why does the PHAK warn against oils and greases on oxygen valves and fittings?",
+   "options": [
+    "They clog the regulator and stop the flow",
+    "They may ignite when exposed to oxygen",
+    "They freeze at altitude and jam the valves",
+    "They react with the cannula and cause leaks"
+   ],
+   "answer": 1,
+   "why": "Materials nearly fireproof in air may burn in oxygen, and oils and greases may ignite if exposed to it [[1:197|PHAK 7-37]]."
+  },
+  {
+   "q": "Per the AFH, what helps pilots protect themselves against a debilitating surprise or startle response?",
+   "options": [
+    "Scenario-based training with realistic distractions and some perceived risk",
+    "Announcing every simulated failure clearly before it is given",
+    "Practicing each failure with the eyes closed until it is automatic",
+    "Memorizing every POH emergency checklist word for word"
+   ],
+   "answer": 0,
+   "why": "Scenario-based training, with realistic distractions and enough perceived risk to raise stress, helps pilots cope with surprise and startle [[24:108|AFH 5-3]]; eyes-closed training removes surprise [[24:107|AFH 5-2]]."
+  },
+  {
+   "q": "Which is part of the RMH definition of an undesired aircraft state?",
+   "options": [
+    "A hazard that occurs outside the pilot's influence",
+    "A deviation from an intended or expected action",
+    "A weakness in one layer of the pilot's defenses",
+    "Incorrect aircraft position, speed, attitude or configuration"
+   ],
+   "answer": 3,
+   "why": "An undesired aircraft state includes incorrect position, speed, attitude or configuration [[30:46|RMH 6-3]]. A threat is outside the crew's control and an error is a deviation from intended actions [[30:44|RMH 6-1]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "On your CFI practical test, what must the evaluator's simulated emergencies for this Task include?",
+   "options": [
+    "Every K2 sub-item, flown in the airplane",
+    "At least three elements or sub-elements from K1 to K5",
+    "One engine failure and one electrical failure",
+    "Only the malfunctions listed in the airplane's POH"
+   ],
+   "answer": 1,
+   "why": "S1 calls for simulated emergencies from at least three of the elements or sub-elements in K1 to K5 (ACS AI.XII.C.S1). The AFH asks that such emergencies be explained, demonstrated and practiced if practicable [[24:200|AFH 9-29]]."
+  },
+  {
+   "q": "Your learner suggests pulling the alternator field breaker in flight to make the electrical failure lesson realistic. What do the sources support?",
+   "options": [
+    "Pull it only at night, when the failure is most realistic",
+    "Pull it, since the IFH lists pulling breakers in an alternator failure",
+    "Pull it, but reset it before entering the traffic pattern",
+    "Do not; use a verbal scenario or the parked airplane instead"
+   ],
+   "answer": 3,
+   "why": "Pulling circuit breakers is not recommended for training and can lead to a gear-up landing; the parked airplane works as a procedures trainer [[24:284|AFH 13-35]]. The IFH breaker advice is for isolating loads in a real failure [[23:330|IFH 11-5]]."
+  },
+  {
+   "q": "You want to give a simulated partial power loss in a carbureted fixed-pitch trainer. Which method fits the AFH guidance for simulated emergencies?",
+   "options": [
+    "Reduce the throttle with a clear call and clear the engine periodically",
+    "Pull the mixture toward idle cutoff until the engine runs rough",
+    "Switch the fuel selector off for a few seconds, then back on",
+    "Turn one magneto off so the learner hears a real roughness"
+   ],
+   "answer": 0,
+   "why": "The instructor retards the throttle and calls the simulated emergency, keeps the engine warm and cleared, and either instructor or pilot has complete control of the throttle [[24:199|AFH 9-28]] [[24:200|AFH 9-29]]."
+  },
+  {
+   "q": "Your learner's PFD shows ATTITUDE FAIL in the IFH example system. What should you expect the autopilot to still offer?",
+   "options": [
+    "Heading and vertical speed modes",
+    "Approach and navigation modes",
+    "Roll and altitude hold modes",
+    "No modes at all; it disconnects"
+   ],
+   "answer": 2,
+   "why": "With an AHRS failure, all autopilot modes except roll and altitude hold are lost, along with attitude, heading and unusual attitude protection [[23:217|IFH 7-56]]."
+  },
+  {
+   "q": "On a no-flap final, your learner suddenly lowers the nose because the high pitch attitude feels close to a stall. What does the AFH say this risks?",
+   "options": [
+    "A tail strike during the roundout",
+    "A secondary stall just above the runway",
+    "A long float and a runway overrun",
+    "Touching down on the nosewheel"
+   ],
+   "answer": 3,
+   "why": "The nose-high attitude can give the perception of being near a stall, which may cause the pilot to lower the nose abruptly and risk touching down on the nosewheel [[24:360|AFH 18-11]]."
+  },
+  {
+   "q": "The nose gear will not extend but both mains are down and locked. After touchdown, your learner holds full up-elevator. What does the AFH warn?",
+   "options": [
+    "The tail will strike before the mains settle onto the runway",
+    "The nose will drop abruptly as airspeed decays, with possible burrowing",
+    "The airplane will lift off again and porpoise down the runway",
+    "Full up-elevator will lock the mains and blow both tires"
+   ],
+   "answer": 1,
+   "why": "Hold the nose off until almost full up-elevator is applied, then release back pressure so the nose settles slowly; holding full up-elevator makes the nose drop abruptly as airspeed decays, possibly burrowing [[24:361|AFH 18-12]]."
+  },
+  {
+   "q": "In IMC with electrical power essential, your learner runs the AFH steps to isolate a faulty circuit after an electrical fire. What does the AFH say about this procedure?",
+   "options": [
+    "It recreates the original problem, so landing as soon as possible is prudent",
+    "It is safe once the master has been off for at least one minute",
+    "It should be done with the alternator off and the battery on",
+    "It guarantees the fire is out once the faulty switch is found"
+   ],
+   "answer": 0,
+   "why": "Turning switches back on one at a time recreates the original problem; the most prudent course is to land as soon as possible [[24:359|AFH 18-10]]."
+  },
+  {
+   "q": "A learner opens the cabin vents to clear smoke and the smoke gets thicker. What does the AFH say to do and conclude?",
+   "options": [
+    "Open the windows too, since more airflow clears smoke faster",
+    "Lower the gear and flaps to slow down and reduce airflow",
+    "Close the vents at once; the fire may be in the heating system or fed by airflow",
+    "Leave them open and turn the cabin heat to full hot"
+   ],
+   "answer": 2,
+   "why": "If smoke increases when the vents are opened, close them immediately; it suggests a fire in the heating system or nose baggage area, or that airflow is feeding the fire [[24:359|AFH 18-10]]."
+  },
+  {
+   "q": "The PHAK compares a door opening on a clear day with the same door opening in IMC during an amended clearance. What changes?",
+   "options": [
+    "The aerodynamic effect of the door becomes much larger in cloud",
+    "Nothing; an open door is always a low risk and can be ignored",
+    "The pilot must now unbuckle and close the door at once",
+    "The problem is the same, but the risk rises with the workload"
+   ],
+   "answer": 3,
+   "why": "The problem has not changed, but the perceived risk does because of the ongoing tasks and environment [[1:59|PHAK 2-20]] [[1:63|PHAK 2-24]]."
+  },
+  {
+   "q": "After a simulated alternator failure, your learner did every step from memory and then put the checklist away unopened. Which statement matches the sources?",
+   "options": [
+    "Memory alone is fine once a pilot has practiced the procedure enough",
+    "Acting first is fine, but the checklist should then be used to check",
+    "The checklist must be read before any switch is touched",
+    "The checklist is only needed if the POH has no memory items"
+   ],
+   "answer": 1,
+   "why": "Checklists need not be do-lists: actions can be done and the checklist used afterward, with emphasis on the check [[24:36|AFH 1-15]]; memory items are then compared with the checklist as workload permits [[24:284|AFH 13-35]]."
+  },
+  {
+   "q": "Your learner says each checklist item quickly and correctly, but missed that the fuel pump switch was off. What does the AIH call this, and what fix fits?",
+   "options": [
+    "Recitation decoupled from action; read aloud and touch each critical item",
+    "Fixation on one instrument; widen the scan to the engine gauges",
+    "Negative transfer from another airplane; use only one checklist",
+    "Inattention from boredom; give the learner more tasks at once"
+   ],
+   "answer": 0,
+   "why": "Overlearning can make a verbal checklist so automatic that it becomes decoupled from the actions it should trigger [[25:79|AIH 3-28]]; reading aloud and touching each critical control confirms the action [[1:62|PHAK 2-23]]."
+  },
+  {
+   "q": "The AFH wants learners trained to handle surprise, yet also warns against springing emergencies on them. How do you meet both?",
+   "options": [
+    "Never brief simulated emergencies so each one is a full surprise",
+    "Brief every failure's exact time and place so nothing surprises",
+    "Brief how failures will be introduced and expected actions, then vary the timing",
+    "Skip in-flight failures and teach them only on the ground"
+   ],
+   "answer": 2,
+   "why": "Surprising a learner without a thorough briefing creates a hazard, so agree how simulated emergencies will be introduced and what to do [[24:284|AFH 13-35]]; within that, realistic distractions help provoke surprise in a controlled way [[24:108|AFH 5-3]]."
+  },
+  {
+   "q": "With the attitude and heading indicators covered, your learner keeps staring at the airspeed indicator while the heading drifts. What does the AIH suggest you watch to confirm the problem?",
+   "options": [
+    "The learner's hands on the yoke, for tension",
+    "The VSI, for a slow altitude change",
+    "The learner's breathing rate and speech",
+    "The learner's eyes, for a long stare at one gauge"
+   ],
+   "answer": 3,
+   "why": "Instructors can glance at a learner's eyes: looking at one instrument for an extended time suggests fixation [[25:82|AIH 3-31]]."
+  }
+ ],
+ "takeaways": [
+  "The AFM/POH procedure comes first; the AFH and IFH steps are generic.",
+  "Fly first, identify second, checklist third, land as the situation requires.",
+  "Electrical failure: shed load, tell ATC, nearest suitable airport, expect no flaps and a manual gear extension.",
+  "Gyros fail quietly and partial static blockage shows up in the descent: scan the suction gauge and off flags.",
+  "An open door is rarely the danger; the distracted pilot is.",
+  "Simulate with the throttle, covers and words. Never pull breakers, block ports, open doors or create smoke.",
+  "Brief how failures will come, then vary when, so the learner meets surprise in a controlled way."
+ ],
+ "cfi_notes": [
+  "The clearest FAA advice on how to simulate failures (brief how they will be introduced, do not pull circuit breakers, use the parked airplane as a procedures trainer, restore items afterward) is in the AFH twin chapter [[24:284|AFH 13-35]]. Apply it to singles as reasoning, and say where it comes from.",
+  "The AFH says surprising a learner with an emergency without a briefing creates a hazard [[24:284|AFH 13-35]], while its UPRT section wants realistic distractions to provoke startle [[24:108|AFH 5-3]]. Brief the how, vary the when.",
+  "Battery time numbers differ across sources: the AFH 25 amp-hour example [[24:362|AFH 18-13]], the IFH's approximate 40 minutes [[23:330|IFH 11-5]] and its 45 minutes or a matter of minutes [[23:331|IFH 11-6]]. None is a planning figure; teach shedding load and landing at the nearest suitable airport.",
+  "The IFH suggests pulling breakers to isolate loads in a real alternator failure [[23:330|IFH 11-5]]; the AFH advises against pulling breakers in training [[24:284|AFH 13-35]]. These do not conflict, but learners mix them up.",
+  "Some light airplane checklists put the master switch off for any fire; the AFH asks the pilot to consider the cost when the fire is not electrical [[24:358|AFH 18-9]]. The POH procedure governs [[24:350|AFH 18-1]]; teach its reasons and do not teach your own version.",
+  "The PHAK says flight deck static pressure is lower than outside, so check the POH for alternate static airspeed corrections [[1:213|PHAK 8-11]]; the AFH only says the needles move significantly [[24:364|AFH 18-15]]. Show the learner the actual effect in your airplane.",
+  "Older teaching said boots cycled too early would let ice bridge. The PHAK now says bridging does not occur with modern boots and they can be cycled as soon as ice is seen [[1:200|PHAK 7-40]]. Teach the current guidance and the POH.",
+  "The AFH says a cabin door in a light single seldom if ever affects the ability to fly [[24:366|AFH 18-17]], but its LSA section says a gull-wing door or canopy popping open can become an emergency in seconds [[24:346|AFH 17-12]]. Know which kind you are teaching in.",
+  "The trim runaway response the AFH gives is in its LSA section [[24:348|AFH 17-14]]; the only general note is that most pilots can overpower the trim in training airplanes [[24:121|AFH 5-16]]. Use the POH for your airplane's trim system."
+ ],
+ "gaps": [
+  "No source gives a procedure for a trim that is stuck (not running away) in a light single; check the AFM/POH and teach from the control forces the airplane actually produces.",
+  "The sources describe no way to simulate smoke, fire or a door opening in flight; teaching them by briefing, ground practice and verbal scenario is this lesson's application.",
+  "No source says whether turning the alternator half of the master switch off in flight is an acceptable way to simulate a charging failure; follow the POH and your school's procedures.",
+  "Battery endurance after a charging failure depends on the battery's condition and the load; no source gives a figure for your airplane.",
+  "The sources do not say how often or where to practice the alternate gear extension; the AFM/POH and the school's procedures decide.",
+  "Glass failure indications are not standardized [[24:364|AFH 18-15]]; the avionics manual for your system is the only source for what each failure looks like."
+ ],
+ "activities": [
+  {
+   "type": "label",
+   "key": "h1",
+   "after": 5,
+   "title": "What is left when the screens go",
+   "figure": "f5",
+   "intro": "Drag each label to its numbered pin on the panel.",
+   "pins": [
+    {
+     "x": 45.2,
+     "y": 60.7,
+     "label": "Standby source of speed for the approach and landing"
+    },
+    {
+     "x": 55.6,
+     "y": 60.0,
+     "label": "Pitch and bank reference once the AHRS display is gone"
+    },
+    {
+     "x": 66.8,
+     "y": 60.7,
+     "label": "Altitude reference independent of the dead display"
+    },
+    {
+     "x": 48.4,
+     "y": 11.4,
+     "label": "Heading source that leaves pilotage and dead reckoning"
+    },
+    {
+     "x": 27.3,
+     "y": 31.4,
+     "label": "Its loss is why the standby instruments matter"
+    },
+    {
+     "x": 5.6,
+     "y": 38.3,
+     "label": "Must be in ARM before departure to back up the essential bus"
+    }
+   ]
+  },
+  {
+   "type": "match",
+   "key": "h2",
+   "after": 7,
+   "title": "How does the failure announce itself?",
+   "intro": "Tap a malfunction, then tap the cue the sources give for recognizing it.",
+   "pairs": [
+    {
+     "l": "Asymmetric flap",
+     "r": "Pronounced roll toward the wing with less flap"
+    },
+    {
+     "l": "Electrical fire",
+     "r": "Odor of burning insulation"
+    },
+    {
+     "l": "Oil-fed engine fire",
+     "r": "Thick black smoke"
+    },
+    {
+     "l": "Fuel-fed engine fire",
+     "r": "Bright orange flames"
+    },
+    {
+     "l": "Regulator malfunction",
+     "r": "Full-scale positive ammeter deflection"
+    },
+    {
+     "l": "Up-elevator cable failure",
+     "r": "Yoke moves aft easily with no response"
+    },
+    {
+     "l": "Door opening in flight",
+     "r": "Sudden loud noise and possible buffeting"
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h3",
+   "after": 8,
+   "title": "Malfunction numbers from the sources",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "From AFH Figure 18-9, add the continuous loads of pitot heating, the wingtip lights, the fuel indicator, the overhead instrument lights, the engine indicator and the compass light. How many amperes in total?",
+     "answer": 7.8,
+     "tol": 0.05,
+     "unit": "amperes",
+     "why": "3.30 + 3.00 + 0.40 + 0.60 + 0.30 + 0.20 = 7.80 A [[24:363|AFH 18-14]]. Shedding what is not essential stretches battery time [[24:362|AFH 18-13]]."
+    },
+    {
+     "q": "From Figure 18-9, the flap motor draws how many times the current of the fuel indicator?",
+     "answer": 32.5,
+     "tol": 0.1,
+     "unit": "times",
+     "why": "13.00 / 0.40 = 32.5 [[24:363|AFH 18-14]]. That is why the AFH warns that flap and gear motors on a partly depleted battery may cause total loss of power [[24:362|AFH 18-13]]."
+    },
+    {
+     "q": "The PHAK says gyro instruments usually need between 4.5 and 5.5 \"Hg. The suction gauge reads 3.8 \"Hg. How far below the bottom of that range is it?",
+     "answer": 0.7,
+     "tol": 0.05,
+     "unit": "\"Hg",
+     "why": "4.5 - 3.8 = 0.7 \"Hg [[1:218|PHAK 8-16]]. Below the normal range the gyros may become unstable and inaccurate, so cross-check them [[1:218|PHAK 8-16]]."
+    },
+    {
+     "q": "The IFH gives about 40 minutes of battery life after a charging failure, as an approximation not to be relied on. If the failure went unnoticed for 15 minutes, how many minutes are left by that rough figure?",
+     "answer": 25,
+     "tol": 0,
+     "unit": "minutes",
+     "why": "40 - 15 = 25 minutes [[23:330|IFH 11-5]]. The IFH warns the figure is approximate and the battery may not be full; the AFH adds that an undetected failure has already used stored energy [[24:362|AFH 18-13]]."
+    },
+    {
+     "q": "A flight spends 25 minutes at a cabin altitude of 13,500 feet, then 10 minutes at 14,500 feet. For how many minutes must the required crew use supplemental oxygen?",
+     "answer": 10,
+     "tol": 0,
+     "unit": "minutes",
+     "why": "Above 12,500 up to 14,000 feet, oxygen is required only for the part over 30 minutes: 25 minutes needs none. Above 14,000 feet it is required the entire time: 10 minutes. 0 + 10 = 10 [[60:491|14 CFR 91.211]]."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h4",
+   "after": 9,
+   "title": "A door opens just after lift-off",
+   "intro": "Use the arrows to put the AFH actions in order, then tap Check. (From AFH 18-17.)",
+   "steps": [
+    "Concentrate on flying the airplane and control any roll or yaw",
+    "Climb to normal traffic pattern altitude without rushing",
+    "Fly a normal traffic pattern, leaving the door and harness alone",
+    "Complete all items on the landing checklist",
+    "Make a normal landing",
+    "Close the door once safely on the ground"
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h5",
+   "after": 10,
+   "title": "How soon do you land?",
+   "intro": "Tap each item, then tap what the sources say to do about it.",
+   "buckets": [
+    "Land as soon as possible",
+    "Land as soon as practicable",
+    "Correct it and continue"
+   ],
+   "items": [
+    {
+     "t": "Electrical fire, faulty circuit not found",
+     "b": 0
+    },
+    {
+     "t": "Low oil pressure from insufficient oil",
+     "b": 0
+    },
+    {
+     "t": "Airspeed loss with manifold pressure and rpm constant",
+     "b": 0
+    },
+    {
+     "t": "Cabin door opens in flight",
+     "b": 1
+    },
+    {
+     "t": "Vacuum failure in VFR conditions",
+     "b": 1
+    },
+    {
+     "t": "Ammeter indicating discharge",
+     "b": 1
+    },
+    {
+     "t": "Rpm loss in cruise from carburetor ice",
+     "b": 2
+    },
+    {
+     "t": "Static blockage confirmed by the alternate source",
+     "b": 2
+    },
+    {
+     "t": "Manifold pressure creeping up in cruise",
+     "b": 2
+    }
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h6",
+   "after": 12,
+   "title": "Teaching a malfunction lesson, one decision at a time",
+   "intro": "You are flying a day VFR malfunction lesson with a private pilot learner in a retractable single with electric gear and flaps.",
+   "steps": [
+    {
+     "s": "On the ground before the flight, what do you brief about the malfunctions?",
+     "options": [
+      "Nothing, so that each one is a full surprise",
+      "How they will be introduced and what she is expected to do",
+      "The exact time and place of each one",
+      "Only that you may pull some circuit breakers"
+     ],
+     "answer": 1,
+     "why": "Agree on how simulated emergencies will be introduced and what the learner is expected to do; surprising a learner without a briefing creates a hazard [[24:284|AFH 13-35]]."
+    },
+    {
+     "s": "Airborne, you want to give her a vacuum failure. How?",
+     "options": [
+      "Pull the vacuum pump circuit breaker",
+      "Have her close her eyes and fly by feel",
+      "Cover the attitude and heading indicators",
+      "Reduce power until suction drops"
+     ],
+     "answer": 2,
+     "why": "The IFH maneuvers can be flown with the attitude and heading indicators covered [[23:162|IFH 7-1]], and covering failed instruments may help the pilot [[23:332|IFH 11-7]]. Pulling breakers is not recommended for training [[24:284|AFH 13-35]]."
+    },
+    {
+     "s": "With the gyros covered she starts twisting the heading indicator knob and the airplane drifts into a descending turn. What do you coach?",
+     "options": [
+      "Keep control first and compare the remaining instruments",
+      "Uncover the gyros so she can see the problem",
+      "Let the drift go until she notices on her own",
+      "Engage the autopilot to hold the attitude"
+     ],
+     "answer": 0,
+     "why": "Control must be kept while the failed component is identified; expedite the cross-check and compare the attitude indicator with the turn indicator and VSI [[23:332|IFH 11-7]]."
+    },
+    {
+     "s": "Next you call a simulated alternator failure. She plans to fly the normal pattern and lower gear and flaps on downwind as usual. What does the AFH want her to plan?",
+     "options": [
+      "Gear and flaps early, before the battery runs down",
+      "A straight-in approach with full flaps",
+      "Holding until the battery recovers",
+      "Early planning, a no-flap landing and a manual gear extension"
+     ],
+     "answer": 3,
+     "why": "If gear or flaps are electric, plan the arrival well ahead and expect a no-flap landing and a manual gear extension [[24:363|AFH 18-14]], since the motors may drain a weak battery at once [[24:362|AFH 18-13]]."
+    },
+    {
+     "s": "In the debrief she says she did everything from memory, so the checklist was not needed. What do you teach?",
+     "options": [
+      "Memory alone is fine for practiced pilots",
+      "Act from memory, then use the checklist to check",
+      "Read the checklist before every action",
+      "Checklists are only for preflight"
+     ],
+     "answer": 1,
+     "why": "Checklists need not be do-lists; the check is the point [[24:36|AFH 1-15]]. Memory items are compared with the checklist as workload permits [[24:284|AFH 13-35]]."
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h7",
+   "after": 13,
+   "title": "True or false: simulating failures safely",
+   "intro": "Decide whether each statement is true or false.",
+   "cards": [
+    {
+     "s": "The AFH recommends pulling circuit breakers to make simulated failures realistic.",
+     "a": false,
+     "why": "False. Pulling circuit breakers is not recommended for training and can lead to a gear-up landing [[24:284|AFH 13-35]]."
+    },
+    {
+     "s": "During a simulated emergency landing, either the instructor or the pilot should have complete control of the throttle.",
+     "a": true,
+     "why": "True. There should be no doubt who has control [[24:200|AFH 9-29]]."
+    },
+    {
+     "s": "A simulated emergency landing should always be carried down to touchdown so the learner sees the result.",
+     "a": false,
+     "why": "False. It is ended as soon as it is clear whether a safe landing is assured, never to the point of undue hazard [[24:200|AFH 9-29]]."
+    },
+    {
+     "s": "Many abnormal and emergency procedures can be practiced in the parked airplane with the engine off.",
+     "a": true,
+     "why": "True. The airplane can serve as a procedures trainer; restore every item afterward [[24:284|AFH 13-35]]."
+    },
+    {
+     "s": "The AFH says glass display failure modes are easy to reproduce in the airplane.",
+     "a": false,
+     "why": "False. The difficulty or inability to simulate failure modes can impose training limitations [[24:365|AFH 18-16]]."
+    },
+    {
+     "s": "Emergency procedures that would be dangerous in the airplane can be practiced in a flight training device.",
+     "a": true,
+     "why": "True [[24:285|AFH 13-36]]."
+    }
+   ]
+  }
+ ]
+}
