@@ -15,10 +15,14 @@ class DashboardSameTimePlaneOrderTest(OpsHubTestCase):
         # list, so a passing test can't be an accident of insertion order.
         tags = ["N5569P", "AATD Redbird", "N20267S", "N22689"]
         assets = {}
+        # The dashboard follows each plane's saved schedule_order (the app's
+        # migration gave the live planes Frank's order), so the test planes
+        # get that order explicitly: N20267S, N22689, AATD Redbird, N5569P.
+        order = {"N20267S": 10, "N22689": 20, "AATD Redbird": 30, "N5569P": 40}
         for tag in tags:
             assets[tag] = self.exec(
-                "INSERT INTO assets (tag, name, is_flight_asset, hobbs_hours, tach_hours, created_at, updated_at) "
-                "VALUES (?,?,?,?,?,?,?)", (tag, "Plane", 1, 100.0, 90.0, db.now_iso(), db.now_iso()))
+                "INSERT INTO assets (tag, name, is_flight_asset, hobbs_hours, tach_hours, schedule_order, created_at, updated_at) "
+                "VALUES (?,?,?,?,?,?,?,?)", (tag, "Plane", 1, 100.0, 90.0, order[tag], db.now_iso(), db.now_iso()))
         cfi_id = self.q1("SELECT id FROM cfis WHERE username = 'cfi'")["id"]
         student_id = self.q1("SELECT id FROM students WHERE username = 'flight_student'")["id"]
         tomorrow = (date.today() + timedelta(days=1)).strftime("%Y-%m-%d")
