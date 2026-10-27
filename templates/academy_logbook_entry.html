@@ -35,8 +35,9 @@
     </div>
     {% if not staff %}<div class="form-text mb-2">Times come from the plane's Hobbs meter and can only be corrected by an instructor.</div>{% endif %}
 
+    <style>.ac-feat{display:flex;flex-wrap:wrap;gap:.4rem 1.1rem}</style>
     <h6 class="mt-3">The airplane</h6>
-    <div class="d-flex flex-wrap gap-3 mb-1">
+    <div class="ac-feat mb-1">
       {% for code, label in ac_features %}
       <div class="form-check"><input class="form-check-input" type="checkbox" name="ac_features" value="{{ code }}" id="acf-{{ code }}" {{ 'checked' if code in (e.ac_features or '').split(',') }}>
         <label class="form-check-label small" for="acf-{{ code }}">{{ label }}</label></div>
@@ -44,21 +45,43 @@
     </div>
     <div class="form-text mb-2">Filled in from the plane's school profile for school flights; tick the right ones on anything else. Complex, technically advanced or turbine flights count toward the commercial 10 hours on Progress.</div>
 
-    <h6 class="mt-3">Your details</h6>
-    <div class="row g-2">
-      {% for f, label, kind in fields %}
-      <div class="{{ 'col-12 col-md-6' if kind == 'text' else 'col-6 col-md-3' }}">
-        <label class="form-label small mb-0">{{ label }}</label>
-        {% if f == 'remarks' %}
-        <textarea name="remarks" rows="2" class="form-control form-control-sm">{{ e.remarks or '' }}</textarea>
-        {% else %}
-        <input type="{{ 'text' if kind == 'text' else 'number' }}" {% if kind == 'hrs' %}step="0.1" min="0"{% elif kind == 'int' %}step="1" min="0"{% endif %}
+    {#- Your details: grouped like the paper logbook, one even grid per group, short labels so nothing wraps or drifts out of line. #}
+    {% set fmap = {} %}{% for f, label, kind in fields %}{% set _ = fmap.update({f: kind}) %}{% endfor %}
+    {% set short = {'route_from':'From','route_to':'To / via','route':'Route (waypoints, navaids, airways)','xc':'Cross-country','xc50':'XC over 50 NM','night':'Night',
+                    'pic':'PIC','sic':'SIC','dual_given':'As instructor','sim_flight':'Simulator / FTD','actual_inst':'Actual','sim_inst':'Simulated (hood)',
+                    'approaches':'Approaches','approach_detail':'Approach type & location','day_ldg':'Day','night_ldg':'Night','night_fs':'Night full-stop',
+                    'cat_class':'Category & class'} %}
+    {% macro fld(f, cols) %}
+      <div class="{{ cols }}">
+        <label class="form-label small fw-semibold mb-1" for="f-{{ f }}">{{ short[f] }}</label>
+        <input id="f-{{ f }}" type="{{ 'text' if fmap[f] == 'text' else 'number' }}" {% if fmap[f] == 'hrs' %}step="0.1" min="0"{% elif fmap[f] == 'int' %}step="1" min="0"{% endif %}
                name="{{ f }}" value="{{ e[f] if e[f] is not none else '' }}" class="form-control form-control-sm"
                {% if f in ('route_from','route_to') %}placeholder="{{ 'e.g. KABC' if f == 'route_from' else 'e.g. KDEF, KGHI' }}" data-apt="{{ 'from' if f == 'route_from' else 'to' }}" autocomplete="off" autocapitalize="characters"{% endif %}
                {% if f == 'route' %}placeholder="e.g. V213 SAX J80 - leave empty for a straight line" data-apt="route" autocomplete="off" autocapitalize="characters"{% endif %}>
-        {% endif %}
       </div>
-      {% endfor %}
+    {% endmacro %}
+    <style>
+      .ld-sec { border:1px solid #dbe3ee; border-left:5px solid var(--sc,#3b82f6); border-radius:10px; background:#f7f9fc; padding:.75rem .85rem .85rem; margin-top:.9rem; }
+      .ld-sec > h6 { margin:0 0 .6rem; font-weight:800; font-size:.8rem; letter-spacing:.07em; text-transform:uppercase; color:var(--sc,#3b82f6); }
+      .ld-sec .form-control { background:#fff; }
+    </style>
+    <div class="ld-sec" style="--sc:#3b82f6"><h6><i class="bi bi-signpost-split"></i> Route</h6>
+      <div class="row g-2">{{ fld('route_from','col-6') }}{{ fld('route_to','col-6') }}{{ fld('route','col-12') }}</div>
+    </div>
+    <div class="ld-sec" style="--sc:#0ea5a4"><h6><i class="bi bi-clock-history"></i> Flight time (hours)</h6>
+      <div class="row g-2">{{ fld('xc','col-6 col-md-3') }}{{ fld('xc50','col-6 col-md-3') }}{{ fld('night','col-6 col-md-3') }}{{ fld('pic','col-6 col-md-3') }}
+        {{ fld('sic','col-6 col-md-3') }}{{ fld('dual_given','col-6 col-md-3') }}{{ fld('sim_flight','col-6 col-md-3') }}</div>
+    </div>
+    <div class="ld-sec" style="--sc:#8b5cf6"><h6><i class="bi bi-cloud-fog2"></i> Instrument</h6>
+      <div class="row g-2">{{ fld('actual_inst','col-6 col-md-3') }}{{ fld('sim_inst','col-6 col-md-3') }}{{ fld('approaches','col-6 col-md-3') }}{{ fld('approach_detail','col-12') }}</div>
+    </div>
+    <div class="ld-sec" style="--sc:#f59e0b"><h6><i class="bi bi-arrow-down-circle"></i> Landings</h6>
+      <div class="row g-2">{{ fld('day_ldg','col-4') }}{{ fld('night_ldg','col-4') }}{{ fld('night_fs','col-4') }}</div>
+    </div>
+    <div class="ld-sec" style="--sc:#ec4899"><h6><i class="bi bi-airplane"></i> Aircraft &amp; remarks</h6>
+      <div class="row g-2">{{ fld('cat_class','col-12') }}
+        <div class="col-12"><label class="form-label small fw-semibold mb-1" for="f-remarks">Remarks / maneuvers</label>
+          <textarea id="f-remarks" name="remarks" rows="2" class="form-control form-control-sm">{{ e.remarks or '' }}</textarea></div></div>
     </div>
 
     <div class="d-flex gap-2 flex-wrap mt-3" data-change="DESIGN-8">
