@@ -1,0 +1,1589 @@
+{
+ "task_code": "AI.II.D",
+ "task_title": "Principles of Flight",
+ "area": "Area II. Technical Subject Areas",
+ "minutes": 90,
+ "objective": "By the end of this lesson you can explain airfoil design, stability and controllability, left-turning tendencies, the forces on an airplane, load factors in design and wingtip vortices at commercial-pilot depth, and teach at least three of them to a learner with an organized plan, accurate sources, good instructional aids and questions that prove real understanding.",
+ "why": "Loss of control in flight is the leading cause of fatal general aviation accidents in the U.S. [[24:106|AFH 5-1]], and most of the traps behind it (a stall at a speed that looked safe, an overstressed airframe, a wake encounter) come from aerodynamics the pilot learned by rote or learned wrong. As a CFI you are the person who plants those first ideas, and what is learned first is hard to undo. This lesson gives you the content, the misconceptions the FAA sources warn about, and ways to check that a learner truly understands.",
+ "prereading": [
+  {
+   "res": "1",
+   "pages": [
+    92,
+    93,
+    94,
+    95,
+    96
+   ],
+   "printed": "PHAK 4-5 to 4-9",
+   "what": "Newton, Bernoulli, airfoil design, pressure distribution and the center of pressure, why lift is more than a pressure difference, and tip vortices.",
+   "label": "PHAK 4-5 to 4-9"
+  },
+  {
+   "res": "1",
+   "pages": [
+    98,
+    99,
+    100,
+    101,
+    102
+   ],
+   "printed": "PHAK 5-1 to 5-5",
+   "what": "The four forces, why 'lift equals weight' can mislead, angle of attack, and the lift equation.",
+   "label": "PHAK 5-1 to 5-5"
+  },
+  {
+   "res": "1",
+   "pages": [
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117
+   ],
+   "printed": "PHAK 5-14 to 5-20",
+   "what": "Static and dynamic stability, maneuverability and controllability, longitudinal, lateral and directional stability, Dutch roll and spiral instability.",
+   "label": "PHAK 5-14 to 5-20"
+  },
+  {
+   "res": "1",
+   "pages": [
+    127,
+    128,
+    129
+   ],
+   "printed": "PHAK 5-30 to 5-32",
+   "what": "Torque reaction, the corkscrewing slipstream, gyroscopic precession and P-factor.",
+   "label": "PHAK 5-30 to 5-32"
+  },
+  {
+   "res": "1",
+   "pages": [
+    130,
+    131,
+    132,
+    133,
+    134,
+    135
+   ],
+   "printed": "PHAK 5-33 to 5-38",
+   "what": "Load factors, limit load factors and categories, stall speed and load factor, VA, rough air and the Vg diagram.",
+   "label": "PHAK 5-33 to 5-38"
+  },
+  {
+   "res": "34",
+   "pages": [
+    147,
+    148,
+    150,
+    151,
+    152,
+    153
+   ],
+   "printed": "AIM 7-4-1 to 7-4-8",
+   "what": "Wake turbulence: how vortices form, their strength and behavior, problem areas, avoidance procedures and pilot responsibility.",
+   "label": "AIM 7-4-1 to 7-4-8"
+  },
+  {
+   "res": "25",
+   "pages": [
+    103,
+    113,
+    114,
+    115,
+    126,
+    127,
+    142,
+    143
+   ],
+   "printed": "AIH 4-10, 5-10 to 5-12, 5-23 to 5-24, 6-11 to 6-12",
+   "what": "Questioning, organizing a lesson, the teaching lecture, instructional aids, effective questions and answering learner questions.",
+   "label": "AIH 4-10, 5-10 to 5-12, 5-23 to 5-24, 6-11 to 6-12"
+  }
+ ],
+ "warmup": "Think first: a private pilot learner tells you, 'The top of the wing is curved, so the air over it has to travel farther in the same time. It speeds up, the pressure drops, and that is lift.' Then the learner asks how an aerobatic airplane flies upside down. Which parts of that explanation hold up, what do the FAA handbooks say instead, and how would you find out whether the learner really understands your correction or just memorized new words?",
+ "key_terms": [
+  {
+   "term": "Angle of attack (AOA)",
+   "def": "The acute angle between the chord line of the airfoil and the direction of the relative wind [[1:99|PHAK 5-2]]."
+  },
+  {
+   "term": "Critical angle of attack",
+   "def": "The AOA where the airflow separates and the wing stalls, about 16° to 20° depending on design. A given airplane always stalls at the same AOA regardless of airspeed, weight, load factor or density altitude [[1:122|PHAK 5-25]]."
+  },
+  {
+   "term": "Chord line and camber",
+   "def": "The chord line is a straight line from the leading edge to the trailing edge; camber is the curvature of the upper and lower surfaces, usually more pronounced on top [[1:93|PHAK 4-6]]."
+  },
+  {
+   "term": "Center of pressure (CP)",
+   "def": "The average of the pressure variation along the airfoil at a given AOA. Aerodynamic force acts through it; it moves forward at high AOA and aft at low AOA [[1:95|PHAK 4-8]]."
+  },
+  {
+   "term": "Static stability",
+   "def": "The initial tendency, or direction of movement, back to equilibrium after a disturbance: positive, neutral or negative [[1:111|PHAK 5-14]]."
+  },
+  {
+   "term": "Dynamic stability",
+   "def": "The airplane's response over time after a disturbance: positive (motion dies out), neutral (it neither grows nor shrinks) or negative (it grows) [[1:111|PHAK 5-14]] [[1:112|PHAK 5-15]]."
+  },
+  {
+   "term": "Maneuverability and controllability",
+   "def": "Maneuverability lets the airplane be maneuvered easily and withstand the stresses; controllability is its response to the pilot's control, regardless of its stability [[1:112|PHAK 5-15]]."
+  },
+  {
+   "term": "P-factor",
+   "def": "Asymmetric propeller loading: at high AOA the descending blade takes a bigger bite than the ascending blade, moving the center of thrust right and yawing the nose left [[1:129|PHAK 5-32]]."
+  },
+  {
+   "term": "Gyroscopic precession",
+   "def": "A force applied to the rim of a spinning rotor takes effect 90° ahead of the point of application, in the direction of rotation [[1:128|PHAK 5-31]]."
+  },
+  {
+   "term": "Load factor",
+   "def": "The total load on the structure divided by the airplane's weight, expressed in Gs; a load factor of 3 means three times the weight [[1:130|PHAK 5-33]]."
+  },
+  {
+   "term": "Limit and ultimate loads",
+   "def": "Limit loads equal the structural design loads; ultimate loads are the limit loads times a 1.5 factor of safety [[60:106|14 CFR 23.2230]]. The structure must carry limit loads without detrimental permanent deformation [[60:107|14 CFR 23.2235]]."
+  },
+  {
+   "term": "Wake turbulence",
+   "def": "Two counter-rotating vortices trailing behind every aircraft that is producing lift [[34:147|AIM 7-4-1]]."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "The CFI standard and how to frame this lesson",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.D.S1",
+    "AI.II.D.R1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "This Task is knowledge you teach, not a maneuver you fly. The skill element asks you to deliver instruction on principles of flight, including at least three of the elements listed in K1 through K6 (ACS AI.II.D.S1). The risk element is the basic aerodynamic principles of flight themselves (ACS AI.II.D.R1). That matters because loss of control in flight is the leading cause of fatal general aviation accidents in the U.S., and maneuvering is the most common phase for those accidents [[24:106|AFH 5-1]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Element",
+       "What you must be ready to teach"
+      ],
+      "rows": [
+       [
+        "K1 Airfoil design characteristics",
+        "Airfoil parts, how lift is made, center of pressure, planform and stall progression"
+       ],
+       [
+        "K2 Stability, maneuverability and controllability",
+        "Static and dynamic stability on all three axes, Dutch roll, spiral instability, CG effects"
+       ],
+       [
+        "K3 Turning tendency",
+        "Torque, P-factor, spiraling slipstream and gyroscopic precession, and the control you use for each"
+       ],
+       [
+        "K4 Forces acting on an airplane",
+        "Thrust, drag, lift and weight in level flight, climbs, descents, turns and stalls"
+       ],
+       [
+        "K5 Load factors in airplane design",
+        "Limit and ultimate loads, categories, VA, gusts, the Vg diagram and overweight"
+       ],
+       [
+        "K6 Wingtip vortices and precautions",
+        "How vortices form, when they are strongest, how they move, and AIM avoidance procedures"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Organize the material. The AIH lists four ways to develop the main points of a lesson: past to present, simple to complex, known to unknown, and most frequently used to least used [[25:113|AIH 5-10]]. Aerodynamics fits simple to complex and known to unknown: start with what the learner already feels in the seat, then build to stability and load factor. Bruner advocated learning from the known to the unknown and the spiral curriculum, which revisits basic ideas and builds on them as the learner develops [[25:55|AIH 3-4]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: prepare a short lesson plan for every element K1 to K6, not just three. The evaluator may pick which ones you teach, and the elements lean on each other (load factor needs the forces in a turn; P-factor needs angle of attack)."
+     }
+    }
+   ],
+   "check": {
+    "q": "What is the minimum the S1 element asks you to teach?",
+    "a": "Instruction on principles of flight that includes at least three of the elements K1 through K6 (ACS AI.II.D.S1)."
+   }
+  },
+  {
+   "title": "The four forces and the 'lift equals weight' trap",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.D.K4"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Thrust, drag, lift and weight act on every aircraft in flight [[1:98|PHAK 5-1]]."
+    },
+    {
+     "bullets": [
+      "Thrust: the forward force from the powerplant and propeller. It opposes drag and as a general rule acts parallel to the longitudinal axis [[1:98|PHAK 5-1]].",
+      "Drag: a rearward, retarding force from disrupted airflow. As a general rule it opposes thrust and acts rearward parallel to the relative wind [[1:98|PHAK 5-1]].",
+      "Lift: produced by the dynamic effect of the air on the airfoil; it acts perpendicular to the flight path through the center of lift and perpendicular to the lateral axis [[1:98|PHAK 5-1]].",
+      "Weight: the combined load of airplane, crew, fuel and cargo, pulling straight down through the CG [[1:99|PHAK 5-2]]."
+     ]
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "p": "In steady flight the opposing forces cancel; that does not mean all four are equal. The common line 'thrust equals drag and lift equals weight' is true but can mislead: in straight-and-level, unaccelerated flight lift and weight are equal to each other and greater than thrust and drag, which are equal only to each other. The refinement is that all upward components equal all downward components, and all forward components equal all backward components [[1:99|PHAK 5-2]]."
+    },
+    {
+     "p": "Climbs. For practical purposes the wing's lift in a steady climb is the same as in level flight at the same airspeed, with only a momentary increase as the nose comes up. What changes is that part of the weight now acts rearward with drag, so the airspeed decays unless power is added [[1:120|PHAK 5-23]] [[1:121|PHAK 5-24]]. A 10° climb needs thrust equal to drag plus about 17 percent of weight, and a climb lasts only as long as there is excess thrust; when it is gone the airplane is at its absolute ceiling [[1:121|PHAK 5-24]]. Application: the 17 percent is the sine of 10°, 0.174."
+    },
+    {
+     "p": "Descents. As forward pressure starts a descent, AOA and lift drop for an instant, weight exceeds lift and the path bends down. The PHAK warns not to confuse that reduction in lift with being unable to make enough lift [[1:122|PHAK 5-25]]. Speed and AOA trade too: as speed decreases in level flight the AOA must increase, and if speed decreases enough the required AOA reaches the critical AOA [[1:100|PHAK 5-3]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The sources disagree on climbs. The AFH says climbing requires an excess of lift over level flight [[24:80|AFH 3-19]]; the PHAK says lift in a steady climb is practically the same as in level flight and the climb is sustained by excess thrust [[1:120|PHAK 5-23]] [[1:121|PHAK 5-24]]. Teach the PHAK version, which its Figure 5-36 draws as 'steady climb, normal lift' [[1:121|PHAK 5-24]], and be ready for a learner who read the AFH line."
+     }
+    }
+   ],
+   "check": {
+    "q": "A learner says 'in cruise all four forces are equal.' What is the precise correction?",
+    "a": "The opposing pairs are equal: lift equals weight and thrust equals drag, but lift and weight are larger than thrust and drag [[1:99|PHAK 5-2]]."
+   }
+  },
+  {
+   "title": "Explaining lift: what to say and what to avoid",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.D.K1",
+    "AI.II.D.K4",
+    "AI.II.D.R1"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "The PHAK builds lift on Newton's laws of motion and Bernoulli's principle [[1:92|PHAK 4-5]]. Bernoulli: as the velocity of a moving fluid increases, its pressure decreases, which explains the air passing over the curved top of the wing [[1:93|PHAK 4-6]]. Newton's third law: the airfoil forces air downward and the air pushes the airfoil upward; the downward, backward flow off the top surface is downwash [[1:94|PHAK 4-7]] [[1:95|PHAK 4-8]]. Both Bernoulli's principle and Newton's laws are in operation whenever an airfoil makes lift [[1:95|PHAK 4-8]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "bullets": [
+      "Avoid 'the top is longer, so the air must go faster.' Many lifting airfoils do not have an upper surface longer than the bottom: symmetrical wings and helicopter rotor blades are the same top and bottom [[1:95|PHAK 4-8]], and a flat paper airplane wing still makes lift, so 'flow turning' is partly or fully responsible [[1:96|PHAK 4-9]].",
+      "Avoid 'lift is only a pressure difference.' The pressure difference between the upper and lower surfaces alone does not account for the total lift force [[1:95|PHAK 4-8]].",
+      "Avoid fixed percentages. It is neither accurate nor useful to say what share of lift comes from the upper versus the lower surface; it changes with flight condition and wing design [[1:94|PHAK 4-7]].",
+      "Avoid 'one law explains it all.' The PHAK says the physical laws, though they seem to apply to all of lift, do not by themselves explain how lift is formed [[1:92|PHAK 4-5]].",
+      "Avoid 'a stalled wing makes no lift.' In a stall the wing does not totally stop producing lift; it cannot make enough to sustain level flight [[1:122|PHAK 5-25]]."
+     ]
+    },
+    {
+     "p": "Give the learner the handles the pilot controls. Moving the yoke changes AOA; as AOA increases lift increases until the critical AOA, where it diminishes rapidly [[1:100|PHAK 5-3]]. Lift is proportional to the square of velocity: at the same AOA, 200 knots gives four times the lift of 100 knots [[1:101|PHAK 5-4]]. Lift varies directly with air density (at 18,000 feet the air is half as dense as at sea level) and with wing area: 200 square feet lifts twice as much as 100 at the same AOA [[1:102|PHAK 5-5]]. Application: at the same AOA, slowing from 100 to 90 knots leaves 0.9 x 0.9 = 81 percent of the lift, so the AOA must go up to hold altitude."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Aerodynamics is an abstraction, and the AIH says abstractions should be linked to specific experiences through examples and illustrations [[25:99|AIH 4-6]]. The PHAK's own example is a hand held out of a car window: tilt it and it moves up or down [[1:96|PHAK 4-9]]. Application teaching line: 'The wing makes lift by turning the air downward; faster, lower-pressure air over the top is part of how it does that. You control lift with angle of attack through the yoke, and with airspeed.'"
+     }
+    }
+   ],
+   "check": {
+    "q": "How do you answer 'then how does a symmetrical wing or a flat paper airplane fly?'",
+    "a": "By its angle to the oncoming air. The only difference is the relationship to the airstream, and flow turning is partly or fully responsible for the lift [[1:95|PHAK 4-8]] [[1:96|PHAK 4-9]]."
+   }
+  },
+  {
+   "title": "Airfoil design characteristics",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.D.K1"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "An airfoil is a structure designed to obtain a reaction on its surface from the air moving past it. Its parts: a rounded leading edge, a narrow tapered trailing edge, the chord line joining them, and the mean camber line halfway between the upper and lower surfaces. The upper camber is usually more pronounced than the lower [[1:93|PHAK 4-6]] [[1:94|PHAK 4-7]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "bullets": [
+      "No single airfoil satisfies every flight requirement; the weight, speed and purpose of each aircraft dictate its shape [[1:94|PHAK 4-7]].",
+      "A concave, 'scooped out' lower surface makes the most lift but gives up too much speed as a fixed design; flaps reshape the wing toward that form for slow flight [[1:94|PHAK 4-7]].",
+      "A perfectly streamlined airfoil has little drag but sometimes not enough lift to take off, so most airplanes strike a medium [[1:94|PHAK 4-7]].",
+      "As AOA changes, the center of pressure moves (forward at high AOA, aft at low). That travel matters for structural loads, and an airplane's balance and controllability are governed by changes in the CP [[1:95|PHAK 4-8]]."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "Planform feature",
+       "What it does"
+      ],
+      "rows": [
+       [
+        "Higher aspect ratio",
+        "Less drag, especially at high AOA, which helps climb; but a longer, heavier wing structure [[1:118|PHAK 5-21]]. Trainers and most GA airplanes use comparatively high aspect ratios and are usually more forgiving [[1:119|PHAK 5-22]]."
+       ],
+       [
+        "Rectangular wing",
+        "Tends to stall at the root first, with adequate stall warning and aileron effectiveness; usually quite stable [[1:119|PHAK 5-22]]."
+       ],
+       [
+        "Elliptical wing",
+        "Least induced drag for its aspect ratio, but little advance warning of a complete stall and possibly poor aileron effectiveness [[1:119|PHAK 5-22]]."
+       ],
+       [
+        "Taper",
+        "Generally less drag (most effective at high speed), more lift and a lighter wing [[1:119|PHAK 5-22]]."
+       ],
+       [
+        "Twist and stall strips",
+        "Make the root reach critical AOA first so the stall moves outward and the ailerons at the tips keep working [[1:122|PHAK 5-25]]."
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Root first, tips last: the root stalls while the ailerons keep working."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why do designers twist a straight wing so the root flies at a higher AOA than the tip?",
+    "a": "So the root stalls first and the stall spreads outward, keeping the ailerons near the tips effective for control [[1:122|PHAK 5-25]]."
+   }
+  },
+  {
+   "title": "Stalls: angle of attack, not airspeed",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.D.K1",
+    "AI.II.D.K4",
+    "AI.II.D.R1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "A stall is a rapid decrease in lift caused by airflow separating from the wing when the critical AOA is exceeded, and it can happen at any pitch attitude or airspeed [[1:122|PHAK 5-25]]. The AFH tells the instructor to emphasize that the direct cause of every stall is an excessive AOA [[24:34|AFH 1-13]], that low speed is not necessary to produce a stall, and that a high pitch attitude is not an absolute indication of being near one [[24:35|AFH 1-14]]."
+    },
+    {
+     "bullets": [
+      "The published 1 G stall speed is valid only in unaccelerated flight, coordinated flight and at one weight [[1:124|PHAK 5-27]].",
+      "The critical AOA does not change with weight, bank angle, temperature, density altitude or CG [[1:124|PHAK 5-27]].",
+      "The critical AOA is most often exceeded in three situations: low speed, high speed (an abrupt pull) and turning [[1:122|PHAK 5-25]].",
+      "Most trainers drop the nose in a stall because the center of lift is aft of the CG; with the CG behind the aft limit, the pilot may not be able to lower the nose and recover [[1:122|PHAK 5-25]].",
+      "Shape matters: as little as 0.8 millimeter of ice on the upper wing surface increases drag and reduces lift by 25 percent [[1:123|PHAK 5-26]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "The pilot should picture the wing's AOA from airspeed, pitch attitude, load factor, relative wind, power and configuration before entering any maneuver [[24:35|AFH 1-14]]. If the airplane has an AOA indicator, get training from an instructor who knows them before you teach in it [[1:124|PHAK 5-27]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "A learner says, 'As long as I stay above the book stall speed I cannot stall.' What do you teach?",
+    "a": "The wing stalls whenever the critical AOA is exceeded, at any airspeed or attitude; low speed is not necessary [[1:122|PHAK 5-25]] [[24:35|AFH 1-14]]."
+   }
+  },
+  {
+   "title": "Stability: static, dynamic and the three axes",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.D.K2"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Stability is the inherent quality of an aircraft to correct for conditions that disturb its equilibrium and to return to, or continue on, the original flight path; it is primarily a design characteristic [[1:111|PHAK 5-14]]. Static stability is the initial tendency after a disturbance: positive (return), neutral (stay in the new condition) or negative (keep going away) [[1:111|PHAK 5-14]]. Dynamic stability is the response over time: positive means the motion shrinks, neutral means it neither grows nor shrinks (like a worn automobile shock absorber), negative means it grows [[1:112|PHAK 5-15]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "table": {
+      "head": [
+       "Axis (motion)",
+       "Stability",
+       "Main design factors"
+      ],
+      "rows": [
+       [
+        "Lateral axis (pitch)",
+        "Longitudinal",
+        "Location of the wing and of the horizontal tail with respect to the CG, and the size of the tail [[1:112|PHAK 5-15]]."
+       ],
+       [
+        "Longitudinal axis (roll)",
+        "Lateral",
+        "Dihedral, sweepback, keel effect and weight distribution [[1:114|PHAK 5-17]]."
+       ],
+       [
+        "Vertical axis (yaw)",
+        "Directional",
+        "The vertical fin and the side area aft of the CG, which act like a weather vane [[1:116|PHAK 5-19]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Longitudinal: most airplanes put the center of lift behind the CG, so they are nose heavy, and a slight downward force on the horizontal tail balances them [[1:113|PHAK 5-16]]. Slow down and the downwash on the tail weakens, the nose drops, speed builds and the nose rises again in shrinking oscillations; closing the throttle also lets the nose drop, which the PHAK calls desirable because the airplane is trying to regain airspeed [[1:113|PHAK 5-16]] [[1:114|PHAK 5-17]]."
+    },
+    {
+     "p": "Lateral: in a sideslip, dihedral gives the wing slipping into the wind more AOA and more lift, raising it [[1:115|PHAK 5-18]]. As a rough estimate, 10° of sweepback gives about 1° of effective dihedral, and a high wing gives about 5° more than a low wing [[1:115|PHAK 5-18]]. Directional: after a gust yaws the airplane, the fin stops the yaw, but the airplane does not return to its original heading on its own; the pilot must [[1:116|PHAK 5-19]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Demonstrate it, do not just draw it. The PHAK's simple demonstration: trim for hands-off level flight, give the controls a slight momentary push, and watch. If the nose rises back toward level, the airplane is statically stable; if the following oscillations die out, it has positive dynamic stability; if they continue, neutral; if they grow, it is unstable [[1:114|PHAK 5-17]]. Application: do it at a safe altitude after clearing, and have the learner predict the result before you push."
+     }
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Airplanes not certified for aerobatics must have static longitudinal, lateral and directional stability in normal operations, and dynamic short period and Dutch roll stability [[60:103|14 CFR 23.2145]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "After a push, the nose comes back toward level but each oscillation is larger than the last. Describe the stability.",
+    "a": "Positive static stability (it initially returns) with negative dynamic stability (the oscillations grow) [[1:111|PHAK 5-14]] [[1:112|PHAK 5-15]] [[1:114|PHAK 5-17]]."
+   }
+  },
+  {
+   "title": "Dutch roll, spiral instability, controllability and the CG",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.D.K2",
+    "AI.II.D.R1"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Stability affects two qualities. Maneuverability lets the airplane be maneuvered easily and withstand the stresses; it depends on weight, inertia, size and location of the controls, structural strength and powerplant. Controllability is the airplane's response to the pilot's control, especially in flight path and attitude, regardless of its stability [[1:112|PHAK 5-15]]. A trainer responds quickly to control inputs while a transport feels heavy and responds slowly; these features are designed in [[1:111|PHAK 5-14]]. The rule: the airplane must be controllable and maneuverable without exceptional piloting skill, alertness or strength [[60:102|14 CFR 23.2135]]."
+    },
+    {
+     "bullets": [
+      "Dutch roll: a coupled roll and yaw oscillation, usually dynamically stable; the nose traces a figure eight. In most modern airplanes it dies out in a few cycles unless the air stays rough [[1:117|PHAK 5-20]].",
+      "Spiral instability: strong directional stability compared with weak dihedral. After a disturbance the nose yaws into the relative wind, the outside wing speeds up and makes more lift, the bank steepens and the nose drops into a slow downward spiral. It develops so gradually that it is usually easy to control, and it is why an airplane cannot be flown hands off indefinitely [[1:117|PHAK 5-20]].",
+      "Designers prefer spiral instability to Dutch roll tendencies, so most airplanes are built that way [[1:117|PHAK 5-20]].",
+      "CG forward: more tail down load, so the airplane is 'heavier,' slower and stalls at a higher speed [[1:140|PHAK 5-43]].",
+      "CG aft: less controllable, especially at slow speeds, and stall recovery gets progressively harder; far enough aft a flat spin can develop [[1:140|PHAK 5-43]] [[1:141|PHAK 5-44]].",
+      "Overweight: the stability of many certificated airplanes is completely unsatisfactory when gross weight is exceeded [[1:140|PHAK 5-43]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Improper recovery from spiral instability, leading to in-flight structural failure, has probably contributed to more general aviation fatalities than any other factor. Pulling back to slow the airplane only tightens the turn and raises the load factor. Common causes are loss of horizon reference, inability to fly by instruments, or both [[1:117|PHAK 5-20]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why can't most light airplanes be trimmed and flown hands off indefinitely?",
+    "a": "Spiral instability: strong directional stability and weaker dihedral let a disturbance turn into a slowly steepening, descending spiral [[1:117|PHAK 5-20]]."
+   }
+  },
+  {
+   "title": "Left-turning tendencies",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.D.K3"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "To the pilot, 'torque' is really four elements: torque reaction, the corkscrewing slipstream, gyroscopic action of the propeller and asymmetric loading (P-factor) [[1:127|PHAK 5-30]] [[1:128|PHAK 5-31]]. The discussion assumes the usual U.S. engine, turning the propeller clockwise as seen from the pilot's seat [[1:128|PHAK 5-31]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Tendency",
+       "Cause",
+       "When it is strong",
+       "Correction"
+      ],
+      "rows": [
+       [
+        "Torque reaction",
+        "Newton's third law: the engine and propeller turn one way, the airplane is pushed to roll the other. On the takeoff roll more weight on the left main gear adds friction and a left turn [[1:128|PHAK 5-31]].",
+        "Depends on engine size and horsepower, propeller size and rpm, airplane size and ground surface [[1:128|PHAK 5-31]].",
+        "Rudder or rudder trim on the ground; designers offset the engine or rig the wings for cruise, and aileron trim tabs adjust for other speeds [[1:128|PHAK 5-31]]."
+       ],
+       [
+        "Spiraling slipstream (corkscrew effect)",
+        "The rotating slipstream strikes the vertical fin and yaws the airplane; it also makes a rolling moment [[1:128|PHAK 5-31]].",
+        "High propeller speed and low forward speed, as in takeoffs and approaches to power-on stalls [[1:128|PHAK 5-31]].",
+        "Rudder; the effect weakens as speed rises and the spiral stretches out [[1:128|PHAK 5-31]]."
+       ],
+       [
+        "Gyroscopic precession",
+        "A force on the rim of the propeller disc takes effect 90° ahead in the direction of rotation [[1:128|PHAK 5-31]]. Raising the tail acts like a push on the top of the disc and yaws the nose left [[1:129|PHAK 5-32]].",
+        "Most prominent in tailwheel airplanes when the tail is raised on the takeoff roll; the more abrupt the pitch change, the stronger it is [[1:129|PHAK 5-32]] [[24:289|AFH 14-3]].",
+        "Elevator and rudder; avoid abrupt pitch changes [[1:129|PHAK 5-32]] [[24:289|AFH 14-3]]."
+       ],
+       [
+        "P-factor",
+        "At high AOA the descending right blade takes a bigger bite, moving the center of thrust right and yawing the nose left [[1:129|PHAK 5-32]].",
+        "High pitch attitude and power, as in climbs [[24:80|AFH 3-19]] and slow flight, where the need grows closer to the stall [[24:116|AFH 5-11]].",
+        "Right rudder pressure [[24:80|AFH 3-19]] [[24:116|AFH 5-11]]."
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "bullets": [
+      "The four effects vary with the phase of flight and the airplane; the pilot applies whatever control it takes [[1:129|PHAK 5-32]].",
+      "They can partly cancel: the corkscrew rolling moment is to the right while torque reaction is to the left [[1:128|PHAK 5-31]].",
+      "An abrupt power increase on takeoff can yaw the airplane sharply left, most noticeably with high horsepower [[24:135|AFH 6-3]].",
+      "Gyroscopic action works both ways: any yaw produces a pitching moment and any pitch produces a yawing moment [[1:129|PHAK 5-32]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "A model works well here: the AIH says a model can explain operating principles and is most effective when it works like the original [[25:130|AIH 5-27]]. Application: with a model propeller, show the descending blade on the right and push on the top of the disc to show where precession acts. The PHAK admits a full proof of P-factor is complex [[1:129|PHAK 5-32]], so keep to the 'bigger bite' picture."
+     }
+    }
+   ],
+   "check": {
+    "q": "In a tailwheel airplane, why does an abrupt raise of the tail on the takeoff roll yaw the nose left?",
+    "a": "Raising the tail is like a force on the top of the propeller disc; precession makes it act 90° ahead in the direction of rotation, producing a left yaw that grows with abruptness [[1:129|PHAK 5-32]] [[24:289|AFH 14-3]]."
+   }
+  },
+  {
+   "title": "Forces in turns and load factor",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.D.K4",
+    "AI.II.D.K5"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "When the airplane banks, lift tilts and splits into a vertical component that opposes weight and a horizontal component that pulls the airplane into the turn. Centrifugal force is the equal and opposite reaction. That is why the rudder does not turn the airplane; it keeps the nose and tail tracking the same path [[1:119|PHAK 5-22]] [[1:120|PHAK 5-23]]. Banking alone does not change total lift, so the pilot raises the AOA until the vertical component again equals weight; the extra induced drag costs airspeed, and power proportional to the bank holds it [[1:120|PHAK 5-23]]."
+    },
+    {
+     "p": "Load factor is the stress on the structure from anything that deflects the flight path; a load factor of 3 puts three times the weight on the structure [[1:130|PHAK 5-33]]. It matters for two reasons: a pilot can overload the structure, and a higher load factor raises the stall speed so stalls happen at speeds that seem safe [[1:130|PHAK 5-33]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Bank in a level, coordinated turn",
+       "Load factor",
+       "Stall speed vs. 1 G"
+      ],
+      "rows": [
+       [
+        "30°",
+        "1.15 G (application: 1 / cos 30°)",
+        "About 1.07 times (application)"
+       ],
+       [
+        "45°",
+        "1.41 G (application)",
+        "About 1.19 times (application)"
+       ],
+       [
+        "60°",
+        "2 G [[1:131|PHAK 5-34]]",
+        "About 1.41 times (application)"
+       ],
+       [
+        "63°",
+        "2.20 G (application)",
+        "About one-half higher [[1:133|PHAK 5-36]]"
+       ],
+       [
+        "70° to 75°",
+        "2.92 to 3.86 G (application); the yield factor of the average light plane [[1:133|PHAK 5-36]]",
+        "About 1.71 to 1.97 times (application)"
+       ],
+       [
+        "80°",
+        "5.76 G [[1:131|PHAK 5-34]]",
+        "About 2.4 times (application)"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Stall speed rises with the square root of the load factor: an airplane that stalls at 50 knots at 1 G stalls at 100 knots at 4 G [[1:131|PHAK 5-34]] [[1:132|PHAK 5-35]]. In a level, coordinated turn the load factor depends only on bank: a faster airplane turns more slowly at the same bank, which keeps the load factor the same [[1:131|PHAK 5-34]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Load factor is 1 over the cosine of the bank; stall speed goes up by its square root."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why does every airplane get about 2 G in a level, coordinated 60° turn, whatever its airspeed?",
+    "a": "At a given bank, a higher airspeed gives a slower rate of turn, which compensates for the added centrifugal force, so the load factor stays the same [[1:131|PHAK 5-34]]."
+   }
+  },
+  {
+   "title": "Load factors in airplane design",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.D.K5",
+    "AI.II.D.R1"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "The maximum possible loads are far too high for an efficient design, so designers work out the highest load factors expected in normal operation, the limit load factors [[1:130|PHAK 5-33]]. Today's rule sets no fixed number: the design maneuvering load factors must be not less than those service history shows may occur [[60:105|14 CFR 23.2200]]. Limit loads equal the structural design loads, and ultimate loads are the limit loads times a 1.5 factor of safety [[60:106|14 CFR 23.2230]]. The structure must carry limit loads without interfering with safe operation and without detrimental permanent deformation, and it must carry ultimate loads [[60:107|14 CFR 23.2235]]. The PHAK adds that the strength reserve is there for unexpected conditions, not for pilots to abuse [[1:130|PHAK 5-33]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Category (category system in the PHAK)",
+       "Limit load factor"
+      ],
+      "rows": [
+       [
+        "Normal",
+        "3.8 to -1.52 (reduced for airplanes over 4,000 pounds) [[1:131|PHAK 5-34]]"
+       ],
+       [
+        "Utility (mild acrobatics, including spins)",
+        "4.4 to -1.76 [[1:131|PHAK 5-34]]"
+       ],
+       [
+        "Acrobatic",
+        "6.0 to -3.00 [[1:131|PHAK 5-34]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Those three categories come from the PHAK. Current Part 23 has one normal category, split into certification levels by passenger seats, and an airplane may also be certified for aerobatics [[60:99|14 CFR 23.2005]]. An airplane not certified for aerobatics may do any maneuver incident to normal flying, including stalls (except whip stalls) and lazy eights, chandelles and steep turns of not more than 60° of bank [[60:99|14 CFR 23.2005]]. The load factor limits for the airplane you teach in are in the Flight Limits of its POH/AFM Limitations section [[1:234|PHAK 9-4]]."
+    },
+    {
+     "bullets": [
+      "Gusts: for airplanes not meant for acrobatics, gust load factors generally control the design, and the pilot's only lever on them is to slow down in rough air [[1:130|PHAK 5-33]]. In extremely rough air reduce to design maneuvering speed, though gusts may still exceed the limits; never-exceed speeds are set for smooth air only [[1:134|PHAK 5-37]].",
+      "VA: the speed below which you can move a single flight control, one time, to full deflection, in one axis, in smooth air, without risk of damage. It does not protect against multiple full inputs in one axis or full inputs in more than one axis at once [[1:132|PHAK 5-35]].",
+      "Older airplanes without a published VA: roughly 1.7 times the normal stall speed, and a stall at that speed puts on 1.7 x 1.7 = 2.89 G [[1:132|PHAK 5-35]].",
+      "Weight: a normal category airplane built for 3.8 G turns a 100-pound overload into a potential 380-pound structural overload, and habitual overloading builds hidden fatigue damage [[1:139|PHAK 5-42]]."
+     ]
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "The Vg diagram shows each airplane's safe combinations of airspeed and load factor at a given weight and altitude. The curved lines are the maximum lift the wing can make; above them the airplane simply stalls. Where the positive stall line meets the positive limit load factor is the maneuvering speed: below it the airplane cannot produce a damaging positive flight load. The redline speed closes the envelope [[1:134|PHAK 5-37]] [[1:135|PHAK 5-38]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Rapid, large alternating control inputs, especially with big changes in pitch, roll or yaw, may cause structural failure at any speed, including below VA [[1:133|PHAK 5-36]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "What is the ultimate load factor of an airplane with a 3.8 G limit load factor?",
+    "a": "3.8 x 1.5 = 5.7 G, because ultimate loads are limit loads times a 1.5 factor of safety [[60:106|14 CFR 23.2230]]."
+   }
+  },
+  {
+   "title": "Wingtip vortices and wake turbulence precautions",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.D.K6",
+    "AI.II.D.R1"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Formation: with the wing at a positive AOA the pressure below is higher than above, so air spills outward and around the tips into a whirlpool, a vortex [[1:105|PHAK 5-8]]. Seen from behind, the vortices turn counterclockwise at the right tip and clockwise at the left, making upwash beyond the tips and downwash behind the wing; that downwash is the source of induced drag [[1:104|PHAK 5-7]]. After roll up the wake is two counter-rotating cylindrical vortices, with most of the energy within a few feet of the core [[34:147|AIM 7-4-2]]."
+    },
+    {
+     "bullets": [
+      "Strength: governed by weight, speed, wingspan and wing shape, and greatest when the generator is HEAVY, CLEAN and SLOW [[34:147|AIM 7-4-3]]. The PHAK adds that strength is directly proportional to weight and inversely proportional to wingspan and speed [[1:106|PHAK 5-9]].",
+      "The usual hazard is an induced roll that exceeds the roll control of the encountering airplane; short-span airplanes must be especially alert [[34:148|AIM 7-4-3]].",
+      "Vortices exist from rotation to touchdown [[34:148|AIM 7-4-4]].",
+      "They sink several hundred feet per minute, slowing and weakening with time and distance; fly at or above the generator's path [[34:148|AIM 7-4-4]].",
+      "Near the ground (within 100 to 200 feet) they move sideways at 2 or 3 knots. A 1 to 5 knot crosswind can hold the upwind vortex in the touchdown zone, and a light quartering tailwind can move vortices forward into the touchdown zone and requires maximum caution [[34:148|AIM 7-4-4]] [[34:150|AIM 7-4-4]].",
+      "They drift with the wind: a 10-knot wind moves them about 1,000 feet in a minute [[1:106|PHAK 5-9]]."
+     ]
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "table": {
+      "head": [
+       "Situation",
+       "AIM avoidance procedure"
+      ],
+      "rows": [
+       [
+        "Landing behind a larger aircraft, same runway",
+        "Stay at or above its final approach path, note its touchdown point, land beyond it [[34:152|AIM 7-4-6]]."
+       ],
+       [
+        "Landing behind a departing larger aircraft, same runway",
+        "Note its rotation point and land well before it [[34:152|AIM 7-4-6]]."
+       ],
+       [
+        "Departing behind a larger aircraft",
+        "Rotate before its rotation point, climb above its path until turning clear, and avoid later headings that cross below and behind it [[34:152|AIM 7-4-6]]."
+       ],
+       [
+        "After a larger aircraft's low approach, missed approach or touch-and-go",
+        "Wait at least 2 minutes before your takeoff or landing [[34:152|AIM 7-4-6]]."
+       ],
+       [
+        "En route VFR",
+        "Avoid flight below and behind a large aircraft's path; if one is above on the same track, move laterally, preferably upwind [[34:152|AIM 7-4-6]]."
+       ],
+       [
+        "Hovering helicopter",
+        "Stay at least three rotor diameters away from a helicopter in a slow hover taxi or stationary hover [[34:152|AIM 7-4-7]] [[34:153|AIM 7-4-7]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Responsibility: whether or not ATC gives a caution, the pilot is expected to adjust the flight path to avoid serious wake encounters [[34:152|AIM 7-4-6]]. Accepting traffic information, instructions to follow an aircraft or a visual approach clearance means you accept responsibility for wake turbulence separation [[34:153|AIM 7-4-8]]. Avoid the area below and behind the generator, especially at low altitude, where even a momentary encounter could be catastrophic [[34:151|AIM 7-4-5]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Do not teach that winglets stop the wake. The AIM says studies show winglets have a negligible effect on wake turbulence generation, particularly at the slow speeds of departures and arrivals [[34:147|AIM 7-4-2]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "You are cleared to land behind a heavy jet on the same runway. Where do you fly and where do you touch down?",
+    "a": "At or above the jet's final approach path, noting its touchdown point and landing beyond it [[34:152|AIM 7-4-6]]."
+   }
+  },
+  {
+   "title": "How to teach it: plan, explain and check understanding",
+   "kind": "skills",
+   "codes": [
+    "AI.II.D.S1",
+    "AI.II.D.R1"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Plan a teaching lecture in four steps: establish the objective and outcomes, research the subject, organize the material, and plan productive classroom activities. Support each point with examples, comparisons or experience, then rehearse with another instructor acting as critic [[25:114|AIH 5-11]]. Use simple words and define every technical term so no learner is in doubt [[25:115|AIH 5-12]]."
+    },
+    {
+     "bullets": [
+      "Instructional aids: well-chosen charts, graphs, pictures and diagrams help learners understand and retain key information, and simple aids are generally best [[25:126|AIH 5-23]].",
+      "Use an aid when a point is complex, when you find yourself forming visual images, or when learners are puzzled by a description [[25:127|AIH 5-24]].",
+      "The marker board serves joint learner and instructor activity [[25:128|AIH 5-25]]; a model explains operating principles well, especially one that works like the original [[25:130|AIH 5-27]].",
+      "Teach for the correlation level: rote, understanding, application and correlation are the four practical levels, and correlation should be the objective of aviation instruction [[25:65|AIH 3-14]] [[25:66|AIH 3-15]].",
+      "A learner who truly understands can answer questions that do not match memorized facts [[25:61|AIH 3-10]]."
+     ]
+    },
+    {
+     "p": "Check understanding with questions. Ask focused, open-ended questions that begin with 'why' or 'how'; closed-ended questions evaluate only the rote level [[25:103|AIH 4-10]]. Effective questions apply to the subject, are brief and clear, fit the learner's stage, center on one idea and present a challenge. Avoid 'Do you understand?' and puzzle, oversize, toss-up, bewilderment, trick and irrelevant questions [[25:142|AIH 6-11]] [[25:143|AIH 6-12]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Element",
+       "Sample open-ended check (application)"
+      ],
+      "rows": [
+       [
+        "K1",
+        "Why does our trainer's rectangular wing give you some warning before the whole wing stalls?"
+       ],
+       [
+        "K2",
+        "If I trim hands off and push the nose down briefly, what will you see if the airplane has positive static and positive dynamic stability?"
+       ],
+       [
+        "K3",
+        "Why do you need more right rudder at a high power, slow climb than in cruise?"
+       ],
+       [
+        "K4",
+        "Why does the airspeed decay when you raise the nose to climb without adding power?"
+       ],
+       [
+        "K5",
+        "How can the airplane stall at 70 knots when the book stall speed is 50?"
+       ],
+       [
+        "K6",
+        "Behind a landing jet, where would you aim to touch down, and why there?"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Carry it into the airplane. Even after ground school, review the topic with the learner before flight [[25:174|AIH 9-4]], and revisit aerodynamics in later lessons; the AIH calls it a constant thread suited to the spiral curriculum [[25:56|AIH 3-5]]. If a question would take the learner past their stage, say it is a good question and invite it back later; if you cannot answer one, admit it and look it up together [[25:143|AIH 6-12]]."
+    }
+   ],
+   "check": {
+    "q": "Answer the lesson's K5 sample check: how can the airplane stall at 70 knots when the book stall speed is 50?",
+    "a": "Stall speed rises with the square root of the load factor: 70 / 50 = 1.4, and 1.4 squared is about 2 G, the load factor of a level 60° turn [[1:131|PHAK 5-34]]."
+   }
+  },
+  {
+   "title": "Common errors: spot and fix",
+   "kind": "skills",
+   "codes": [
+    "AI.II.D.S1",
+    "AI.II.D.R1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Most aerodynamics errors are mistakes, errors of thought, which the AIH says sometimes come from gaps or misconceptions in the learner's understanding [[25:84|AIH 3-33]]. Listen for the misconception behind the words."
+    },
+    {
+     "table": {
+      "head": [
+       "Error",
+       "What you hear or see",
+       "How to fix it"
+      ],
+      "rows": [
+       [
+        "The longer-path story of lift",
+        "'The air over the top has to go farther in the same time.'",
+        "Show symmetrical wings and the flat paper airplane; teach that Bernoulli and Newton both operate [[1:95|PHAK 4-8]] [[1:96|PHAK 4-9]]."
+       ],
+       [
+        "Stall equals slow",
+        "Learner watches only airspeed; is surprised by a stall in a steep turn",
+        "Stall is excessive AOA at any speed; the 1 G stall speed holds only unaccelerated, coordinated and at one weight [[24:35|AFH 1-14]] [[1:124|PHAK 5-27]]."
+       ],
+       [
+        "A stalled wing makes no lift",
+        "'The wing just quits.'",
+        "The wing still makes some lift, just not enough for level flight [[1:122|PHAK 5-25]]."
+       ],
+       [
+        "All four forces are equal",
+        "Draws four equal arrows for cruise",
+        "Opposing pairs balance; lift and weight are larger than thrust and drag [[1:99|PHAK 5-2]]."
+       ],
+       [
+        "The rudder turns the airplane",
+        "Yaws the nose with rudder to turn",
+        "The horizontal component of lift turns it; the rudder keeps nose and tail on the same track [[1:119|PHAK 5-22]]."
+       ],
+       [
+        "Below VA anything goes",
+        "Large, rapid or multi-axis inputs at slow speed",
+        "VA covers one full input, one axis, one time; alternating inputs can break the airplane below VA [[1:132|PHAK 5-35]] [[1:133|PHAK 5-36]]."
+       ],
+       [
+        "Pulling out of a spiral",
+        "Back pressure in a steepening, descending turn",
+        "Pulling tightens the turn and raises the load factor [[1:117|PHAK 5-20]]."
+       ],
+       [
+        "Wake sits behind at the same altitude",
+        "Follows a jet slightly below its path",
+        "Vortices sink several hundred feet per minute; stay at or above the path [[34:148|AIM 7-4-4]]."
+       ],
+       [
+        "Instructor: abstractions without examples",
+        "Learner nods but cannot apply the idea",
+        "Link the abstraction to specific experiences through examples and illustrations [[25:99|AIH 4-6]]."
+       ],
+       [
+        "Instructor: closed questions only",
+        "'Got it?' 'Yes.'",
+        "Ask open-ended why and how questions [[25:103|AIH 4-10]] [[25:142|AIH 6-11]]."
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Teaching itself has a risk: improper delivery of stall, spin and upset training often produces negative learning that pilots carry into flights with passengers [[24:113|AFH 5-8]]. A wrong mental model taught early is the same kind of hazard."
+     }
+    }
+   ],
+   "check": {
+    "q": "A learner yaws the nose around with rudder to turn. What is the misconception, and what do you teach?",
+    "a": "That the rudder turns the airplane. The horizontal component of lift turns it; the rudder only keeps the nose and tail tracking the same path [[1:119|PHAK 5-22]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "AI.II.D-1.jpg",
+   "res": "1",
+   "page": 99,
+   "caption": "Figure 5-1. Relationship of forces acting on an aircraft, and Figure 5-2. Force vectors during a stabilized climb. (PHAK 5-2)",
+   "alt": "Left: a high-wing airplane in level flight with four arrows: lift up, weight down, thrust forward and drag back. Right: the same airplane in a climb, with the flight path and relative wind arrows pointing up and forward, lift perpendicular to them through the center of lift, thrust forward along the nose, drag back, and weight straight down from the CG split into a component opposed to lift and a rearward component of weight.",
+   "source": "PHAK, PDF p. 99"
+  },
+  "f2": {
+   "file": "AI.II.D-2.jpg",
+   "res": "1",
+   "page": 94,
+   "caption": "Figure 4-5. Typical airfoil section. (PHAK 4-7)",
+   "alt": "A cross section of a wing shaped like a stretched teardrop. Labels point to the rounded leading edge, the thin trailing edge, a straight chord line joining them, a dashed mean camber line curving between the surfaces, and the cambers of the upper and lower surfaces.",
+   "source": "PHAK, PDF p. 94"
+  },
+  "f3": {
+   "file": "AI.II.D-3.jpg",
+   "res": "1",
+   "page": 95,
+   "caption": "Figure 4-7. Pressure distribution on an airfoil and CP changes with AOA. (PHAK 4-8)",
+   "alt": "Three airfoils stacked at -8°, +4° and +10° angle of attack. Blue arrows show lowered pressure and red arrows show raised pressure; at -8° there are blue arrows on both surfaces, and at +4° and +10° the blue arrows sit on top and the red ones underneath. As the angle of attack increases, the blue low-pressure area over the front of the wing grows and the arrow marked CP, the center of pressure, sits farther forward.",
+   "source": "PHAK, PDF p. 95"
+  },
+  "f4": {
+   "file": "AI.II.D-4.jpg",
+   "res": "1",
+   "page": 112,
+   "caption": "Figure 5-22. Damped versus undamped stability. (PHAK 5-15)",
+   "alt": "A graph of displacement against time with three wavy lines. An orange damped oscillation shrinks toward the centerline, labeled positive static, positive dynamic. A green undamped oscillation keeps the same size, labeled positive static, neutral dynamic. A red divergent oscillation grows larger with each swing, labeled positive static, negative dynamic.",
+   "source": "PHAK, PDF p. 112"
+  },
+  "f5": {
+   "file": "AI.II.D-5.jpg",
+   "res": "1",
+   "page": 129,
+   "caption": "Figure 5-50. Raising tail produces gyroscopic precession. (PHAK 5-32)",
+   "alt": "A high-wing airplane seen from above. An arrow labeled applied force pushes the tail up. At the spinning propeller, an arrow labeled resultant force acts 90° away from the applied force, and an arrow labeled effective force points to the side, with a curved arrow showing the nose yawing.",
+   "source": "PHAK, PDF p. 129"
+  },
+  "f6": {
+   "file": "CA.VII.D-3.jpg",
+   "res": "1",
+   "page": 135,
+   "caption": "Figure 5-55. Typical Vg diagram. (PHAK 5-38)",
+   "alt": "A graph of load factor from -3 to 7 against indicated airspeed in mph. Curved accelerated stall lines rise from zero; the upper one crosses 1 G at the normal stall speed near 64 mph and meets the positive limit load near 4.4 G at the maneuvering speed. A green normal operating range lies below the limit loads up to the maximum structural cruising speed, a yellow caution range runs to the never-exceed speed, and orange structural damage and red structural failure areas lie beyond.",
+   "source": "PHAK, PDF p. 135"
+  },
+  "f7": {
+   "file": "AI.II.D-6.jpg",
+   "res": "1",
+   "page": 106,
+   "caption": "Figure 5-13. Avoid following another aircraft at an altitude within 1,000 feet. (PHAK 5-9)",
+   "alt": "A jet in flight trails two vortex lines that slope downward behind it. A shaded wedge labeled AVOID lies below and behind the jet, nominally 500 to 1,000 feet deep, and a label notes the vortices sink at several hundred feet per minute.",
+   "source": "PHAK, PDF p. 106"
+  }
+ },
+ "scenario": {
+  "title": "Rebuilding a rote understanding of aerodynamics",
+  "codes": [
+   "AI.II.D.K1",
+   "AI.II.D.K4",
+   "AI.II.D.K5",
+   "AI.II.D.K6",
+   "AI.II.D.R1",
+   "AI.II.D.S1"
+  ],
+  "setup": "Your new learner is a private pilot who scored well on the knowledge test and can recite definitions word for word. On the last flight the learner stalled in a steep, uncoordinated turn at about 70 knots in an airplane whose book stall speed is about 50 knots, and was badly surprised. Your home airport also has regional jets doing touch-and-goes. You have one 60-minute ground session before the next flight.",
+  "questions": [
+   {
+    "q": "How do you find out quickly whether the learner understands or only memorized?",
+    "a": "Ask focused, open-ended 'why' and 'how' questions; closed-ended ones test only rote [[25:103|AIH 4-10]]. Rote is the lowest of the four practical levels of learning [[25:65|AIH 3-14]]."
+   },
+   {
+    "q": "The learner explains lift with the 'longer path over the top' story. How do you respond?",
+    "a": "Point out that symmetrical wings and a flat paper airplane make lift though their surfaces are the same length [[1:95|PHAK 4-8]] [[1:96|PHAK 4-9]], and teach that Bernoulli's principle and Newton's laws both operate whenever lift is made [[1:95|PHAK 4-8]]."
+   },
+   {
+    "q": "Why did the airplane stall at 70 knots?",
+    "a": "A stall is exceeding the critical AOA at any speed [[1:122|PHAK 5-25]]. In a turn the load factor rises and stall speed goes up with its square root [[1:131|PHAK 5-34]] [[1:132|PHAK 5-35]]. Application: at 60° of bank, 2 G, 50 x 1.414 = about 71 knots."
+   },
+   {
+    "q": "Which aid would you use to explain it, and why?",
+    "a": "A simple diagram of the forces in a turn and a chart of load factor against bank; the AIH says simple, well-organized visual aids help understanding and retention and show relationships [[25:126|AIH 5-23]] [[25:127|AIH 5-24]]."
+   },
+   {
+    "q": "The learner then asks you to derive the lift coefficient from wind tunnel data. What do you do?",
+    "a": "Tell the learner it is a good question but would complicate the task right now, and invite it back later in training [[25:143|AIH 6-12]]."
+   },
+   {
+    "q": "What wake turbulence precaution do you brief for departures after a jet's touch-and-go?",
+    "a": "Wait at least 2 minutes after a larger aircraft's touch-and-go, low approach or missed approach, especially in light quartering winds, because vortices settle and move along the runway [[34:152|AIM 7-4-6]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "AI.II.D.S1",
+   "do": "Deliver instruction on principles of flight, including at least three of the elements listed in K1 through K6. Expect the evaluator to act as your learner: teach your chosen elements from an organized plan with accurate, sourced content and an instructional aid, check understanding with open-ended questions, and correct a misconception the evaluator plays out.",
+   "practice": "Write a 10-minute teaching lecture for each of K1 to K6 using the AIH's four planning steps and rehearse each with another instructor as critic [[25:114|AIH 5-11]]. Write your questions in advance and test them against the AIH list of effective questions [[25:142|AIH 6-11]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Which statement about lift does the PHAK support?",
+   "options": [
+    "About 70 percent of lift always comes from the upper surface of the wing",
+    "Lift comes entirely from the air taking the longer path over the curved upper surface",
+    "Bernoulli's principle and Newton's laws both operate whenever a wing makes lift",
+    "Newton's third law alone fully explains lift, and Bernoulli plays no part"
+   ],
+   "answer": 2,
+   "why": "The PHAK says both are in operation whenever lift is generated [[1:95|PHAK 4-8]] and that assigning fixed percentages is neither accurate nor useful [[1:94|PHAK 4-7]]."
+  },
+  {
+   "q": "How does the PHAK define angle of attack?",
+   "options": [
+    "The angle between the longitudinal axis and the natural horizon",
+    "The acute angle between the chord line and the relative wind",
+    "The angle between the flight path and the horizon",
+    "The angle between the chord line and the longitudinal axis"
+   ],
+   "answer": 1,
+   "why": "AOA is the acute angle between the chord line of the airfoil and the direction of the relative wind [[1:99|PHAK 5-2]]."
+  },
+  {
+   "q": "As the angle of attack increases, the center of pressure:",
+   "options": [
+    "Stays fixed at the CG",
+    "Moves aft",
+    "Moves to the wingtips",
+    "Moves forward"
+   ],
+   "answer": 3,
+   "why": "At high AOA the CP moves forward; at low AOA it moves aft [[1:95|PHAK 4-8]]."
+  },
+  {
+   "q": "Why do most trainers and GA airplanes use a comparatively high aspect ratio wing, per the PHAK?",
+   "options": [
+    "It gives a lighter, shorter wing structure that is cheaper to build",
+    "It moves the center of pressure aft so the airplane is more stable",
+    "Less drag, especially at high AOA, which helps the climb",
+    "It makes the tips stall first, so the stall warning comes earlier"
+   ],
+   "answer": 2,
+   "why": "A higher aspect ratio decreases drag, especially at high angles of attack, improving climb performance, at the cost of a longer, heavier wing structure [[1:118|PHAK 5-21]]. Trainers and most GA airplanes use comparatively high aspect ratios and are usually more forgiving [[1:119|PHAK 5-22]]."
+  },
+  {
+   "q": "What does the PHAK compare neutral dynamic stability to?",
+   "options": [
+    "A weather vane turning into the wind",
+    "An arrow's feathers keeping it straight",
+    "A worn automobile shock absorber",
+    "A ball resting in the bottom of a bowl"
+   ],
+   "answer": 2,
+   "why": "Once displaced, the motion neither grows nor shrinks, like a worn shock absorber [[1:112|PHAK 5-15]]."
+  },
+  {
+   "q": "Which is NOT one of the four main design factors for lateral stability?",
+   "options": [
+    "Keel effect of a high wing",
+    "Vertical fin area aft of the CG",
+    "Weight distribution of the airplane",
+    "Dihedral of the wings"
+   ],
+   "answer": 1,
+   "why": "Lateral stability comes from dihedral, sweepback, keel effect and weight distribution [[1:114|PHAK 5-17]]; the fin is a directional stability factor [[1:116|PHAK 5-19]]."
+  },
+  {
+   "q": "When a force deflects a spinning propeller, where does the resulting force act?",
+   "options": [
+    "At the point where the force is applied, in the same direction",
+    "90° ahead of that point in the direction of rotation",
+    "90° behind that point, opposite the direction of rotation",
+    "180° opposite the point, on the far side of the disc"
+   ],
+   "answer": 1,
+   "why": "Precession acts 90° ahead of and in the direction of rotation [[1:128|PHAK 5-31]] [[1:129|PHAK 5-32]]."
+  },
+  {
+   "q": "How little ice on the upper wing surface does the PHAK say can raise drag and cut lift by 25 percent?",
+   "options": [
+    "About 1/2 inch, but only along the leading edge",
+    "About 1/4 inch, roughly the thickness of a pencil",
+    "About 1 inch, as thick as a typical ridge of clear ice",
+    "As little as 0.8 millimeter"
+   ],
+   "answer": 3,
+   "why": "As little as 0.8 millimeter of ice on the upper wing surface increases drag and reduces lift by 25 percent [[1:123|PHAK 5-26]]."
+  },
+  {
+   "q": "According to the AIM, what is the usual hazard of a wake encounter, and who must be especially alert?",
+   "options": [
+    "A sudden climb from the upwash; airplanes landing short of the jet",
+    "Engine flameout from turbulent inflow; turbine airplanes only",
+    "Structural overload from the downwash; heavy, high-wing airplanes",
+    "An induced roll beyond the airplane's roll control; short-span airplanes"
+   ],
+   "answer": 3,
+   "why": "The usual hazard is induced rolling moments that can exceed the roll-control authority of the encountering aircraft; pilots of short-span aircraft, even high performance ones, must be especially alert [[34:148|AIM 7-4-3]]."
+  },
+  {
+   "q": "As a rough estimate, how does the PHAK compare the effective dihedral of sweepback and of a high wing?",
+   "options": [
+    "About 1° per 10° of sweepback; a high wing gives about 5° more than a low wing",
+    "Sweepback removes dihedral; a high wing adds about 10° over a low wing",
+    "10° of sweepback gives about 5° of dihedral; a high wing gives 1° less",
+    "Neither changes it; only the angle of the wing to the fuselage does"
+   ],
+   "answer": 0,
+   "why": "As a rough estimate, 10° of sweepback provides about 1° of effective dihedral, and a high wing can provide about 5° of effective dihedral over a low wing [[1:115|PHAK 5-18]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "Your learner asks why the airplane needs more power to hold airspeed in a level 45° turn than in straight flight. Best answer?",
+   "options": [
+    "The horizontal component of lift pulls the airplane backward, so more thrust is needed",
+    "Banking raises parasite drag by exposing more of the belly to the relative wind",
+    "More AOA to hold altitude adds induced drag, so power in proportion to bank is needed",
+    "The rudder held in the turn adds drag, so the engine must make up the loss"
+   ],
+   "answer": 2,
+   "why": "The pilot raises AOA to restore the vertical component; induced drag rises and additional thrust proportional to bank holds the airspeed [[1:120|PHAK 5-23]]."
+  },
+  {
+   "q": "At a constant AOA, an airplane slows from 100 to 90 knots. About how much lift does it now make, and what must the pilot do to stay level?",
+   "options": [
+    "95 percent; add flaps only",
+    "90 percent; lower the nose",
+    "81 percent; raise the AOA",
+    "110 percent; reduce the AOA"
+   ],
+   "answer": 2,
+   "why": "Lift goes with the square of velocity [[1:101|PHAK 5-4]]: 0.9 x 0.9 = 0.81. As the airplane slows, the AOA must increase to keep lift equal to weight [[1:101|PHAK 5-4]]."
+  },
+  {
+   "q": "You load a trainer near its aft CG limit. What should you brief the learner to expect?",
+   "options": [
+    "Less controllability at slow speed and harder stall recovery",
+    "Heavier pitch forces and a higher stall speed than at a forward CG",
+    "No change in handling, as long as the CG stays within the limits",
+    "Stronger longitudinal stability and a more nose-heavy feel"
+   ],
+   "answer": 0,
+   "why": "An airplane becomes less controllable, especially at slow speeds, as the CG moves aft, and stall recovery becomes progressively more difficult [[1:140|PHAK 5-43]]."
+  },
+  {
+   "q": "After a rudder doublet in smooth air, the trainer rolls and yaws together, the nose tracing a figure eight, and it settles in a few cycles. What is it?",
+   "options": [
+    "Dutch roll, a coupled roll and yaw that usually damps itself",
+    "Spiral instability, which will steepen into a descending turn",
+    "Negative dynamic stability, which will keep the swings growing",
+    "Adverse yaw from the ailerons, which rudder alone cannot stop"
+   ],
+   "answer": 0,
+   "why": "Dutch roll is a coupled lateral and directional oscillation that is usually dynamically stable; in most modern airplanes it dies out in a few cycles [[1:117|PHAK 5-20]]. Spiral instability does not oscillate; it steepens gradually [[1:117|PHAK 5-20]]."
+  },
+  {
+   "q": "A learner flying in haze without a horizon lets the airplane slowly roll into a steepening, descending turn, then pulls back hard to stop the descent. What is happening?",
+   "options": [
+    "Dutch roll, which a firm pull on the elevator will damp out",
+    "Spiral instability; pulling only tightens the turn and raises the load factor",
+    "A cross-control stall, which pulling back will break cleanly",
+    "Negative static directional stability that rudder alone will fix"
+   ],
+   "answer": 1,
+   "why": "Spiral instability starts gradually; back elevator only tightens the turn and increases the load factor, and loss of horizon reference is a common cause [[1:117|PHAK 5-20]]."
+  },
+  {
+   "q": "In cruise a gust yaws the trainer 10° right. With feet off the pedals, what does the PHAK say happens?",
+   "options": [
+    "The airplane keeps yawing right until it enters a spiral dive",
+    "The fin swings the nose back past the old heading in growing swings",
+    "The fin stops the yaw, but the pilot must turn back to the old heading",
+    "The nose returns to the original heading by itself within seconds"
+   ],
+   "answer": 2,
+   "why": "The vertical fin and side area aft of the CG stop the yaw, but the airplane does not return to its original heading on its own; the pilot must reestablish the initial heading [[1:116|PHAK 5-19]]."
+  },
+  {
+   "q": "Your learner says the airplane descends because the wing 'cannot make enough lift' once she pushes forward. What does the PHAK say?",
+   "options": [
+    "Lift drops only for an instant as AOA falls; that is not a lack of lift",
+    "She is right: forward pressure stalls part of the wing",
+    "The wing makes more lift in a descent, so the path bends down",
+    "Lift stays the same, but the drag of the nose-low attitude pulls the path down"
+   ],
+   "answer": 0,
+   "why": "As forward pressure starts the descent, AOA and total lift decrease momentarily, weight exceeds lift and the path bends down. The PHAK warns not to confuse that reduction in lift with the inability to generate sufficient lift [[1:122|PHAK 5-25]]."
+  },
+  {
+   "q": "Your school's trainer is certificated in the normal and utility categories, and you plan a spin lesson. What loading point from the PHAK do you brief?",
+   "options": [
+    "Load to the normal category aft CG limit, since that gives the most elevator authority you can get for the recovery",
+    "The utility aft CG limit is usually inches forward of the normal one; an inch or two farther aft can stop recovery",
+    "CG has no effect on spin recovery as long as the airplane stays under its gross weight",
+    "A forward CG makes a flat spin more likely, so load toward the aft limit for the spin"
+   ],
+   "answer": 1,
+   "why": "For utility category spins the aft CG limit is usually set several inches forward of the normal category limit, and an airplane that recovers cleanly at one CG may not respond to normal recovery when the CG moves aft one or two inches [[1:140|PHAK 5-43]]. A flat spin comes from a CG well to the rear [[1:141|PHAK 5-44]]."
+  },
+  {
+   "q": "A normal category airplane designed for 3.8 G is loaded 150 pounds over gross. What potential added structural load does the PHAK's reasoning give at the limit load factor?",
+   "options": [
+    "150 pounds (no change)",
+    "380 pounds",
+    "855 pounds",
+    "570 pounds"
+   ],
+   "answer": 3,
+   "why": "The PHAK shows a 100-pound overload becoming a potential 380-pound overload at 3.8 G [[1:139|PHAK 5-42]]; 150 x 3.8 = 570 pounds."
+  },
+  {
+   "q": "Tower tells you to follow a regional jet, and you accept a visual approach. Who is responsible for wake turbulence separation?",
+   "options": [
+    "The tower, since it sequenced you behind the jet",
+    "ATC, until you report the runway in sight",
+    "Nobody, since wake turbulence separation applies only to IFR flights on approaches",
+    "You, by accepting the instruction to follow and the visual approach"
+   ],
+   "answer": 3,
+   "why": "Accepting traffic information, instructions to follow an aircraft, or a visual approach clearance is an acknowledgment that the pilot will ensure safe intervals and accepts responsibility for wake turbulence separation [[34:153|AIM 7-4-8]]."
+  },
+  {
+   "q": "En route VFR, you see a large airplane above you on the same track. What does the AIM recommend?",
+   "options": [
+    "Climb to its altitude so you are level with it, above the wake",
+    "Adjust your position laterally, preferably upwind",
+    "Descend 500 feet below it so you pass well under its path",
+    "Slow down and stay directly behind it at the same altitude"
+   ],
+   "answer": 1,
+   "why": "Avoid flight below and behind a large aircraft's path; if one is above on the same track, adjust laterally, preferably upwind [[34:152|AIM 7-4-6]]."
+  },
+  {
+   "q": "Your learner asks what she can do about gust loads, since she cannot avoid every bump. What does the PHAK say?",
+   "options": [
+    "Nothing: gust loads are a design matter that pilots cannot change",
+    "Speed up, so the airplane passes through each gust before it builds",
+    "Fly near VNE, since the never-exceed speed is set with rough air in mind",
+    "Slow down: gust loads generally control the design, and speed is her lever"
+   ],
+   "answer": 3,
+   "why": "The pilot has little control over gust load factors except to reduce speed when rough air is encountered, and gust loads generally control the design of non-acrobatic airplanes [[1:130|PHAK 5-33]]. Never-exceed speeds are determined for smooth air only [[1:134|PHAK 5-37]]."
+  },
+  {
+   "q": "During your lesson the learner insists that a wing with winglets leaves no wake to worry about. What do you teach?",
+   "options": [
+    "Winglets have a negligible effect on the wake, especially at departure and arrival speeds",
+    "Winglets matter only for helicopters, which have no wings to make wake",
+    "Winglets reverse the vortex rotation, so the induced roll is the other way",
+    "Winglets eliminate the tip vortices, so you can use normal spacing behind any jet with them"
+   ],
+   "answer": 0,
+   "why": "The AIM says studies show winglets have a negligible effect on wake turbulence generation, particularly at the slower speeds of departures and arrivals [[34:147|AIM 7-4-2]]."
+  }
+ ],
+ "takeaways": [
+  "Teach lift with both Bernoulli's principle and Newton's laws, and drop the 'longer path' story; symmetrical wings and flat plates make lift too.",
+  "In steady flight opposing forces balance, but lift and weight are larger than thrust and drag; a climb runs on excess thrust.",
+  "A stall is an excessive angle of attack, at any airspeed or attitude; the 1 G stall speed holds only unaccelerated, coordinated and at one weight.",
+  "Static stability is the first tendency, dynamic stability is what happens over time; show it with a hands-off trim and a brief push.",
+  "Torque, spiraling slipstream, precession and P-factor all yaw a clockwise-propeller airplane left, most at high power, high AOA and low speed.",
+  "Load factor is 1 over the cosine of the bank, stall speed rises with its square root, and VA covers one full input in one axis only.",
+  "Wake vortices are strongest from heavy, clean, slow aircraft and sink and drift; stay at or above the path, land beyond, rotate before, and check understanding with open-ended questions."
+ ],
+ "cfi_notes": [
+  "The sources disagree on climbs: the AFH says climbing needs an excess of lift [[24:80|AFH 3-19]], while the PHAK says lift in a steady climb is practically the same as in level flight and the climb is sustained by excess thrust [[1:120|PHAK 5-23]] [[1:121|PHAK 5-24]]. Teach the PHAK version and expect learners who read the AFH line.",
+  "The PHAK says winglets act as a dam that prevents the vortex from forming [[1:96|PHAK 4-9]]. The AIM says winglets have a negligible effect on wake turbulence generation [[34:147|AIM 7-4-2]]. Teach the AIM for wake avoidance.",
+  "The PHAK defines limit load as a force that bends the structure so it does not return to its original shape [[1:134|PHAK 5-37]]. 14 CFR requires the structure to carry limit loads without detrimental permanent deformation [[60:107|14 CFR 23.2235]], as the PHAK itself says elsewhere [[1:130|PHAK 5-33]]. Teach the CFR wording.",
+  "The 3.8, 4.4 and 6.0 G category limits [[1:131|PHAK 5-34]] [[1:139|PHAK 5-42]] are not in current Part 23. Today's rule has one normal category split into levels, with optional aerobatic certification [[60:99|14 CFR 23.2005]], and it sets no G number: design maneuvering load factors must be not less than service history shows may occur [[60:105|14 CFR 23.2200]]. Teach the airplane's own limits from the Flight Limits in its POH/AFM [[1:234|PHAK 9-4]] and the category placard the PHAK describes [[1:130|PHAK 5-33]].",
+  "Some PHAK numbers do not fit its own square law (worked in Python, application). PHAK 5-36 says 112 knots gives 4 G in a 60-knot airplane [[1:133|PHAK 5-36]], but (112 / 60) squared = 3.48 G; 4 G takes 120 knots. PHAK 5-35 says a 45-knot airplane in a 72° bank (3 G) must stay above 75 knots [[1:132|PHAK 5-35]], but 45 x 1.73 = 78 knots at 3 G, and 72° is really 3.24 G, so about 81 knots: the printed figure would leave a pilot below the stall speed. PHAK 5-23 gives about 79 percent vertical lift at about 44° of bank [[1:120|PHAK 5-23]], while cos 44° is 0.72. The '1.7 times stall speed gives 3 G' line is only 2.89 G rounded, as PHAK 5-35 shows. The PHAK calls its figures approximations [[1:132|PHAK 5-35]]; work the math before you quote them.",
+  "The PHAK ties balanced forces in steady flight to Newton's third law [[1:99|PHAK 5-2]]. Application: a sharp learner may point out that the first law, an object in uniform motion stays that way unless a force acts [[1:92|PHAK 4-5]], is the closer fit. Agree, and keep the focus on the balanced pairs.",
+  "Keep P-factor simple: the PHAK itself says a full proof is complex [[1:129|PHAK 5-32]]. The 'bigger bite of the descending blade' picture is enough for most learners.",
+  "The PHAK calls lift a complex subject, much more complex than a simple pressure difference between the upper and lower surfaces [[1:95|PHAK 4-8]], and says the physical laws do not by themselves explain how lift is formed [[1:92|PHAK 4-5]]. Be honest about that with a learner who has read conflicting books, and fall back on what the pilot controls: AOA and airspeed.",
+  "Brief the trim-and-push stability demonstration on the ground, clear the area and have the learner predict the outcome first; the AIH says to review a topic before flight even after ground school [[25:174|AIH 9-4]]."
+ ],
+ "gaps": [
+  "Airplane-specific limit load factors, VA at different weights and the Vg diagram: the POH/AFM, not the handbooks.",
+  "Which way the propeller turns and how strong each left-turning tendency is in a given airplane: the sources describe a typical U.S. engine only [[1:128|PHAK 5-31]]; check the POH/AFM and fly it.",
+  "How strongly a particular trainer shows spiral instability or Dutch roll: the sources describe the tendencies but give no numbers; find out by careful demonstration at altitude.",
+  "Calibration and limits of an installed AOA indicator: the PHAK sends pilots to the manufacturer [[1:125|PHAK 5-28]].",
+  "The AIH gives general lesson planning and questioning methods but no ready-made aerodynamics lesson plan; you build it."
+ ],
+ "activities": [
+  {
+   "type": "label",
+   "key": "h1",
+   "after": 2,
+   "title": "Read the force diagrams",
+   "figure": "f1",
+   "intro": "Drag each description to its numbered pin on the drawing.",
+   "pins": [
+    {
+     "x": 19,
+     "y": 30,
+     "label": "Acts perpendicular to the flight path and the lateral axis"
+    },
+    {
+     "x": 19,
+     "y": 78,
+     "label": "Acts straight down through the CG"
+    },
+    {
+     "x": 7,
+     "y": 57,
+     "label": "Generally acts parallel to the longitudinal axis"
+    },
+    {
+     "x": 43,
+     "y": 57,
+     "label": "Rearward force, generally parallel to the relative wind"
+    },
+    {
+     "x": 71,
+     "y": 74,
+     "label": "In a climb, the part of weight that acts like extra drag"
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h2",
+   "after": 3,
+   "title": "True or false: lift claims",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "A wing must have a longer upper surface than lower surface to make lift.",
+     "a": false,
+     "why": "False. Many lifting airfoils, such as symmetrical wings, do not [[1:95|PHAK 4-8]]."
+    },
+    {
+     "s": "A flat paper airplane wing can make lift.",
+     "a": true,
+     "why": "True. Its top and bottom are the same, yet flow turning makes lift [[1:96|PHAK 4-9]]."
+    },
+    {
+     "s": "The PHAK gives a fixed percentage of lift that comes from the upper surface.",
+     "a": false,
+     "why": "False. It says assigning such percentages is neither accurate nor useful [[1:94|PHAK 4-7]]."
+    },
+    {
+     "s": "At the same angle of attack, doubling the airspeed gives four times the lift.",
+     "a": true,
+     "why": "True. Lift is proportional to the square of velocity [[1:101|PHAK 5-4]]."
+    },
+    {
+     "s": "When a wing stalls it stops producing lift completely.",
+     "a": false,
+     "why": "False. It cannot make enough lift for level flight, but it still makes some [[1:122|PHAK 5-25]]."
+    },
+    {
+     "s": "At 18,000 feet the air is about half as dense as at sea level.",
+     "a": true,
+     "why": "True, so a greater true airspeed is needed for the same AOA [[1:102|PHAK 5-5]]."
+    }
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h3",
+   "after": 6,
+   "title": "Which stability does it build?",
+   "intro": "Tap a design feature, then tap the kind of stability it mainly provides.",
+   "buckets": [
+    "Longitudinal (pitch)",
+    "Lateral (roll)",
+    "Directional (yaw)"
+   ],
+   "items": [
+    {
+     "t": "Location of the horizontal tail with respect to the CG",
+     "b": 0
+    },
+    {
+     "t": "Size of the horizontal tail",
+     "b": 0
+    },
+    {
+     "t": "Dihedral",
+     "b": 1
+    },
+    {
+     "t": "Keel effect of a high wing",
+     "b": 1
+    },
+    {
+     "t": "Vertical fin placed far aft",
+     "b": 2
+    },
+    {
+     "t": "More side area aft of the CG than ahead of it",
+     "b": 2
+    }
+   ]
+  },
+  {
+   "type": "match",
+   "key": "h4",
+   "after": 8,
+   "title": "Match the left-turning tendency",
+   "intro": "Tap a tendency, then the description that fits it.",
+   "pairs": [
+    {
+     "l": "Torque reaction",
+     "r": "Engine and propeller turn one way, so the airplane is pushed to roll the other"
+    },
+    {
+     "l": "Spiraling slipstream",
+     "r": "Rotating air strikes the vertical fin and yaws the nose"
+    },
+    {
+     "l": "Gyroscopic precession",
+     "r": "A force on the propeller disc acts 90° ahead in the direction of rotation"
+    },
+    {
+     "l": "P-factor",
+     "r": "The descending blade takes a bigger bite at high angle of attack"
+    },
+    {
+     "l": "Aileron trim tab",
+     "r": "Lets the pilot adjust torque compensation for speeds other than cruise"
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h5",
+   "after": 10,
+   "title": "Work the load factor numbers",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "Your learner overbanks to 75° and holds altitude. How many Gs is the structure carrying? (1 / cos of the bank)",
+     "answer": 3.86,
+     "tol": 0.03,
+     "unit": "G",
+     "why": "cos 75° = 0.259. 1 / 0.259 = 3.86 G, past the 3.8 G normal category limit in the PHAK table [[1:131|PHAK 5-34]]."
+    },
+    {
+     "q": "The PHAK says a 400 mph airplane needs about 44° of bank for a standard-rate turn. What percent of its lift is then vertical? (cos of the bank x 100)",
+     "answer": 72,
+     "tol": 1,
+     "unit": "percent",
+     "why": "The PHAK gives about 44° for this turn [[1:120|PHAK 5-23]]. cos 44° = 0.719, so about 72 percent of the lift is vertical (the PHAK prints 79 percent, which does not fit its own trigonometry). The rest is the horizontal component, so the AOA must increase to hold altitude [[1:120|PHAK 5-23]]."
+    },
+    {
+     "q": "A utility category airplane has a 4.4 G limit load factor. What is its ultimate load factor?",
+     "answer": 6.6,
+     "tol": 0.05,
+     "unit": "G",
+     "why": "Ultimate loads are limit loads times 1.5 [[60:106|14 CFR 23.2230]]: 4.4 x 1.5 = 6.6 G."
+    },
+    {
+     "q": "In the PHAK Vg example the wing-level stall speed is 64 mph and the limit load is 4.4 G. Using the square law, at what speed does the stall line reach the limit load?",
+     "answer": 134,
+     "tol": 3,
+     "unit": "mph",
+     "why": "Maximum load factor varies with the square of airspeed [[1:134|PHAK 5-37]], so V = 64 x square root of 4.4 = 64 x 2.098 = 134 mph. The PHAK text quotes about 137 mph, an approximation."
+    },
+    {
+     "q": "A 2,400-pound airplane climbs at a steady 10°. By about how many pounds must thrust exceed drag? (weight x sin 10°)",
+     "answer": 417,
+     "tol": 5,
+     "unit": "pounds",
+     "why": "A 10° climb needs thrust equal to drag plus about 17 percent of weight [[1:121|PHAK 5-24]]: 2,400 x 0.174 = 417 pounds."
+    },
+    {
+     "q": "A steady 6-knot wind is blowing. About how far do wake vortices drift in one minute? (1 knot = 6,076 feet per hour)",
+     "answer": 608,
+     "tol": 15,
+     "unit": "feet",
+     "why": "Vortices drift at the speed of the wind; 10 knots moves them about 1,000 feet a minute [[1:106|PHAK 5-9]]. 6 x 6,076 / 60 = 608 feet."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h6",
+   "after": 12,
+   "title": "Why the nose drops when you slow",
+   "intro": "Use the arrows to put the PHAK's longitudinal stability sequence in order, then tap Check.",
+   "steps": [
+    "The airplane slows, so the downwash from the wing weakens",
+    "Less downward force on the tail lets the nose pitch down",
+    "The nose-low attitude lowers the AOA and drag, so speed builds",
+    "More speed brings back the downwash and the tail is pushed down",
+    "The nose rises into a climb, and the cycle repeats with smaller swings"
+   ],
+   "why": "Sequence from PHAK Figures 5-24 and 5-25: reduced downwash lets the nose drop, speed builds, the tail load returns and the nose rises, in oscillations that grow smaller [[1:113|PHAK 5-16]] [[1:114|PHAK 5-17]]."
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 11,
+   "title": "Wake turbulence with a learner aboard",
+   "intro": "You are the CFI on a dual flight from a towered airport where a regional jet is departing ahead of you. Your learner is flying.",
+   "steps": [
+    {
+     "s": "Tower clears you for takeoff on the same runway; the jet rotated about halfway down. What do you coach?",
+     "options": [
+      "Rotate after its rotation point to get more speed",
+      "Rotate at the normal point and climb normally",
+      "Hold low in ground effect to build speed under its path",
+      "Rotate before the jet's rotation point and climb above its path until turning clear"
+     ],
+     "answer": 3,
+     "why": "Departing behind a larger aircraft: rotate before its rotation point and climb above its path until turning clear [[34:152|AIM 7-4-6]]."
+    },
+    {
+     "s": "Climbing out, the learner wants to turn to a heading that crosses behind and below the jet's climb path. What do you say?",
+     "options": [
+      "Fine, the wake is behind it at its own altitude",
+      "Fine, as long as you add power",
+      "Fine, its winglets prevent a wake",
+      "Pick a heading that does not cross below and behind the jet"
+     ],
+     "answer": 3,
+     "why": "Avoid headings that cross below and behind a larger aircraft [[34:152|AIM 7-4-6]]; vortices sink several hundred feet per minute [[34:148|AIM 7-4-4]]."
+    },
+    {
+     "s": "Returning, you follow a landing jet with a light quartering tailwind. What is the plan?",
+     "options": [
+      "Fly the same path and touch down at its point",
+      "Fly below its path and land short of its touchdown point",
+      "Stay at or above its path and land beyond its touchdown point, with maximum caution",
+      "Land on the first third regardless"
+     ],
+     "answer": 2,
+     "why": "Stay at or above its path and land beyond its touchdown point [[34:152|AIM 7-4-6]]; a light quartering tailwind can move vortices into the touchdown zone and requires maximum caution [[34:150|AIM 7-4-4]]."
+    },
+    {
+     "s": "On a low final you feel a sharp, uncommanded roll. What is the best action?",
+     "options": [
+      "Push the nose down to gain speed",
+      "Go around, climbing above the path and moving slightly upwind",
+      "Hold full aileron and continue",
+      "Reduce power to land quickly"
+     ],
+     "answer": 1,
+     "why": "Avoid the area below and behind the generator, especially at low altitude [[34:151|AIM 7-4-5]]; a slight change upward and upwind should clear persistent vortex turbulence [[34:148|AIM 7-4-4]]."
+    },
+    {
+     "s": "In the debrief the learner says, 'Tower should have warned us.' How do you answer?",
+     "options": [
+      "Whether or not a caution is given, the pilot is expected to adjust the flight path to avoid wake",
+      "Wake is only a concern behind heavy jets",
+      "Only IFR pilots must avoid wake",
+      "Agree; wake avoidance is ATC's job"
+     ],
+     "answer": 0,
+     "why": "Whether or not a warning has been given, the pilot is expected to adjust operations and flight path to preclude serious wake encounters [[34:152|AIM 7-4-6]]."
+    }
+   ]
+  }
+ ]
+}
