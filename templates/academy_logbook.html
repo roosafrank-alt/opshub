@@ -72,37 +72,42 @@
 {% endif %}
 
 {% if type_filter %}<div class="small mb-2">Showing only <strong>{{ type_filter }}</strong>. <a href="{{ url_for('pilotlog.logbook', student_id=student.id if staff else None, range=range_key, **({'from': start, 'to': end} if range_key == 'custom' else {})) }}">Show all types</a> &middot; <a href="{{ url_for('pilotlog.aircraft_totals', student_id=student.id if staff else None) }}">Totals by aircraft</a></div>{% endif %}
-<div class="card academy-card">
-  <div class="small text-muted d-sm-none px-2 pt-2" data-change="DESIGN-5"><i class="bi bi-arrow-left-right"></i> Swipe sideways to see every column</div>
-  <div class="table-responsive">
-    <table class="table table-sm table-hover align-middle mb-0 plog">
-      <thead class="table-light"><tr>
-        <th>Date</th><th>Aircraft</th><th>Route</th><th class="num">Total</th><th class="num">Dual</th><th class="num">Solo</th><th class="num">PIC</th>
-        <th class="num">XC</th><th class="num">Night</th><th class="num">Inst</th><th class="num">Ldg D/N</th><th>Instructor</th><th>Status</th>
-      </tr></thead>
-      <tbody>
-      {% for e in entries %}
-        <tr class="{{ 'pending' if e.status == 'pending' }} pointer-cursor" onclick="location.href='{{ url_for('pilotlog.entry', entry_id=e.id) }}'">
-          <td>{{ e.entry_date|usdate }}</td>
-          <td>{{ e.tail }} <small class="text-muted">{{ e.make_model or '' }}</small></td>
-          <td>{{ [e.route_from, e.route_to]|select|join(' - ') or '-' }}</td>
-          <td class="num fw-bold">{{ '%.1f'|format(e.total or 0) }}</td>
-          <td class="num">{{ '%.1f'|format(e.dual) if e.dual else '' }}</td>
-          <td class="num">{{ '%.1f'|format(e.solo) if e.solo else '' }}</td>
-          <td class="num">{{ '%.1f'|format(e.pic) if e.pic else '' }}</td>
-          <td class="num">{{ '%.1f'|format(e.xc) if e.xc else '' }}</td>
-          <td class="num">{{ '%.1f'|format(e.night) if e.night else '' }}</td>
-          <td class="num">{{ '%.1f'|format((e.actual_inst or 0) + (e.sim_inst or 0)) if (e.actual_inst or e.sim_inst) else '' }}</td>
-          <td class="num">{{ e.day_ldg or 0 }}/{{ e.night_ldg or 0 }}</td>
-          <td>{% if e.instructor_name %}{{ e.instructor_name }} <small class="text-muted">{{ e.instructor_cert or '' }}</small>{% endif %}</td>
-          <td>{% if e.status == 'pending' %}<span class="badge bg-warning text-dark">Pending</span>{% elif e.source == 'foreflight' %}<span class="badge bg-secondary"><i class="bi bi-upload"></i> Imported</span>{% else %}<span class="badge bg-success"><i class="bi bi-check2"></i> Done</span>{% endif %}</td>
-        </tr>
-      {% else %}
-        <tr><td colspan="13" class="text-muted p-3">No flights yet - they show up here as soon as a flight is logged.</td></tr>
-      {% endfor %}
-      </tbody>
-    </table>
-  </div>
+{#- Brief overview per flight (click to open the full details), with a divider per month. entries are newest first. #}
+{% set months = ['January','February','March','April','May','June','July','August','September','October','November','December'] %}
+{% set mt = namespace(hrs={}, n={}) %}
+{% for e in entries %}{% set k = (e.entry_date or '')[:7] %}{% set _ = mt.hrs.update({k: (mt.hrs.get(k, 0) + (e.total or 0))}) %}{% set _ = mt.n.update({k: mt.n.get(k, 0) + 1}) %}{% endfor %}
+<style>
+  .lb-month { position: sticky; top: 0; z-index: 1; background: #e9eef5; border-top: 2px solid #b8c4d6; border-bottom: 1px solid #d3dbe6; }
+  .lb-row { cursor: pointer; }
+  .lb-row:hover { background: #f4f8fd; }
+  .lb-row.pending { background: #fff8e1; }
+</style>
+<div class="card academy-card overflow-hidden">
+  {% set cur = namespace(m='') %}
+  {% for e in entries %}
+    {% set mk = (e.entry_date or '')[:7] %}
+    {% if mk != cur.m %}
+      {% set cur.m = mk %}
+      <div class="lb-month px-3 py-2 d-flex justify-content-between align-items-center">
+        <strong>{% if mk %}{{ months[(mk[5:7]|int) - 1] }} {{ mk[:4] }}{% else %}No date{% endif %}</strong>
+        <span class="small text-muted">{{ mt.n[mk] }} flight{{ 's' if mt.n[mk] != 1 }} &middot; {{ '%.1f'|format(mt.hrs[mk]) }} hrs</span>
+      </div>
+    {% endif %}
+    <a href="{{ url_for('pilotlog.entry', entry_id=e.id) }}" class="lb-row {{ 'pending' if e.status == 'pending' }} d-flex align-items-center gap-3 px-3 py-2 border-bottom text-decoration-none text-body">
+      <div class="text-center flex-shrink-0" style="width:2.6rem;"><div class="fw-bold lh-1">{{ (e.entry_date or '')[8:10]|int }}</div><div class="small text-muted">{{ (months[(mk[5:7]|int) - 1] if mk else '')[:3] }}</div></div>
+      <div class="flex-grow-1" style="min-width:0;">
+        <div class="fw-semibold text-truncate">{{ e.tail or '-' }} <small class="text-muted fw-normal">{{ e.make_model or '' }}</small></div>
+        <div class="small text-muted text-truncate">{{ [e.route_from, e.route_to]|select|join(' - ') or '-' }}</div>
+      </div>
+      <div class="text-end flex-shrink-0">
+        <div class="fw-bold">{{ '%.1f'|format(e.total or 0) }}</div>
+        {% if e.status == 'pending' %}<span class="badge bg-warning text-dark">Pending</span>{% elif e.source == 'foreflight' %}<span class="badge bg-secondary">Imported</span>{% else %}<span class="badge bg-success"><i class="bi bi-check2"></i></span>{% endif %}
+      </div>
+      <i class="bi bi-chevron-right text-muted flex-shrink-0"></i>
+    </a>
+  {% else %}
+    <div class="text-muted p-3">No flights yet - they show up here as soon as a flight is logged.</div>
+  {% endfor %}
 </div>
 {% endif %}
 {% if can_log %}
