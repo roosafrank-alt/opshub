@@ -123,41 +123,44 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
-        <div class="small text-muted mb-2">For flights the school didn't bill (another plane, another school). School flights appear on their own.</div>
-        <div class="row g-2">
-          <div class="col-6 col-md-3"><label class="form-label small mb-0">Date *</label><input type="date" name="entry_date" required class="form-control form-control-sm" value="{{ log_today }}"></div>
-          <div class="col-6 col-md-3"><label class="form-label small mb-0">Tail number</label><input name="tail" class="form-control form-control-sm" autocapitalize="characters"></div>
-          <div class="col-12 col-md-6"><label class="form-label small mb-0">Make / model</label><input name="make_model" class="form-control form-control-sm" placeholder="Cessna 172S"></div>
-          <div class="col-6 col-md-3"><label class="form-label small mb-0">From</label><input name="route_from" class="form-control form-control-sm" autocapitalize="characters" placeholder="N89"></div>
-          <div class="col-6 col-md-3"><label class="form-label small mb-0">To / via</label><input name="route_to" class="form-control form-control-sm" autocapitalize="characters" placeholder="KPOU"></div>
-          <div class="col-12 col-md-6"><label class="form-label small mb-0">Route (optional)</label><input name="route" class="form-control form-control-sm"></div>
-          <div class="col-6 col-md-3"><label class="form-label small mb-0">Distance (nm)</label><input type="number" step="1" min="0" name="distance_nm" class="form-control form-control-sm" placeholder="from the route if blank"></div>
+        <style>
+          .ld-sec { border:1px solid #dbe3ee; border-left:5px solid var(--sc,#3b82f6); border-radius:10px; background:#f7f9fc; padding:.7rem .8rem .8rem; margin-top:.75rem; }
+          .ld-sec > h6 { margin:0 0 .55rem; font-weight:800; font-size:.78rem; letter-spacing:.07em; text-transform:uppercase; color:var(--sc,#3b82f6); }
+          .ld-sec .form-control { background:#fff; }
+        </style>
+        {% macro lf(name, label, cols, kind='hrs', ph='', req=False) %}
+          <div class="{{ cols }}"><label class="form-label small fw-semibold mb-1" for="lf-f-{{ name }}">{{ label }}</label>
+            <input id="lf-f-{{ name }}" name="{{ name }}" class="form-control form-control-sm" {{ 'required' if req }} placeholder="{{ ph }}"
+              {% if kind == 'hrs' %}type="number" step="0.1" min="0"{% elif kind == 'int' %}type="number" step="1" min="0"{% elif kind == 'date' %}type="date" value="{{ log_today }}"{% else %}type="text"{{ ' autocapitalize="characters"'|safe if kind == 'caps' }}{% endif %}></div>
+        {% endmacro %}
+        <div class="small text-muted">For flights the school didn't bill (another plane, another school). School flights appear on their own.</div>
+        <div class="ld-sec" style="--sc:#3b82f6"><h6><i class="bi bi-airplane"></i> The flight</h6>
+          <div class="row g-2">{{ lf('entry_date','Date *','col-6 col-md-3','date',req=True) }}{{ lf('tail','Tail number','col-6 col-md-3','caps') }}{{ lf('make_model','Make / model','col-12 col-md-6','text','Cessna 172S') }}</div>
         </div>
-        <h6 class="mt-3 mb-1">Time</h6>
-        <div class="row g-2">
-          {% for k, l in [('total','Total *'),('dual','Dual received'),('solo','Solo'),('pic','PIC'),('xc','Cross-country'),('night','Night'),('actual_inst','Actual instrument'),('sim_inst','Simulated instrument'),('sic','SIC'),('dual_given','As flight instructor'),('xc50','Cross-country over 50 NM'),('sim_flight','Flight simulator / FTD')] %}
-          <div class="col-6 col-md-3"><label class="form-label small mb-0">{{ l }}</label><input type="number" step="0.1" min="0" name="{{ k }}" class="form-control form-control-sm" {{ 'required' if k == 'total' }}></div>
-          {% endfor %}
+        <div class="ld-sec" style="--sc:#14b8a6"><h6><i class="bi bi-signpost-split"></i> Route</h6>
+          <div class="row g-2">{{ lf('route_from','From','col-6 col-md-3','caps','N89') }}{{ lf('route_to','To / via','col-6 col-md-3','caps','KPOU') }}{{ lf('route','Route (optional)','col-12 col-md-6','text') }}
+            {{ lf('distance_nm','Distance (nm)','col-6 col-md-3','int','auto') }}<div class="col-6 col-md-9 small text-muted align-self-end pb-1">Left blank, the distance is worked out from the route.</div></div>
         </div>
-        <div class="row g-2 mt-1">
-          <div class="col-12 col-md-6"><label class="form-label small mb-0">Approach type &amp; location</label><input name="approach_detail" class="form-control form-control-sm" placeholder="ILS 27, KPOU"></div>
-          <div class="col-12 col-md-6"><label class="form-label small mb-0">Category &amp; class</label><input name="cat_class" class="form-control form-control-sm" placeholder="Airplane single-engine land"></div>
+        <div class="ld-sec" style="--sc:#0ea5a4"><h6><i class="bi bi-clock-history"></i> Flight time (hours)</h6>
+          <div class="row g-2">{{ lf('total','Total *','col-6 col-md-3',req=True) }}{{ lf('dual','Dual received','col-6 col-md-3') }}{{ lf('solo','Solo','col-6 col-md-3') }}{{ lf('pic','PIC','col-6 col-md-3') }}
+            {{ lf('sic','SIC','col-6 col-md-3') }}{{ lf('dual_given','As instructor','col-6 col-md-3') }}{{ lf('xc','Cross-country','col-6 col-md-3') }}{{ lf('xc50','XC over 50 NM','col-6 col-md-3') }}
+            {{ lf('night','Night','col-6 col-md-3') }}{{ lf('sim_flight','Simulator / FTD','col-6 col-md-3') }}</div>
         </div>
-        <h6 class="mt-3 mb-1">Landings and approaches</h6>
-        <div class="row g-2">
-          {% for k, l in [('day_ldg','Day landings'),('night_ldg','Night landings'),('night_fs','Night full-stop'),('approaches','Approaches')] %}
-          <div class="col-6 col-md-3"><label class="form-label small mb-0">{{ l }}</label><input type="number" step="1" min="0" name="{{ k }}" class="form-control form-control-sm"></div>
-          {% endfor %}
+        <div class="ld-sec" style="--sc:#8b5cf6"><h6><i class="bi bi-cloud-fog2"></i> Instrument</h6>
+          <div class="row g-2">{{ lf('actual_inst','Actual','col-6 col-md-3') }}{{ lf('sim_inst','Simulated (hood)','col-6 col-md-3') }}{{ lf('approaches','Approaches','col-6 col-md-3','int') }}
+            {{ lf('approach_detail','Approach type & location','col-12','text','ILS 27, KPOU') }}</div>
         </div>
-        <h6 class="mt-3 mb-1">The airplane</h6>
-        <div class="d-flex flex-wrap gap-3">
-          {% for code, label in ac_features %}
-          <div class="form-check"><input class="form-check-input" type="checkbox" name="ac_features" value="{{ code }}" id="lf-{{ code }}"><label class="form-check-label small" for="lf-{{ code }}">{{ label }}</label></div>
-          {% endfor %}
+        <div class="ld-sec" style="--sc:#f59e0b"><h6><i class="bi bi-arrow-down-circle"></i> Landings</h6>
+          <div class="row g-2">{{ lf('day_ldg','Day','col-4','int') }}{{ lf('night_ldg','Night','col-4','int') }}{{ lf('night_fs','Night full-stop','col-4','int') }}</div>
         </div>
-        <div class="row g-2 mt-2">
-          <div class="col-12 col-md-4"><label class="form-label small mb-0">Instructor (if any)</label><input name="instructor_name" class="form-control form-control-sm"></div>
-          <div class="col-12 col-md-8"><label class="form-label small mb-0">Remarks / maneuvers</label><input name="remarks" class="form-control form-control-sm"></div>
+        <div class="ld-sec" style="--sc:#ec4899"><h6><i class="bi bi-person-badge"></i> Aircraft, instructor &amp; remarks</h6>
+          <div class="row g-2">{{ lf('cat_class','Category & class','col-12','text','Airplane single-engine land') }}</div>
+          <div class="d-flex flex-wrap gap-3 mt-2">
+            {% for code, label in ac_features %}
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="ac_features" value="{{ code }}" id="lf-{{ code }}"><label class="form-check-label small" for="lf-{{ code }}">{{ label }}</label></div>
+            {% endfor %}
+          </div>
+          <div class="row g-2 mt-1">{{ lf('instructor_name','Instructor (if any)','col-12 col-md-4','text') }}{{ lf('remarks','Remarks / maneuvers','col-12 col-md-8','text') }}</div>
         </div>
         <div class="form-text mt-2">Hours can't be more than the total time. Entries you log yourself show as logged by you, not instructor-signed.</div>
       </div>
