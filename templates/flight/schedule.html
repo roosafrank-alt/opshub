@@ -262,6 +262,7 @@
      straight to "Schedule Flight" with that date pre-filled - see the
      delegated click handler below, which checks data-add-url on the cell
      itself so the whole cell is clickable, not just the day number. */
+  .day-click-avail { cursor: pointer; }
   .calendar-day-cell-add { cursor: pointer; transition: background-color .15s ease; }
   .calendar-day-cell-add:hover { background-color: rgba(13,110,253,.08); }
   /* The day-cell mini timeline: a fixed-height strip scaled to a 6am-8pm
@@ -768,6 +769,17 @@ document.addEventListener('click', function (evt) {
   if (url) window.location.href = url;
 });
 
+// Week and Day views: a click on a day's header or any empty space in it opens
+// that day's Availability page. Lessons, links, buttons and the Day view's open
+// slots (which start a booking) keep their own clicks.
+document.addEventListener('click', function (evt) {
+  var day = evt.target.closest('.day-click-avail');
+  if (!day) return;
+  if (evt.target.closest('.schedule-block, a, button, input, select, label, td, .day-timeline-track-clickable, .modal')) return;
+  var url = day.getAttribute('data-avail-url');
+  if (url) window.location.href = url;
+});
+
 document.addEventListener('click', function (e) {
   var b = e.target.closest && e.target.closest('[data-sch-expand]');
   var r = document.getElementById('schedule-live-region');
@@ -885,11 +897,11 @@ document.addEventListener('click', function (e) {
     var track = e.target.closest('.day-timeline-track-clickable');
     if (!track) return;
     if (e.target.closest('.schedule-block')) return;
+    if (track.dataset.availUrl) { window.location.href = track.dataset.availUrl; return; }   // Month/Week view: a day opens its Availability page
     var b = slotBounds(track, e.clientY);
     if (!b) return;
     var hh = Math.floor(b.slotStart / 60), mm = b.slotStart % 60;
     var time = (hh < 10 ? '0' : '') + hh + ':' + (mm < 10 ? '0' : '') + mm;
-    if (track.dataset.availUrl) { window.location.href = track.dataset.availUrl; return; }   // Month view: a day opens its Availability page
     window.location.href = SCHEDULE_NEW_URL + '?date=' + encodeURIComponent(track.dataset.trackDate) + '&time=' + time;
   });
 })();
