@@ -16,29 +16,6 @@
 <style>
   body { background: #0d1b2a; }
   .academy-card { border-radius: 12px; }
-  /* Pilot-log pages: dark glass cards with a color accent, no big white blocks */
-  .lb-dark { --acc:#38bdf8; }
-  .lb-dark > div:nth-of-type(6n+1){--acc:#38bdf8} .lb-dark > div:nth-of-type(6n+2){--acc:#34d399} .lb-dark > div:nth-of-type(6n+3){--acc:#fbbf24}
-  .lb-dark > div:nth-of-type(6n+4){--acc:#c084fc} .lb-dark > div:nth-of-type(6n+5){--acc:#fb7185} .lb-dark > div:nth-of-type(6n+6){--acc:#2dd4bf}
-  .lb-dark .academy-card:not(.lb-hero) { background:linear-gradient(160deg,color-mix(in srgb,var(--acc) 16%,#14243d),#0f1b2e 70%); color:#e8f0ff; border:1px solid color-mix(in srgb,var(--acc) 40%,transparent); border-top:3px solid var(--acc); box-shadow:0 4px 14px rgba(0,0,0,.35); }
-  .lb-dark .text-muted { color:#a9bddb !important; }
-  .lb-dark h6 { color:var(--acc); text-transform:uppercase; letter-spacing:.08em; font-weight:800; font-size:.8rem; }
-  .lb-dark .academy-card:not(.lb-hero) strong { color:#fde68a; }
-  .lb-dark .academy-card:not(.lb-hero) .border { background:rgba(255,255,255,.05); border-color:color-mix(in srgb,var(--acc) 45%,transparent) !important; }
-  .lb-dark .academy-card:not(.lb-hero) .border .fw-bold { color:var(--acc); font-size:1.2rem; }
-  .lb-dark a:not(.btn):not(.nav-link):not(.lb-row) { color:#7dd3fc; }
-  .lb-dark .bg-white { --t:#38bdf8; background:linear-gradient(160deg,color-mix(in srgb,var(--t) 32%,#0f1b2e),#0f1b2e 80%) !important; border-color:var(--t) !important; color:#fff; box-shadow:0 3px 10px rgba(0,0,0,.35); }
-  .lb-dark .bg-white .fs-4 { color:var(--t); text-shadow:0 0 14px color-mix(in srgb,var(--t) 55%,transparent); }
-  .lb-dark .row > div:nth-child(8n+1) > .bg-white{--t:#38bdf8} .lb-dark .row > div:nth-child(8n+2) > .bg-white{--t:#34d399}
-  .lb-dark .row > div:nth-child(8n+3) > .bg-white{--t:#fbbf24} .lb-dark .row > div:nth-child(8n+4) > .bg-white{--t:#fb7185}
-  .lb-dark .row > div:nth-child(8n+5) > .bg-white{--t:#c084fc} .lb-dark .row > div:nth-child(8n+6) > .bg-white{--t:#2dd4bf}
-  .lb-dark .row > div:nth-child(8n+7) > .bg-white{--t:#fb923c} .lb-dark .row > div:nth-child(8n+8) > .bg-white{--t:#a3e635}
-  .lb-dark select[onchange] { width:auto !important; max-width:100% !important; flex:0 0 auto; min-width:min(100%,22rem); text-overflow:clip; padding-right:2.25rem; }
-  .lb-dark .btn-outline-dark { color:#e8f0ff; border-color:rgba(255,255,255,.4); }
-  .lb-dark .btn-outline-dark:hover { background:rgba(255,255,255,.18); color:#fff; }
-  .lb-dark .btn-dark { background:var(--h,#3b82f6); border-color:var(--h,#3b82f6); color:#fff; font-weight:700; }
-  .lb-dark .table-light { --bs-table-bg:#1d3354; --bs-table-color:#cfe0ff; --bs-table-border-color:#2c4a75; }
-  .lb-dark .table { --bs-table-bg:transparent; --bs-table-color:#e8f0ff; --bs-table-hover-bg:rgba(125,211,252,.12); --bs-table-hover-color:#fff; }
   .lb-hero { --h:#3b82f6; color:#fff; border:0; background: linear-gradient(135deg,#14213d 0%,#1d3a6e 55%,var(--h) 160%); box-shadow:0 4px 14px rgba(0,0,0,.35); }
   .lb-hero .text-muted, .lb-hero .small.text-muted { color:rgba(255,255,255,.72) !important; }
   .lb-hero h4 { font-weight:800; letter-spacing:.2px; }
@@ -52,14 +29,14 @@
 </head>
 <body>
 {% include "_academy_header.html" %}
-<div class="container py-4{{ ' lb-dark' if tab in ('logbook', 'progress', 'map') }}"{{ ' data-bs-theme="dark"'|safe if tab in ('logbook', 'progress', 'map') }}>
+<div class="container py-4">
   {% include "_flash_messages.html" %}
   {% include "_academy_tabs.html" %}
   {% if tab in ('logbook', 'progress', 'map') %}{% include "_academy_logbook_subtabs.html" %}{% endif %}
   {% if students %}
   <form method="get" class="mb-3 d-flex align-items-center gap-2">
     <label class="text-light small mb-0">Student</label>
-    <select name="student_id" class="form-select form-select-sm" style="max-width:100%;" onchange="this.form.submit()">
+    <select name="student_id" class="form-select form-select-sm" style="max-width:280px;" onchange="this.form.submit()">
       {% for s in students %}<option value="{{ s.id }}" {{ 'selected' if student and s.id == student.id }}>{{ s.name }}</option>{% endfor %}
     </select>
   </form>
