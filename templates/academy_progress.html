@@ -18,7 +18,7 @@
 {% if not student %}
 <div class="card academy-card p-4">No student profile is linked to your account, so there's no progress to show.</div>
 {% else %}
-<div class="card academy-card p-3 mb-3">
+<div class="card academy-card lb-hero lb-h-progress p-3 mb-3">
   <h4 class="mb-1"><i class="bi bi-bar-chart-steps"></i> {{ student.name }}'s progress</h4>
   <div class="small text-muted">Aeronautical experience from 14 CFR Part 61, airplane single-engine land. Hours and landings are totalled from the logbook{% if pending_count %} (including {{ pending_count }} pending entr{{ 'y' if pending_count == 1 else 'ies' }}){% endif %}; the rest is checked off by an instructor. "Within 2 calendar months" items count flights since {{ window_start|usdate }}. Always confirm against the current regulations before a checkride.</div>
 </div>

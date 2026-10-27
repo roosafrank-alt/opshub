@@ -9,7 +9,7 @@
 {% if not student %}
 <div class="card academy-card p-4">No student profile is linked to your account, so there's no logbook to show.</div>
 {% else %}
-<div class="card academy-card p-3 mb-3">
+<div class="card academy-card lb-hero lb-h-logbook p-3 mb-3">
   <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
     <div>
       <h4 class="mb-0"><i class="bi bi-journal-text"></i> {{ student.name }}'s Logbook</h4>
@@ -77,10 +77,15 @@
 {% set mt = namespace(hrs={}, n={}) %}
 {% for e in entries %}{% set k = (e.entry_date or '')[:7] %}{% set _ = mt.hrs.update({k: (mt.hrs.get(k, 0) + (e.total or 0))}) %}{% set _ = mt.n.update({k: mt.n.get(k, 0) + 1}) %}{% endfor %}
 <style>
-  .lb-month { position: sticky; top: 0; z-index: 1; background: #e9eef5; border-top: 2px solid #b8c4d6; border-bottom: 1px solid #d3dbe6; }
-  .lb-row { cursor: pointer; }
-  .lb-row:hover { background: #f4f8fd; }
-  .lb-row.pending { background: #fff8e1; }
+  .lb-month { position:sticky; top:0; z-index:1; background:linear-gradient(90deg,#14213d,#2a5db0); color:#fff; border-top:2px solid #f59e0b; }
+  .lb-month .text-muted { color:rgba(255,255,255,.75)!important; }
+  .lb-row { cursor:pointer; border-left:5px solid #22c55e; }
+  .lb-row.imp { border-left-color:#94a3b8; }
+  .lb-row.pending { background:#fff8e1; border-left-color:#f59e0b; }
+  .lb-row:hover { background:#eaf2ff; }
+  .lb-date { background:#eaf2ff; border-radius:10px; padding:.2rem 0; color:#14213d; }
+  .lb-row.pending .lb-date { background:#ffe8a3; }
+  .lb-hrs { background:#14213d; color:#fff; border-radius:999px; padding:.05rem .6rem; font-weight:700; }
 </style>
 <div class="card academy-card overflow-hidden">
   {% set cur = namespace(m='') %}
@@ -93,14 +98,14 @@
         <span class="small text-muted">{{ mt.n[mk] }} flight{{ 's' if mt.n[mk] != 1 }} &middot; {{ '%.1f'|format(mt.hrs[mk]) }} hrs</span>
       </div>
     {% endif %}
-    <a href="{{ url_for('pilotlog.entry', entry_id=e.id) }}" class="lb-row {{ 'pending' if e.status == 'pending' }} d-flex align-items-center gap-3 px-3 py-2 border-bottom text-decoration-none text-body">
-      <div class="text-center flex-shrink-0" style="width:2.6rem;"><div class="fw-bold lh-1">{{ (e.entry_date or '')[8:10]|int }}</div><div class="small text-muted">{{ (months[(mk[5:7]|int) - 1] if mk else '')[:3] }}</div></div>
+    <a href="{{ url_for('pilotlog.entry', entry_id=e.id) }}" class="lb-row {{ 'pending' if e.status == 'pending' else ('imp' if e.source == 'foreflight') }} d-flex align-items-center gap-3 px-3 py-2 border-bottom text-decoration-none text-body">
+      <div class="text-center flex-shrink-0 lb-date" style="width:2.8rem;"><div class="fw-bold lh-1">{{ (e.entry_date or '')[8:10]|int }}</div><div class="small text-muted">{{ (months[(mk[5:7]|int) - 1] if mk else '')[:3] }}</div></div>
       <div class="flex-grow-1" style="min-width:0;">
         <div class="fw-semibold text-truncate">{{ e.tail or '-' }} <small class="text-muted fw-normal">{{ e.make_model or '' }}</small></div>
         <div class="small text-muted text-truncate">{{ [e.route_from, e.route_to]|select|join(' - ') or '-' }}</div>
       </div>
       <div class="text-end flex-shrink-0">
-        <div class="fw-bold">{{ '%.1f'|format(e.total or 0) }}</div>
+        <div class="lb-hrs">{{ '%.1f'|format(e.total or 0) }}</div>
         {% if e.status == 'pending' %}<span class="badge bg-warning text-dark">Pending</span>{% elif e.source == 'foreflight' %}<span class="badge bg-secondary">Imported</span>{% else %}<span class="badge bg-success"><i class="bi bi-check2"></i></span>{% endif %}
       </div>
       <i class="bi bi-chevron-right text-muted flex-shrink-0"></i>
