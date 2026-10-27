@@ -1697,12 +1697,12 @@ document.querySelectorAll('form[id^="end-form-"]').forEach(function (form) {
   refreshHobbsTachConfirm();
 });
 
-// End Flight box: open the step the flight is up to after each save, and picking a score ticks the item.
+// End Flight box: open the step the flight is up to after each save, and tapping a score (Working too) ticks the item.
 document.querySelectorAll('.end-flight-modal[data-auto-open]').forEach(function (el) {
   if (window.bootstrap) bootstrap.Modal.getOrCreateInstance(el).show();
 });
 document.querySelectorAll('.flight-score').forEach(function (r) {
-  r.addEventListener('change', function () {
+  r.addEventListener('click', function () {  // click, not change: Working is already selected, so tapping it fires no change
     var box = document.getElementById('done-' + r.id.replace(/^s[ws]-/, ''));
     if (box) box.checked = true;
   });
