@@ -33,17 +33,20 @@ STUDENT_FIELDS = [
     ("route", "Route (optional): waypoints, navaids, airways", "text"),
     ("xc", "Cross-country", "hrs"), ("night", "Night", "hrs"),
     ("actual_inst", "Actual instrument", "hrs"), ("sim_inst", "Simulated instrument (hood)", "hrs"),
-    ("approaches", "Instrument approaches", "int"),
+    ("approaches", "Instrument approaches", "int"), ("approach_detail", "Approach type & location", "text"),
     ("day_ldg", "Day landings", "int"), ("night_ldg", "Night landings", "int"),
     ("night_fs", "Night full-stop landings", "int"),
-    ("pic", "PIC", "hrs"), ("remarks", "Remarks / maneuvers", "text"),
+    ("pic", "PIC", "hrs"), ("sic", "SIC", "hrs"),
+    ("xc50", "Cross-country over 50 NM", "hrs"), ("sim_flight", "Flight simulator / FTD", "hrs"),
+    ("dual_given", "As flight instructor (dual given)", "hrs"), ("cat_class", "Category & class (e.g. Airplane single)", "text"),
+    ("remarks", "Remarks / maneuvers", "text"),
 ]
 
 EXPORT_COLUMNS = [
     ("entry_date", "Date"), ("make_model", "Aircraft Make/Model"), ("tail", "Ident"),
     ("route_from", "From"), ("route_to", "To"), ("total", "Total"), ("dual", "Dual Received"),
-    ("solo", "Solo"), ("pic", "PIC"), ("xc", "Cross-Country"), ("night", "Night"),
-    ("actual_inst", "Actual Instrument"), ("sim_inst", "Simulated Instrument"), ("approaches", "Approaches"),
+    ("solo", "Solo"), ("pic", "PIC"), ("xc", "Cross-Country"), ("xc50", "XC Over 50 NM"), ("night", "Night"),
+    ("actual_inst", "Actual Instrument"), ("sim_inst", "Simulated Instrument"), ("approaches", "Approaches"), ("approach_detail", "Approach Type & Location"), ("cat_class", "Category & Class"),
     ("day_ldg", "Day Landings"), ("night_ldg", "Night Landings"), ("night_fs", "Night Full-Stop Landings"),
     ("remarks", "Remarks"), ("instructor_name", "Instructor"), ("instructor_cert", "Instructor Cert #"),
     ("instructor_cert_exp", "Instructor Cert Exp"), ("status", "Status"),
@@ -519,8 +522,9 @@ def active_goal_track(conn, student):
 
 def _totals(entries):
     keys = ["total", "dual", "solo", "pic", "xc", "night", "actual_inst", "sim_inst", "approaches",
-            "day_ldg", "night_ldg"]
-    return {k: round(sum((e[k] or 0) for e in entries), 1) for k in keys}
+            "day_ldg", "night_ldg", "sic", "dual_given", "sim_flight", "xc50"]
+    val = lambda e, k: (e[k] if k in e.keys() else 0) or 0
+    return {k: round(sum(val(e, k) for e in entries), 1) for k in keys}
 
 
 def target_eta(entries, track):
@@ -630,7 +634,7 @@ def logbook():
                                   ORDER BY entry_date DESC, id DESC LIMIT 25""", (student["id"],)).fetchall() if student else []
     conn.close()
     pending = [e for e in entries if e["status"] == "pending"]
-    extra = {k: round(sum((e[k] or 0) for e in entries), 1) for k in ("sic", "dual_given")}
+    extra = {k: round(sum((e[k] or 0) for e in entries), 1) for k in ("sic", "dual_given", "sim_flight", "xc50")}
     import academy
     return render_template("academy_logbook.html", denied_entries=denied_entries, log_entries=log_entries, log_kinds=academy.ENTRY_KINDS,
                            log_kind_map=academy.ENTRY_KIND_MAP, log_today=date.today().isoformat(), student=student, students=students, entries=entries,
@@ -697,7 +701,7 @@ def entry(entry_id):
                 args.append(_num(request.form.get(field)) or 0)
         # A student can't log more of anything than the flight itself lasted.
         for i, (field, _label, kind) in enumerate(STUDENT_FIELDS):
-            if field in ("pic", "xc", "night", "actual_inst", "sim_inst") and args[i] is not None:
+            if field in ("pic", "sic", "xc", "xc50", "night", "actual_inst", "sim_inst", "dual_given") and args[i] is not None:
                 args[i] = min(args[i], total_val)
         ai, si = [i for i, f in enumerate(STUDENT_FIELDS) if f[0] == "actual_inst"][0], [i for i, f in enumerate(STUDENT_FIELDS) if f[0] == "sim_inst"][0]
         if (args[ai] or 0) + (args[si] or 0) > total_val:
@@ -1468,6 +1472,7 @@ def log_flight():
     dual, solo, pic, xc, night = cap("dual"), cap("solo"), cap("pic"), cap("xc"), cap("night")
     ai = cap("actual_inst")
     si = min(_num(f.get("sim_inst")) or 0, round(max(0.0, total - ai), 1))
+    sic, dual_given, xc50, sim_flight = cap("sic"), cap("dual_given"), min(cap("xc50"), xc), _num(f.get("sim_flight")) or 0
     feats = clean_features(f.getlist("ac_features"))
     ints = lambda k: _num(f.get(k), "int") or 0
     dist = _num(f.get("distance_nm"))
@@ -1481,14 +1486,16 @@ def log_flight():
             dist = None
     cur = conn.execute("""INSERT INTO pilot_logbook (student_id, entry_date, tail, make_model, route_from, route_to, route, total, dual, solo, pic,
                     xc, night, actual_inst, sim_inst, approaches, day_ldg, night_ldg, night_fs, remarks, instructor_name,
-                    ac_features, complex_tae, distance_nm, status, approved_at, approved_by, source, created_at, updated_at)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'complete', ?, ?, 'manual', ?, ?)""",
+                    ac_features, complex_tae, distance_nm, sic, dual_given, xc50, sim_flight, approach_detail, cat_class, status, approved_at, approved_by, source, created_at, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'complete', ?, ?, 'manual', ?, ?)""",
                  (student["id"], d, (f.get("tail") or "").strip().upper()[:12] or None, (f.get("make_model") or "").strip()[:60] or None,
                   (f.get("route_from") or "").strip()[:60] or None, (f.get("route_to") or "").strip()[:60] or None,
                   (f.get("route") or "").strip()[:200] or None, total, dual, solo, pic, xc, night, ai, si, ints("approaches"),
                   ints("day_ldg"), ints("night_ldg"), min(ints("night_fs"), ints("night_ldg")),
                   (f.get("remarks") or "").strip()[:500] or None, (f.get("instructor_name") or "").strip()[:80] or None,
-                  feats, counts_as_complex(feats), dist, now_iso(), "Logged by the pilot", now_iso(), now_iso()))
+                  feats, counts_as_complex(feats), dist, sic, dual_given, xc50, sim_flight,
+                  (f.get("approach_detail") or "").strip()[:120] or None, (f.get("cat_class") or "").strip()[:40] or None,
+                  now_iso(), "Logged by the pilot", now_iso(), now_iso()))
     if ints("day_ldg") or ints("night_ldg"):    # landings logged here count toward 90-day landing currency too
         conn.execute("""INSERT INTO manual_landings (student_id, landing_date, day_landings, night_landings, note, created_by)
                         VALUES (?, ?, ?, ?, ?, ?)""", (student["id"], d, ints("day_ldg"), ints("night_ldg"),

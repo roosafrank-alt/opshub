@@ -30,8 +30,7 @@
     {% for key, label in [('total','Total'),('dual','Dual rcvd'),('solo','Solo'),('pic','PIC'),('xc','XC'),('night','Night'),('actual_inst','Actual inst'),('sim_inst','Sim inst')] %}
     <div class="col-3 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ '%.1f'|format(totals[key]) }}</div><div class="small text-muted">{{ label }}</div></div></div>
     {% endfor %}
-    {% if extra and extra.sic %}<div class="col-3 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ '%.1f'|format(extra.sic) }}</div><div class="small text-muted">SIC</div></div></div>{% endif %}
-    {% if extra and extra.dual_given %}<div class="col-3 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ '%.1f'|format(extra.dual_given) }}</div><div class="small text-muted">Dual given</div></div></div>{% endif %}
+    {% for key, label in [('sic','SIC'),('dual_given','As CFI'),('xc50','XC >50 NM'),('sim_flight','Simulator')] %}{% if extra and extra[key] %}<div class="col-3 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ '%.1f'|format(extra[key]) }}</div><div class="small text-muted">{{ label }}</div></div></div>{% endif %}{% endfor %}
     <div class="col-3 col-md"><div class="border rounded p-1"><div class="fw-bold">{{ (totals.day_ldg + totals.night_ldg)|int }}</div><div class="small text-muted">Landings</div></div></div>
   </div>
   {% if dual_given %}<div class="small text-muted mt-2"><i class="bi bi-person-video3"></i> Dual given by you (all students): <strong>{{ '%.1f'|format(dual_given.hours) }} hrs</strong> on {{ dual_given.flights }} flight{{ 's' if dual_given.flights != 1 }}.</div>{% endif %}
@@ -136,9 +135,13 @@
         </div>
         <h6 class="mt-3 mb-1">Time</h6>
         <div class="row g-2">
-          {% for k, l in [('total','Total *'),('dual','Dual received'),('solo','Solo'),('pic','PIC'),('xc','Cross-country'),('night','Night'),('actual_inst','Actual instrument'),('sim_inst','Simulated instrument')] %}
+          {% for k, l in [('total','Total *'),('dual','Dual received'),('solo','Solo'),('pic','PIC'),('xc','Cross-country'),('night','Night'),('actual_inst','Actual instrument'),('sim_inst','Simulated instrument'),('sic','SIC'),('dual_given','As flight instructor'),('xc50','Cross-country over 50 NM'),('sim_flight','Flight simulator / FTD')] %}
           <div class="col-6 col-md-3"><label class="form-label small mb-0">{{ l }}</label><input type="number" step="0.1" min="0" name="{{ k }}" class="form-control form-control-sm" {{ 'required' if k == 'total' }}></div>
           {% endfor %}
+        </div>
+        <div class="row g-2 mt-1">
+          <div class="col-12 col-md-6"><label class="form-label small mb-0">Approach type &amp; location</label><input name="approach_detail" class="form-control form-control-sm" placeholder="ILS 27, KPOU"></div>
+          <div class="col-12 col-md-6"><label class="form-label small mb-0">Category &amp; class</label><input name="cat_class" class="form-control form-control-sm" placeholder="Airplane single-engine land"></div>
         </div>
         <h6 class="mt-3 mb-1">Landings and approaches</h6>
         <div class="row g-2">

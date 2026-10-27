@@ -781,6 +781,7 @@ CREATE TABLE IF NOT EXISTS pilot_logbook (
     route_to TEXT,
     route TEXT, -- optional: waypoints / airways flown
     sic REAL, dual_given REAL, ifr REAL, sim_flight REAL, ground REAL, -- from a ForeFlight import
+    xc50 REAL, approach_detail TEXT, cat_class TEXT, -- paper-logbook columns: XC over 50 NM, approach type & location, category & class
     source TEXT, -- NULL = logged at the school, 'foreflight' = imported
     import_key TEXT, -- same flight imported twice is skipped
     total REAL NOT NULL DEFAULT 0, -- Tach time (else Hobbs)

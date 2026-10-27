@@ -1902,6 +1902,10 @@ def _migrate(conn):
     for _c in ("sic", "dual_given", "ifr", "sim_flight", "ground"):
         if _c not in _lb_cols:
             conn.execute(f"ALTER TABLE pilot_logbook ADD COLUMN {_c} REAL")
+    # Paper-logbook columns the school logbook had no place for: XC over 50 NM, approach type & location, category & class.
+    for _c, _t in (("xc50", "REAL"), ("approach_detail", "TEXT"), ("cat_class", "TEXT")):
+        if _c not in _lb_cols:
+            conn.execute(f"ALTER TABLE pilot_logbook ADD COLUMN {_c} {_t}")
     if "distance_nm" not in _lb_cols:   # nautical miles flown, typed in (or worked out from the route) on a logged flight
         conn.execute("ALTER TABLE pilot_logbook ADD COLUMN distance_nm REAL")
     if "ac_features" not in _lb_cols:   # aircraft features of the flight (tailwheel, complex, ...), copied from the plane
