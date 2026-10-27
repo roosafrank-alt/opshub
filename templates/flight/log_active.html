@@ -542,18 +542,13 @@
     <div class="alert alert-primary py-2 px-3 text-center mb-2 mt-2 d-none" id="flight-total-{{ f.id }}">
       {#- Idea "move the total below the": the instructor/plane math first, then the Total, then the editable minutes. #}
       <div class="small text-muted flight-total-breakdown"></div>
+      {#- Idea "Timer ran over?": the Total now wears the white the minutes box used to have. #}
       <div class="rounded bg-info-subtle py-1 px-2">
         <span class="small text-muted">Total</span>
         <div class="fs-4 fw-bold flight-total-amount">$0.00</div>
       </div>
-      {#- Instructor billed time, editable right inside the total it changes:
-         same field name, so the live total and flight.log_end keep working. #}
-      {% if not student_ending and not f.solo and not f.asset_is_simulator and f.instructor_clock_hours is not none %}
-      <div class="form-text text-center mt-2 mb-0" id="instructor-minutes-note-{{ f.id }}">Timer ran over? Fix the minutes here. Your name is saved with the change.</div>
-      <div class="d-flex align-items-center justify-content-center gap-2 mt-1 p-2 rounded" style="background:rgba(255,255,255,.55)" data-change="CFI-TIME">
-        <label class="form-label small mb-0 fw-bold" for="instructor-minutes-{{ f.id }}">Instructor time (min)</label>
-        <input type="number" min="0" step="1" inputmode="numeric" name="instructor_minutes" id="instructor-minutes-{{ f.id }}" class="form-control form-control-sm" value="{{ (f.instructor_clock_hours * 60)|round|int }}" style="max-width:6rem" aria-describedby="instructor-minutes-note-{{ f.id }}">
-      </div>
+      {% if not student_ending and not f.solo and f.instructor_clock_hours is not none %}
+      {% include 'flight/_instructor_time.html' %}
       {% endif %}
     </div>
     <div class="mt-2">
