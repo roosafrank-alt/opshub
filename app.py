@@ -6971,6 +6971,12 @@ def _add_photos(conn, files, column, owner_id):
     try:
         for f in files:
             if f and f.filename and allowed_image(f.filename):
+                # Skip empty (0-byte) files so no broken picture is added.
+                f.stream.seek(0, 2)
+                size = f.stream.tell()
+                f.stream.seek(0)
+                if size == 0:
+                    continue
                 stored_name = save_upload(f)
                 conn.execute(f"INSERT INTO photos ({column}, filename, created_at) VALUES (?, ?, ?)",
                              (owner_id, stored_name, now_iso()))
