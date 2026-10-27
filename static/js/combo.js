@@ -80,7 +80,13 @@
       if (sel.classList.contains(c)) wrap.classList.add(c);
     });
     ['width', 'maxWidth', 'minWidth'].forEach(function (p) { if (sel.style[p]) wrap.style[p] = sel.style[p]; });
-    if (sel.style.width === 'auto') { wrap.style.width = ''; wrap.style.minWidth = '200px'; }
+    if (sel.style.width === 'auto') {
+      // wide enough for the longest choice, so the picked text is never cut off
+      var longest = 0;
+      Array.prototype.forEach.call(sel.options, function (o) { if (o.text.length > longest) longest = o.text.length; });
+      wrap.style.width = '';
+      wrap.style.minWidth = 'min(max(200px, calc(' + longest + 'ch + 4.5rem)), calc(100vw - 4rem))';
+    }
 
     var group = document.createElement('div');
     group.className = 'input-group' + (small ? ' input-group-sm' : '');
