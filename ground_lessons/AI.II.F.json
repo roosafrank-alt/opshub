@@ -1,0 +1,1715 @@
+{
+ "task_code": "AI.II.F",
+ "task_title": "Performance and Limitations",
+ "area": "Area II. Technical Subject Areas",
+ "minutes": 95,
+ "objective": "By the end of this lesson you can explain how charts, tables and weight and balance data predict what an airplane will do, teach a learner to read them accurately and to correct an out-of-limits load, and spot and fix the interpolation, unit and loading errors learners make.",
+ "why": "Before every flight the pilot in command must know the runway lengths and the AFM takeoff and landing distance data [[60:440|14 CFR 91.103(b)]] and must stay inside the AFM operating limitations [[60:436|14 CFR 91.9(a)]]. Weight and balance accidents are often fatal, and many pilots take load sheets for granted and make hasty calculations [[22:20|W&B 1-6]]. In one study, learners and flight instructors alike scored surprisingly low when handed weight and balance charts from an unfamiliar airplane [[25:79|AIH 3-28]], so the way you teach this subject decides whether your learners understand it or only recite one chart.",
+ "prereading": [
+  {
+   "res": "1",
+   "pages": [
+    257,
+    258,
+    259,
+    260,
+    261
+   ],
+   "printed": "PHAK 11-1 to 11-5",
+   "what": "Why performance data matters, the standard atmosphere, pressure and density altitude, and humidity.",
+   "label": "PHAK 11-1 to 11-5"
+  },
+  {
+   "res": "1",
+   "pages": [
+    268,
+    269,
+    270,
+    271,
+    272,
+    273,
+    274,
+    275
+   ],
+   "printed": "PHAK 11-12 to 11-19",
+   "what": "Takeoff and landing performance: runway surface and slope, hydroplaning, weight, wind, speed, and where chart numbers come from.",
+   "label": "PHAK 11-12 to 11-19"
+  },
+  {
+   "res": "1",
+   "pages": [
+    276,
+    277,
+    278,
+    279,
+    280,
+    281,
+    282,
+    283,
+    284
+   ],
+   "printed": "PHAK 11-20 to 11-28",
+   "what": "Interpolation and worked examples for density altitude, takeoff, climb, cruise, crosswind, landing and stall speed charts.",
+   "label": "PHAK 11-20 to 11-28"
+  },
+  {
+   "res": "1",
+   "pages": [
+    245,
+    246,
+    247,
+    248,
+    249,
+    250,
+    251,
+    252,
+    253,
+    254,
+    255
+   ],
+   "printed": "PHAK 10-1 to 10-11",
+   "what": "Weight and balance: effects of weight and CG, terms, the computational, graph and table methods, and shifting, adding and removing weight.",
+   "label": "PHAK 10-1 to 10-11"
+  },
+  {
+   "res": "22",
+   "pages": [
+    16,
+    17,
+    18,
+    20,
+    22,
+    23,
+    24,
+    25,
+    50,
+    51,
+    52,
+    53,
+    54
+   ],
+   "printed": "W&B 1-2 to 1-6, 2-2 to 2-5, 5-2 to 5-6",
+   "what": "Responsibility for weight and balance, CG and stability, the law of the lever and shift formulas, and a full single-engine loading problem.",
+   "label": "W&B 1-2 to 5-6"
+  },
+  {
+   "res": "25",
+   "pages": [
+    57,
+    79,
+    104,
+    113,
+    118,
+    120,
+    124,
+    125
+   ],
+   "printed": "AIH 3-6, 3-28, 5-1, 5-10, 5-15, 5-17, 5-21 to 5-22",
+   "what": "Teaching tools that fit this subject: the seesaw, overlearning of chart routines, guided discussion, scenario-based training and the demonstration-performance method.",
+   "label": "AIH 3-6 to 5-22"
+  },
+  {
+   "res": "24",
+   "pages": [
+    133,
+    137,
+    138,
+    143,
+    261,
+    262,
+    263
+   ],
+   "printed": "AFH 6-1, 6-5 to 6-6, 6-11, 13-12 to 13-14",
+   "what": "Checking performance charts before takeoff, technique that changes takeoff performance, ground effect, and weight and balance terms such as basic and licensed empty weight.",
+   "label": "AFH 6-1 to 13-14"
+  }
+ ],
+ "warmup": "Think first: your learner hands you a neat weight and balance sheet that ends exactly at the maximum takeoff weight, and a takeoff distance worked from the chart's sea level row \"because our airport is close to sea level.\" Both numbers came from the flight school's sample sheet for a sister airplane. What questions would you ask before you comment on the numbers, and how would you find out whether the learner understands the method or has only memorized one form?",
+ "key_terms": [
+  {
+   "term": "Pressure altitude",
+   "def": "The altitude shown with the altimeter set to 29.92 inches Hg, the height above the standard datum plane [[1:259|PHAK 11-3]]."
+  },
+  {
+   "term": "Density altitude",
+   "def": "Pressure altitude corrected for nonstandard temperature; the airplane performs as if it were at this altitude [[1:259|PHAK 11-3]] [[1:260|PHAK 11-4]]."
+  },
+  {
+   "term": "Interpolation",
+   "def": "Using known chart values to compute an intermediate value for conditions that fall between the printed rows or columns [[1:276|PHAK 11-20]]."
+  },
+  {
+   "term": "Combined graph",
+   "def": "A chart that joins two or more graphs to correct for density altitude, weight and wind on one page; an early reading error grows by the end [[1:275|PHAK 11-19]]."
+  },
+  {
+   "term": "Basic empty weight",
+   "def": "Standard empty weight plus installed optional and special equipment [[1:248|PHAK 10-4]]; under the GAMA format it includes full oil and unusable fuel but no usable fuel [[24:261|AFH 13-12]]."
+  },
+  {
+   "term": "Licensed empty weight",
+   "def": "An older term: empty weight without full oil (undrainable oil only), so oil must be added to the computation [[24:262|AFH 13-13]] [[1:249|PHAK 10-5]]."
+  },
+  {
+   "term": "Useful load",
+   "def": "Pilot, passengers, baggage, usable fuel and drainable oil: the basic empty weight subtracted from the maximum allowable gross weight [[1:249|PHAK 10-5]]."
+  },
+  {
+   "term": "Arm",
+   "def": "The horizontal distance in inches from the reference datum to the CG of an item; plus if aft of the datum, minus if forward [[1:248|PHAK 10-4]]."
+  },
+  {
+   "term": "Moment",
+   "def": "Weight times arm, in pound-inches [[1:249|PHAK 10-5]]."
+  },
+  {
+   "term": "Moment index",
+   "def": "A moment divided by a constant such as 100, 1,000 or 10,000 to keep the numbers manageable [[1:249|PHAK 10-5]]."
+  },
+  {
+   "term": "CG limits",
+   "def": "The forward and aft points within which the CG must be located during flight; the distance between them is the CG range [[1:249|PHAK 10-5]]."
+  },
+  {
+   "term": "Zero fuel weight",
+   "def": "The maximum weight of the airplane and payload with no usable fuel; any weight above it must be usable fuel [[24:262|AFH 13-13]]."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "K1 and R1: Where the book numbers come from",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.F.K1",
+    "AI.II.F.R1"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The performance section of the AFM/POH holds the takeoff, climb, range, endurance, descent and landing data, and using it is mandatory for safe and efficient operation [[1:257|PHAK 11-1]]. The rules say the same thing: the pilot in command must know the runway lengths and the AFM takeoff and landing distance data before every flight [[60:440|14 CFR 91.103(b)]]. Teach the learner to treat the charts as a prediction to be checked, not a guarantee."
+    },
+    {
+     "bullets": [
+      "Not standardized: manufacturers use tables or graphs, based on standard conditions, pressure altitude or density altitude. The data has little value unless the user recognizes these differences and adjusts [[1:258|PHAK 11-2]].",
+      "Where the numbers come from: test flights in a new airplane, under normal conditions, with average piloting skills and the airplane and engine in good working order [[1:275|PHAK 11-19]].",
+      "Every chart has conditions and notes; read every chart and use the manufacturer's example for that chart [[1:275|PHAK 11-19]].",
+      "Combined graphs pack many corrections onto one page, so a small error at the beginning becomes a large error at the end [[1:275|PHAK 11-19]].",
+      "Rounding chart values toward the more adverse condition gives a reasonable estimate and a slight safety margin [[1:276|PHAK 11-20]].",
+      "Compute the performance before every flight, because every flight is different [[1:275|PHAK 11-19]]."
+     ]
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "How to read a combined graph (K1): start at the outside air temperature, go up to the pressure altitude line, then across to the first reference line. Follow the guide lines to the weight, across to the second reference line, along the guide lines to the wind component, across to the third reference line, then straight across for ground roll and along the guide lines to the obstacle height for total distance [[1:276|PHAK 11-20]] [[1:277|PHAK 11-21]]. For the PHAK's Sample Problem 2 (2,000 feet, 22 °C, 2,600 pounds, 6-knot headwind, 50-foot obstacle) this gives a 700-foot ground roll and 1,400 feet total, with 63 knots at lift-off and 68 knots at 50 feet [[1:277|PHAK 11-21]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "Use of performance charts (R1): in all cases the pilot must make an accurate prediction of takeoff distance from the AFM/POH data, regardless of the runway available [[1:272|PHAK 11-16]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner says the POH numbers show what the airplane will do today. On what does the PHAK say those numbers are based?",
+    "a": "Test flights in a new airplane, under normal conditions, flown with average piloting skills, with the airplane and engine in good working order [[1:275|PHAK 11-19]]."
+   }
+  },
+  {
+   "title": "K1 and S1: Tables, interpolation and the notes",
+   "kind": "skills",
+   "codes": [
+    "AI.II.F.K1",
+    "AI.II.F.S1",
+    "AI.II.F.R1"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "The PHAK's table example: at 2,400 pounds, 3,000 feet and 30 °C the short-field table gives a 1,325-foot ground roll and 2,480 feet to clear 50 feet. An 18-knot headwind earns 20 percent off (10 percent per 9 knots), giving 1,060 feet and 1,984 feet [[1:277|PHAK 11-21]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "table": {
+      "head": [
+       "Step",
+       "What the learner does",
+       "What you watch for"
+      ],
+      "rows": [
+       [
+        "Read the conditions box",
+        "Flaps 10°, full throttle before brake release, paved level runway, zero wind [[1:278|PHAK Figure 11-24]].",
+        "If today is not like the box, a note must fix it, or the chart does not apply."
+       ],
+       [
+        "Interpolate one variable",
+        "For 2,500 feet at 20 °C the PHAK averages 1,115 and 1,230 to get 1,173 feet [[1:276|PHAK 11-20]].",
+        "Taking the nearer row instead of working the value in between."
+       ],
+       [
+        "Interpolate two variables (application)",
+        "2,200 pounds, 3,500 feet, 25 °C: (995 + 1,070) / 2 = 1,032.5 at 3,000 feet; (1,100 + 1,180) / 2 = 1,140 at 4,000 feet; halfway between = 1,086 feet ground roll [[1:278|PHAK Figure 11-24]].",
+        "Interpolating only the altitude and ignoring the temperature, or the reverse."
+       ],
+       [
+        "Apply every note",
+        "Minus 10 percent per 9 knots of headwind; plus 10 percent per 2 knots of tailwind up to 10 knots; dry grass adds 15 percent of the ground roll figure; lean above 3,000 feet [[1:278|PHAK Figure 11-24]].",
+        "Taking 15 percent of the total instead of the ground roll, or using a tailwind beyond 10 knots."
+       ],
+       [
+        "Stay inside the data",
+        "Dashes appear where the table gives no value, such as 2,400 pounds at 8,000 feet and 30 °C [[1:278|PHAK Figure 11-24]].",
+        "Stretching the trend past the edge of the table."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Teach the sanity check (application): in the printed 2,000-pound rows at 30 °C, the ground rolls for 5,000, 6,000 and 7,000 feet (2,145, 2,405 and 2,715) are longer than the totals to clear 50 feet in the same rows (1,925, 2,145 and 2,405) [[1:278|PHAK Figure 11-24]]. A ground roll can never be longer than the total over the obstacle, so the column looks shifted. Ask the learner whether each answer makes sense before using it, and to go to the real POH when a number looks wrong."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Teach S1 by demonstration-performance: explain the steps and the end result, demonstrate one chart while thinking out loud, have the learner work one right away with coaching, then evaluate with a new set of conditions worked alone [[25:124|AIH 5-21]] [[25:125|AIH 5-22]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner uses the dry grass note for 2,400 pounds, 2,000 feet, 10 °C (1,035 feet ground roll, 1,910 feet total) and adds 15 percent of 1,910. What is the correct total?",
+    "a": "1,910 + 0.15 x 1,035 = 2,065 feet. The note adds 15 percent of the ground roll figure [[1:278|PHAK Figure 11-24]]."
+   }
+  },
+  {
+   "title": "K2 and K2a: Atmospheric conditions",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.F.K2",
+    "AI.II.F.K2a"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Atmospheric conditions (K2a) act through air density. Less dense air reduces engine power, propeller thrust and wing lift [[1:258|PHAK 11-2]]. The standard atmosphere at sea level is 15 °C and 29.92 inches Hg; temperature falls about 2 °C and pressure about 1 inch per 1,000 feet [[1:258|PHAK 11-2]]."
+    },
+    {
+     "bullets": [
+      "Pressure altitude: set the altimeter to 29.92, apply the altimeter-setting correction to field elevation, or use a flight computer [[1:259|PHAK 11-3]].",
+      "Density altitude: pressure altitude corrected for nonstandard temperature. Whatever the real altitude, the airplane performs as if it were at the density altitude [[1:259|PHAK 11-3]] [[1:260|PHAK 11-4]].",
+      "Example to quote: at 5,000 feet pressure altitude a ground run of 790 feet on a standard day can grow to about 1,000 feet when it is 20 °C above standard, with the density level above 7,000 feet [[1:260|PHAK 11-4]].",
+      "Humidity: water vapor is lighter than air, so moist air is less dense. There is no rule of thumb or chart for it, but expect less performance [[1:261|PHAK 11-5]].",
+      "Takeoff: higher density altitude means a higher true airspeed for lift-off and less thrust and net accelerating force [[1:272|PHAK 11-16]].",
+      "Landing: same indicated airspeed, higher true airspeed; minimum landing distance at 5,000 feet is 16 percent greater than at sea level, about 3.5 percent per 1,000 feet [[1:273|PHAK 11-17]].",
+      "Climb: altitude raises power required and lowers power available, so climb performance shrinks [[1:264|PHAK 11-8]]; VX rises and VY falls with altitude until they meet at the absolute ceiling [[24:78|AFH 3-17]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Open the discussion with a \"why\" question. The AIH's example: ask \"Why does an aircraft normally require a longer takeoff run at Denver than at New Orleans?\" instead of \"Denver or New Orleans?\", which can be answered with one word [[25:118|AIH 5-15]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Common student error: comparing the outside air temperature with 15 °C at every altitude. Standard temperature falls with height; it is 7.1 °C at 4,000 feet [[1:259|PHAK 11-3]], so 21 °C there is about 14 °C above standard, not 6."
+     }
+    }
+   ],
+   "check": {
+    "q": "Two air masses: warm and moist, or cold and dry. Which gives the higher density altitude, and why?",
+    "a": "Warm and moist. Both warmth and water vapor make the air lighter, so it is less dense [[1:261|PHAK 11-5]]."
+   }
+  },
+  {
+   "title": "K2b and K2c: Pilot technique and airplane configuration",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.F.K2",
+    "AI.II.F.K2b",
+    "AI.II.F.K2c"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Pilot technique (K2b): the chart assumes average piloting skill, so the pilot must allow for skills below average [[1:275|PHAK 11-19]]. The speeds in the AFM/POH are generally the minimum safe speeds [[1:271|PHAK 11-15]]."
+    },
+    {
+     "bullets": [
+      "Too slow at lift-off: the airplane could stall, be hard to control, have a very low initial climb rate, or fail to climb out of ground effect [[1:271|PHAK 11-15]] [[1:272|PHAK 11-16]].",
+      "Too fast at lift-off: takeoff distance varies with the square of the takeoff speed, so 10 percent extra speed adds 21 percent to the distance [[1:272|PHAK 11-16]].",
+      "Forcing it off with too much back-elevator pressure gives too high an angle of attack; the airplane may settle back or stall [[24:137|AFH 6-5]].",
+      "Landing: 10 percent excess landing speed adds at least 21 percent to the landing distance [[1:273|PHAK 11-17]]. The minimum landing distance needs continuous maximum braking; aerodynamic drag only helps down to 60 to 70 percent of touchdown speed [[1:272|PHAK 11-16]].",
+      "Short-field takeoff: start at the very beginning of the takeoff area, set flaps as the manufacturer recommends, and apply power smoothly and continuously [[24:143|AFH 6-11]]."
+     ]
+    },
+    {
+     "p": "Airplane configuration (K2c): lowering the landing gear or the flaps decreases both excess thrust and excess power, so maximum angle and maximum rate of climb both decrease [[1:264|PHAK 11-8]]."
+    },
+    {
+     "bullets": [
+      "Each chart states its configuration: the short-field table assumes flaps 10° [[1:278|PHAK Figure 11-24]]; the takeoff graph assumes flaps up, cowl flaps open and gear retracted after a positive climb [[1:278|PHAK Figure 11-23]].",
+      "Small items count: without wheel fairings, one cruise graph subtracts 8 knots [[1:281|PHAK 11-25]] [[1:282|PHAK 11-26]] and one range graph warns of up to 7 percent less range [[1:281|PHAK 11-25]].",
+      "Mixture is part of the configuration: above 3,000 feet the short-field table assumes the mixture leaned for maximum rpm in a full-throttle static runup [[1:278|PHAK Figure 11-24]].",
+      "Crosswind takeoff: deflected aileron and rudder add drag, so expect less initial takeoff performance [[24:138|AFH 6-6]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Before first solo, tell the learner the airplane will lift off sooner and climb faster without you, and the climb attitude and control feel will differ. Unexpected, this can cause anxiety and a poor landing [[24:138|AFH 6-6]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why can a pilot who lifts off below the book speed still be in trouble with full power?",
+    "a": "The airplane may not climb out of ground effect, and the low speed gives a very low initial climb rate or a stall [[1:271|PHAK 11-15]] [[24:143|AFH 6-11]]."
+   }
+  },
+  {
+   "title": "K2d: Airport environment",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.F.K2",
+    "AI.II.F.K2d"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Airport environment (K2d): performance charts typically assume a paved, level, smooth and dry runway, and no two runways are alike [[1:268|PHAK 11-12]]. Teach the learner to compare each airport with that assumption."
+    },
+    {
+     "table": {
+      "head": [
+       "Factor",
+       "Effect on performance"
+      ],
+      "rows": [
+       [
+        "Runway surface",
+        "Grass, gravel, dirt, mud, snow or standing water increase the ground roll; braking effectiveness depends on the surface [[1:268|PHAK 11-12]]."
+       ],
+       [
+        "Runway slope",
+        "Upslope gives a longer takeoff and a shorter landing; downslope the reverse. The gradient is in percent (3 percent is 3 feet per 100 feet) and is listed in the Chart Supplement [[1:269|PHAK 11-13]]."
+       ],
+       [
+        "Water and hydroplaning",
+        "Braking and directional control become almost nil. Minimum hydroplaning speed is 9 times the square root of the main tire pressure, and hydroplaning can continue well below it [[1:269|PHAK 11-13]] [[1:270|PHAK 11-14]]."
+       ],
+       [
+        "Wind",
+        "A headwind of 10 percent of takeoff speed cuts takeoff distance about 19 percent; a tailwind of 10 percent adds about 21 percent; a headwind of 50 percent leaves about 25 percent of the zero-wind distance [[1:271|PHAK 11-15]]."
+       ],
+       [
+        "Runway length and obstacles",
+        "Runway lengths are required preflight information [[60:440|14 CFR 91.103(b)]]; an obstacle calls for maximum angle of climb at VX [[1:263|PHAK 11-7]]."
+       ],
+       [
+        "Elevation",
+        "High elevation is one of the conditions that make a high density altitude [[1:260|PHAK 11-4]]."
+       ],
+       [
+        "Contamination",
+        "Wet or snow-covered runways are a hazard, and some AFMs give little or no guidance for correcting distances [[30:25|RMH 3-7]]."
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Add layers on the ground without extra flight time: take the short-field lesson flown on a 6,000-foot runway and ask how it changes on an 1,800-foot strip with an obstruction, near maximum gross weight, at a high density altitude [[25:30|AIH 1-26]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "A strip slopes uphill toward the north. Which direction is better for takeoff with no wind, and which for landing?",
+    "a": "Take off downhill (south), because downslope aids acceleration; land uphill (north), because upslope shortens the landing roll [[1:269|PHAK 11-13]]."
+   }
+  },
+  {
+   "title": "K2e and R4: Loading, weight and exceeding weight limits",
+   "kind": "risk",
+   "codes": [
+    "AI.II.F.K2",
+    "AI.II.F.K2e",
+    "AI.II.F.R4"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Loading and weight and balance (K2e): excess weight reduces performance in almost every respect. The PHAK lists a higher takeoff speed, longer takeoff run, reduced rate and angle of climb, lower maximum altitude, shorter range, reduced cruise speed and maneuverability, higher stalling, approach and landing speeds, a longer landing roll, and too much weight on the nose or tail wheel [[1:246|PHAK 10-2]]."
+    },
+    {
+     "bullets": [
+      "Takeoff: weight has a threefold effect (higher lift-off speed, more mass to accelerate, more drag and ground friction). A 10 percent weight increase means about 5 percent more takeoff speed, at least 9 percent less acceleration and at least 21 percent more distance [[1:271|PHAK 11-15]].",
+      "Real example to quote: a Cessna 182 at 2,700 instead of 2,400 pounds (11 percent heavier) needed 575 instead of 440 feet (23 percent more) [[1:271|PHAK 11-15]].",
+      "Climb: more weight means a higher angle of attack, more drag and less reserve thrust for climbing [[1:264|PHAK 11-8]].",
+      "Landing: a 10 percent heavier airplane lands about 5 percent faster and needs about 10 percent more distance [[1:273|PHAK 11-17]].",
+      "Balance is part of loading: a CG too far forward lengthens both takeoff and landing runs [[22:18|W&B 1-4]]."
+     ]
+    },
+    {
+     "p": "Exceeding weight limits (R4): the risks to teach."
+    },
+    {
+     "bullets": [
+      "Structure: a normal category airplane is built for 3.8 G, so a 100-pound overload is a potential 380-pound structural overload, and habitual overloading builds damage that may not be found on preflight [[1:139|PHAK 5-42]].",
+      "An airplane can often take off overweight from a long runway at a low density altitude, but a hard landing or turbulence while overweight can break or hide damage in the structure [[22:20|W&B 1-6]].",
+      "Stability of many airplanes is completely unsatisfactory above the maximum gross weight [[1:139|PHAK 5-42]] [[1:140|PHAK 5-43]].",
+      "If an engine fails on takeoff or ice forms at low altitude, it is usually too late to reduce weight [[1:246|PHAK 10-2]].",
+      "Maximum certificated weight is not always safe: high, hot and humid conditions may require less weight [[1:250|PHAK 10-6]] [[22:16|W&B 1-2]].",
+      "Many airplanes cannot fill every seat, the baggage areas and the tanks and stay within limits [[1:248|PHAK 10-4]] [[22:17|W&B 1-3]]. A baggage area may be placarded low (for example 20 pounds) because of its structure, even when total weight and CG are fine [[1:139|PHAK 5-42]].",
+      "Exceeding any weight and balance limit is contrary to the airplane's operating limitations and 14 CFR [[24:263|AFH 13-14]] [[60:436|14 CFR 91.9(a)]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "\"It's only a few pounds\" is the line to listen for. The PHAK points out that about 16 gallons of unneeded fuel adds 100 pounds, which becomes 300 pounds of extra load on the structure at 3 G [[1:139|PHAK 5-42]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Using the PHAK rule of thumb, about how much longer is the takeoff distance if the takeoff weight goes up 10 percent?",
+    "a": "At least 21 percent longer [[1:271|PHAK 11-15]]."
+   }
+  },
+  {
+   "title": "K3: Weight and balance terms",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.F.K3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Start from what the learner already knows. Most people have played on a seesaw, which gives a basic experience of balance around a center of gravity before any chart appears [[25:57|AIH 3-6]]. A lever balances when the moments on each side of the fulcrum are equal, and the CG is the total moment divided by the total weight [[22:22|W&B 2-2]] [[22:23|W&B 2-3]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "table": {
+      "head": [
+       "Term",
+       "Meaning",
+       "Teaching note"
+      ],
+      "rows": [
+       [
+        "Basic empty weight",
+        "Standard empty weight plus installed optional and special equipment [[1:248|PHAK 10-4]].",
+        "Under GAMA it includes full oil and unusable fuel, no usable fuel [[24:261|AFH 13-12]]. On older records with licensed empty weight, add the oil [[24:262|AFH 13-13]]."
+       ],
+       [
+        "Maximum gross weight",
+        "The maximum authorized weight of the aircraft and its equipment as given in the TCDS [[1:249|PHAK 10-5]].",
+        "Show the separate maximum ramp, takeoff and landing weights too [[1:249|PHAK 10-5]]."
+       ],
+       [
+        "Arm",
+        "Horizontal distance in inches from the datum to an item's CG; plus aft of the datum, minus forward [[1:248|PHAK 10-4]].",
+        "A station number is the arm: station +50 has an arm of 50 inches [[1:249|PHAK 10-5]]."
+       ],
+       [
+        "Moment",
+        "Weight times arm, in pound-inches [[1:249|PHAK 10-5]].",
+        "Moments forward of the datum are negative and are subtracted [[1:254|PHAK 10-10]]."
+       ],
+       [
+        "Reference datum",
+        "An imaginary vertical plane, set by the manufacturer, from which all arms are measured [[1:249|PHAK 10-5]].",
+        "A datum ahead of the airplane makes every arm positive and cuts errors [[22:22|W&B 2-2]]."
+       ],
+       [
+        "Center of gravity (CG) and CG limits",
+        "The CG is the point where the aircraft would balance if suspended there [[1:248|PHAK 10-4]]. CG limits are the forward and aft points within which it must stay during flight [[1:249|PHAK 10-5]].",
+        "Limits can vary with weight [[1:247|PHAK 10-3]]; they are in the TCDS and the AFM/POH [[1:247|PHAK 10-3]]."
+       ],
+       [
+        "Useful load",
+        "Pilot, passengers, baggage, usable fuel and drainable oil: maximum allowable gross weight minus basic empty weight [[1:249|PHAK 10-5]].",
+        "Payload is only occupants, cargo and baggage [[1:249|PHAK 10-5]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Work the figure with the learner: 100 pounds at 25 inches plus 50 pounds at 50 inches gives 5,000 inch-pounds on one side, balancing 50 pounds at 100 inches on the other [[1:250|PHAK 10-6]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Weight times arm is moment. Total moment divided by total weight is the CG."
+     }
+    }
+   ],
+   "check": {
+    "q": "Is usable fuel part of the basic empty weight in a GAMA-format POH?",
+    "a": "No. Basic empty weight includes unusable fuel and full oil but no usable fuel [[24:261|AFH 13-12]]; usable fuel is part of the useful load [[1:249|PHAK 10-5]]."
+   }
+  },
+  {
+   "title": "K4: Methods for computing CG",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.F.K4",
+    "AI.II.F.S2"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Methods for computing CG (K4): the PHAK teaches the computational, graph and table methods [[1:251|PHAK 10-7]] [[1:253|PHAK 10-9]]; the W&B Handbook calls them the manual computational method, the chart method with moment indexes, and the loading graph method [[22:50|W&B 5-2]]. Teach all of them, because the learner will meet each in different POHs."
+    },
+    {
+     "table": {
+      "head": [
+       "Method",
+       "How it works",
+       "Where learners slip"
+      ],
+      "rows": [
+       [
+        "Computational",
+        "List each weight, multiply by its arm, total the weights and moments, divide total moment by total weight. PHAK example: 3,320 pounds and 281,430 inch-pounds give a CG of 84.8 inches, inside 78 to 86 [[1:251|PHAK 10-7]].",
+        "Entering fuel in gallons instead of pounds (6 pounds per gallon) [[1:251|PHAK 10-7]]."
+       ],
+       [
+        "Graph",
+        "A loading graph gives each item's moment/1,000; the totals are plotted on a CG moment envelope. PHAK sample: 2,367 pounds and 105.2 fall inside [[1:251|PHAK 10-7]] [[1:252|PHAK 10-8]] [[1:253|PHAK 10-9]].",
+        "Reading the wrong diagonal, or forgetting the moment is divided by 1,000."
+       ],
+       [
+        "Table",
+        "Tables give moment/100 for each weight; totals are checked against minimum and maximum moments. Sample: 2,799 pounds and 2,278 are within the table [[1:253|PHAK 10-9]] [[1:254|PHAK 10-10]].",
+        "Not adding rows for weights the table lacks; the sample adds 130 and 170 for 300 pounds [[1:253|PHAK 10-9]]."
+       ],
+       [
+        "Percent of MAC",
+        "Distance of the CG aft of LEMAC times 100, divided by the MAC length; CG 161, LEMAC 144, MAC 62 gives 27.4 percent [[22:41|W&B 3-9]].",
+        "Light airplanes usually use inches from the datum; transport airplanes use percent MAC [[22:40|W&B 3-8]]."
+       ],
+       [
+        "Calculator or flight computer",
+        "A calculator, an E6-B or a dedicated flight computer can do the arithmetic [[22:93|W&B 10-1]] [[22:94|W&B 10-2]].",
+        "The E6-B cannot add or subtract and has limited accuracy [[22:94|W&B 10-2]]."
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "Sanity checks on tables: in Figure 10-9 the minimum moment printed for 2,470 pounds is 1,092, between 1,894 and 1,911, and the maximum for 2,900 pounds is 3,460, between 2,452 and 2,468 [[1:253|PHAK 10-9]]. Both break the trend of their columns, so they are printing errors (application: 2,470 x 77.0 / 100 = 1,902). A learner who checks the trend catches them; one who copies a cell does not."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Rotate formats. In one study, learners and instructors who solved their own airplane's charts easily scored surprisingly low on an unfamiliar airplane's charts, because routine had replaced understanding [[25:79|AIH 3-28]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Which method lets the pilot avoid multiplying each weight by its arm?",
+    "a": "The loading graph: diagonal lines turn each weight into a moment index without calculation [[22:52|W&B 5-4]]."
+   }
+  },
+  {
+   "title": "R5 and K5: Operating outside CG limits",
+   "kind": "risk",
+   "codes": [
+    "AI.II.F.R5",
+    "AI.II.F.K5"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Operating outside of CG limits (R5) causes control difficulty [[1:245|PHAK 10-1]]. The airplane is designed with the CG slightly ahead of the center of lift, balanced by a down load on the tail that changes with airspeed [[22:18|W&B 1-4]]."
+    },
+    {
+     "p": "CG too far forward: the airplane is nose heavy and hard to rotate and flare. Exceeding the forward limit can mean heavy loads on the nosewheel, a tendency to nose over in a tailwheel airplane, less performance, a higher stall speed and higher control forces; in extreme cases a flare may be impossible [[1:247|PHAK 10-3]]. At low takeoff speeds the elevator may not rotate the airplane, and both takeoff and landing runs grow [[22:18|W&B 1-4]]."
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "p": "CG too far aft: less static and dynamic longitudinal stability, extreme control difficulty, violent stall characteristics and very light control forces that make it easy to overstress the airplane [[1:247|PHAK 10-3]]. The airplane is hard to recover from a stall and a spin can go flat [[22:18|W&B 1-4]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "bullets": [
+      "Inside the limits it still matters: a forward CG stalls at a higher speed and cruises slower; an aft CG cruises faster but is less stable [[1:141|PHAK 5-44]].",
+      "Designers often set the aft limit within about an inch of the point where a one-turn spin still recovers normally [[1:140|PHAK 5-43]]. An airplane approved for spins in the utility category but loaded to the normal category may not recover from more than one turn [[24:131|AFH 5-26]].",
+      "Lateral balance: feeding the engine unevenly from one side makes a wing heavy; holding it with trim or pressure adds drag [[1:247|PHAK 10-3]] [[22:19|W&B 1-5]].",
+      "Loads move: unsecured dogs and unsecured skydivers slid aft on takeoff, pushing the CG well behind the limit, and both airplanes stalled and crashed [[22:20|W&B 1-6]].",
+      "Seat placards: some tandem airplanes must be soloed from a specific seat [[22:17|W&B 1-3]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Teach the learner to secure everything that could move, and to check the CG for the load as it will sit on the takeoff roll, not as it was loaded [[22:20|W&B 1-6]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why can an airplane with the CG too far aft be hard to recover from a stall?",
+    "a": "The CG is too near the center of lift, so the airplane is unstable and the elevator may not have enough nose-down authority [[22:18|W&B 1-4]]."
+   }
+  },
+  {
+   "title": "K5: The aerodynamics behind the numbers",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.F.K5"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Aerodynamics (K5): lift depends on airfoil design, angle of attack, airspeed and air density, and if weight is greater than lift the airplane may be incapable of flight [[1:245|PHAK 10-1]]. In steady level flight lift equals weight and thrust equals drag [[1:261|PHAK 11-5]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Idea",
+       "What it explains",
+       "Source"
+      ],
+      "rows": [
+       [
+        "Drag versus speed",
+        "Parasite drag dominates at high speed and induced drag at low speed. Doubling speed gives four times the parasite drag and eight times the power; induced drag falls to a quarter.",
+        "[[1:261|PHAK 11-5]] [[1:262|PHAK 11-6]]"
+       ],
+       [
+        "Excess thrust and power",
+        "Angle of climb depends on excess thrust (VX), rate of climb on excess power (VY). Weight, altitude, gear and flaps all reduce both.",
+        "[[1:263|PHAK 11-7]] [[1:264|PHAK 11-8]]"
+       ],
+       [
+        "Weight and climb",
+        "More weight changes drag and power required, lowers the best climb rate, and needs a higher climb speed.",
+        "[[1:264|PHAK 11-8]]"
+       ],
+       [
+        "Ceilings",
+        "At the absolute ceiling there is no excess power; the service ceiling is where the climb rate is no more than 100 feet per minute.",
+        "[[1:264|PHAK 11-8]]"
+       ],
+       [
+        "Load factor and stall speed",
+        "Stall speed rises with the square root of the load factor: a 50-knot airplane stalls at 100 knots at 4 G.",
+        "[[1:131|PHAK 5-34]] [[1:132|PHAK 5-35]]"
+       ],
+       [
+        "Forward CG",
+        "The tail must push down harder, adding to wing loading, so the airplane stalls faster and flies at a higher angle of attack with more drag.",
+        "[[1:140|PHAK 5-43]] [[1:141|PHAK 5-44]]"
+       ],
+       [
+        "Endurance and range",
+        "Maximum endurance is at minimum power required; maximum range is at L/DMAX, and weight changes the speed and power for L/DMAX.",
+        "[[1:265|PHAK 11-9]] [[1:266|PHAK 11-10]]"
+       ],
+       [
+        "Region of reversed command",
+        "Below minimum-power speed, flying slower takes more power. Climbing out of ground effect too slowly on a soft-field takeoff can leave the airplane unable to climb even at full power.",
+        "[[1:267|PHAK 11-11]] [[1:268|PHAK 11-12]]"
+       ],
+       [
+        "Ground effect",
+        "Reduced drag may let the airplane lift off below the recommended speed; at high density altitude, high temperature or maximum weight it may not climb out of ground effect.",
+        "[[24:143|AFH 6-11]]"
+       ],
+       [
+        "Energy on the runway",
+        "At 75 knots an airplane has four times the energy it has at 37 knots, so it needs four times the distance to stop.",
+        "[[1:268|PHAK 11-12]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Aim for insight: learning is complete when the learner sees how weight, power, airspeed and attitude affect each other, and your job is to point out those relationships as they occur [[25:60|AIH 3-9]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Why does adding weight reduce climb performance even at the same airspeed?",
+    "a": "The wing must fly at a higher angle of attack, raising induced and parasite drag, so less excess thrust and power is left for climbing [[1:264|PHAK 11-8]]."
+   }
+  },
+  {
+   "title": "R6 and S2: Shifting, adding and removing weight in every phase of flight",
+   "kind": "risk",
+   "codes": [
+    "AI.II.F.R6",
+    "AI.II.F.S2",
+    "AI.II.F.K4"
+   ],
+   "minutes": 8,
+   "body": [
+    {
+     "p": "Shifting, adding and removing weight (R6): a pilot must be able to solve these problems accurately, including the minimum load shift that makes the airplane safe [[1:254|PHAK 10-10]]. When weight is shifted the total weight stays the same but the total moment changes: forward lowers it, aft raises it [[1:254|PHAK 10-10]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Problem",
+       "Formula",
+       "PHAK example"
+      ],
+      "rows": [
+       [
+        "Shift",
+        "Weight shifted / total weight = change in CG / distance shifted [[22:24|W&B 2-4]].",
+        "100 pounds moved from station 30 to 150 in an 8,000-pound airplane adds 12,000 inch-pounds: 628,000 / 8,000 = 78.5 inches [[1:254|PHAK 10-10]]."
+       ],
+       [
+        "Weight needed to reach a limit",
+        "Weight to shift = total weight x change in CG / distance shifted [[22:24|W&B 2-4]].",
+        "7,800 pounds, CG 81.5, aft limit 80.5, cargo from station 150 to 30: 65 pounds [[1:255|PHAK 10-11]]."
+       ],
+       [
+        "Add",
+        "Added weight / new total weight = change in CG / distance between the weight and the old CG [[1:255|PHAK 10-11]].",
+        "140 pounds at station 150 on 6,860 pounds at 80.0: CG moves 1.4 inches aft to 81.4 [[1:255|PHAK 10-11]]."
+       ],
+       [
+        "Remove",
+        "Weight removed / new total weight = change in CG / distance between the weight and the old CG [[1:255|PHAK 10-11]].",
+        "100 pounds removed from station 150 of 6,100 pounds at 80.0: CG moves 1.2 inches forward to 78.8 [[1:255|PHAK 10-11]]."
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Have the learner say which way the CG will move before calculating: shifting aft, add the change; shifting forward, subtract it [[1:255|PHAK 10-11]]."
+     }
+    },
+    {
+     "p": "Within limits during all phases of flight (S2): the CG must be and stay within approved limits throughout the flight [[1:255|PHAK 10-11]]."
+    },
+    {
+     "bullets": [
+      "Fuel burn is normally the only weight change in flight [[1:246|PHAK 10-2]]. Most small airplanes carry fuel near the CG, so burning it changes the CG little [[1:247|PHAK 10-3]], but always check the landing condition.",
+      "Landing weight: the W&B Handbook's 3,027-pound load is inside the envelope for takeoff but 77 pounds over the 2,950-pound landing weight, so the airplane must burn about 13 gallons before landing [[22:50|W&B 5-2]] [[22:54|W&B 5-6]].",
+      "Zero fuel weight: in the PHAK's sample the load without fuel is 4,240 pounds, under the 4,400 maximum; above it, passengers or cargo must come off, not fuel [[1:254|PHAK 10-10]].",
+      "An emergency landing over the maximum landing weight uses structural margin; an overweight landing inspection may be advisable [[24:263|AFH 13-14]].",
+      "Correcting an out-of-CG load: move baggage or passengers (heavy passengers forward when tail heavy) [[1:247|PHAK 10-3]] [[22:17|W&B 1-3]], or use secured temporary ballast as a placard may require [[22:67|W&B 7-7]] [[22:68|W&B 7-8]]."
+     ]
+    }
+   ],
+   "check": {
+    "q": "The W&B Handbook airplane's forward limit is +33.0 at 2,250 pounds or less and +40.9 at 3,100 pounds, straight-line between. What is the forward limit at 2,800 pounds?",
+    "a": "33.0 + (2,800 - 2,250) / 850 x 7.9 = 38.1 inches (application of the straight-line note) [[22:50|W&B 5-2]]."
+   }
+  },
+  {
+   "title": "R2 and R3: Airplane limitations, and book versus real performance",
+   "kind": "risk",
+   "codes": [
+    "AI.II.F.R2",
+    "AI.II.F.R3"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "Airplane limitations (R2): no person may operate a civil aircraft without complying with the operating limitations in the approved flight manual, markings and placards [[60:436|14 CFR 91.9(a)]]. Those limits include weight and balance [[1:248|PHAK 10-4]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Limitation",
+       "What to teach"
+      ],
+      "rows": [
+       [
+        "Speeds",
+        "VA, VNO, VNE, VFE, VLE and VLO protect the structure or the gear and flaps [[1:274|PHAK 11-18]] [[1:275|PHAK 11-19]]. Below VA one full control input, once, in one axis, in smooth air is safe [[1:132|PHAK 5-35]]; multiple or combined inputs are not [[1:275|PHAK 11-19]]."
+       ],
+       [
+        "Load factor",
+        "Normal category 3.8 to -1.52, utility 4.4 to -1.76, acrobatic 6.0 to -3.00 [[1:131|PHAK 5-34]]."
+       ],
+       [
+        "Weights",
+        "Maximum ramp, takeoff and landing weights, and zero fuel weight where published [[1:249|PHAK 10-5]]."
+       ],
+       [
+        "CG range and compartments",
+        "CG range and per-compartment baggage maximums, such as 100 pounds in area A and 60 in area B [[22:50|W&B 5-2]]."
+       ],
+       [
+        "Crosswind",
+        "Airplanes are tested in 90° crosswinds up to 0.2 VS0, and the maximum demonstrated crosswind component is published in the AFM/POH [[1:281|PHAK 11-25]]."
+       ],
+       [
+        "Placards",
+        "Seating limits and loading placards must be followed [[22:17|W&B 1-3]] [[22:67|W&B 7-7]]."
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Possible differences between calculated performance and actual performance (R3):"
+    },
+    {
+     "bullets": [
+      "Chart data will not be accurate if the airplane is not in good working order or conditions are adverse; compensate [[1:275|PHAK 11-19]].",
+      "The real airplane may differ from the sample: modifications change empty weight, sample problems are guidance only, and each airplane must be treated separately [[1:250|PHAK 10-6]]. Airplanes also gain weight with age from dirt and absorbed moisture [[22:17|W&B 1-3]].",
+      "Some factors have no chart: humidity [[1:261|PHAK 11-5]], and runway contamination in some AFMs [[30:25|RMH 3-7]].",
+      "Errors stack: the PHAK's runway 27 story planned 1,600 feet, then came in 10 percent fast with a tailwind, 1,000 feet down a 3,500-foot wet runway, and lost the remaining margin to hydroplaning after hard braking [[1:274|PHAK 11-18]].",
+      "Margin: the RMH case study adds a 20 percent personal safety factor to a 4,700-foot calculated takeoff distance and gets 5,640 feet, more than the 5,000-foot runway [[30:36|RMH 4-3]]. Takeoffs and landings get more hazardous as calculated performance approaches the runway length [[30:24|RMH 3-6]].",
+      "Fuel: the airplane may not achieve book speeds and fuel burn [[30:24|RMH 3-6]]. The AIH tells of a pilot who planned fuel with a rule of thumb from another airplane instead of the POH tables [[25:24|AIH 1-20]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Treat the chart as the best the airplane can do on a good day with an average pilot. Teach the learner to add a margin and to set personal minimums before the flight, not on the runway [[1:275|PHAK 11-19]] [[30:36|RMH 4-3]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Which limiting speed is about the air loads on the gear mechanism while it moves, rather than on the extended gear?",
+    "a": "VLO, the maximum speed for extending or retracting the gear; VLE is the maximum with the gear already extended [[1:274|PHAK 11-18]]."
+   }
+  },
+  {
+   "title": "How to teach it",
+   "kind": "skills",
+   "codes": [
+    "AI.II.F.S1",
+    "AI.II.F.S2",
+    "AI.II.F.K1",
+    "AI.II.F.K4"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "p": "The AIH uses this exact subject to show the teaching process. Bob opens his weight and balance class with images of accidents caused by out-of-balance aircraft, teaches the method, has small groups solve one problem while he listens for trouble spots, has each learner solve one alone, then assigns homework [[25:104|AIH 5-1]] [[25:105|AIH 5-2]]. Once the class can compute, he gives a real-world problem [[25:120|AIH 5-17]]."
+    },
+    {
+     "bullets": [
+      "Order the material simple to complex and known to unknown [[25:113|AIH 5-10]]: the seesaw, then one item's moment, then a full load, then shifting, then the charts.",
+      "Concept before charts: knowing weight and balance is critical does not help a learner read the charts until they understand the CG [[25:57|AIH 3-6]].",
+      "Demonstration-performance: explanation (precise actions and the end result, then questions), demonstration (no extra activity; explain any deviation), learner performance with your supervision as soon as possible, then evaluation with the learner working alone [[25:124|AIH 5-21]] [[25:125|AIH 5-22]].",
+      "Guided discussion: lead off with \"how\" or \"why\" questions and close with a real accident, such as a fully loaded takeoff from a high airport on a hot day [[25:118|AIH 5-15]].",
+      "Scenario-based training: the learner plans and leads the scenario, adapted to the airplane and local conditions [[25:57|AIH 3-6]]. Help with performance data and weight and balance early, then hand those jobs to the learner as soon as possible [[25:157|AIH 7-13]].",
+      "Critique: point out what was done well, and let the learner critique the work first [[25:79|AIH 3-28]].",
+      "In the airplane: show that the climb attitude is lower when heavily loaded or at high density altitude [[24:137|AFH 6-5]], and compare the actual ground roll with the predicted one (application)."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "A good scenario is not a test, has no single right answer and no obvious one, and should not promote errors [[25:120|AIH 5-17]]. A load that can be fixed by fuel, by leaving a bag, or by moving a passenger is ideal."
+     }
+    }
+   ],
+   "check": {
+    "q": "In the AIH weight and balance class, what does the instructor do while the groups solve the first problem, and why?",
+    "a": "He listens to their discussion and questions to pinpoint problem areas, then explains them during the review [[25:105|AIH 5-2]]."
+   }
+  },
+  {
+   "title": "Common errors: spot and fix",
+   "kind": "skills",
+   "codes": [
+    "AI.II.F.S1",
+    "AI.II.F.S2",
+    "AI.II.F.R1"
+   ],
+   "minutes": 7,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Error",
+       "What you see",
+       "How to fix it"
+      ],
+      "rows": [
+       [
+        "Skips the performance charts",
+        "No takeoff numbers because \"the runway is long\" [[24:138|AFH 6-6]].",
+        "Require an accurate prediction regardless of the runway available [[1:272|PHAK 11-16]]."
+       ],
+       [
+        "Ignores conditions and notes",
+        "Zero-wind, paved-runway numbers used for a grass strip with a tailwind.",
+        "Read every chart's conditions and notes and the manufacturer's example [[1:275|PHAK 11-19]]."
+       ],
+       [
+        "Careless start on a combined graph",
+        "A line drawn from roughly the right temperature.",
+        "Slow down at the start: a small early error becomes a large final error [[1:275|PHAK 11-19]]."
+       ],
+       [
+        "Optimistic rounding",
+        "Always rounding toward the shorter distance.",
+        "Round toward the more adverse condition for a margin [[1:276|PHAK 11-20]]."
+       ],
+       [
+        "Mixes units",
+        "Climb fuel from a table in pounds used as gallons; 23.1 pounds is only 3.85 gallons [[1:280|PHAK 11-24]].",
+        "Have the learner write the unit next to every number and check mph against knots [[1:284|PHAK 11-28]]."
+       ],
+       [
+        "Uses takeoff weight for landing",
+        "Landing distance worked at takeoff weight.",
+        "Recompute landing weight for fuel used [[1:282|PHAK 11-26]]."
+       ],
+       [
+        "Uses the wrong airplane's data",
+        "Sample or sister-ship empty weight on the load sheet.",
+        "Each airplane is treated separately; use the current weight and balance data [[1:250|PHAK 10-6]] [[22:18|W&B 1-4]]."
+       ],
+       [
+        "Oil counted twice or not at all",
+        "Oil added to a basic empty weight, or left off a licensed empty weight.",
+        "Check which empty weight the records use [[24:262|AFH 13-13]]."
+       ],
+       [
+        "Sign or index error",
+        "A negative arm added, or a moment index not multiplied back.",
+        "Negative times positive is negative and is subtracted [[1:254|PHAK 10-10]]; know the reduction factor [[22:52|W&B 5-4]]."
+       ],
+       [
+        "Checks takeoff only",
+        "No landing-condition line on the form.",
+        "Check every phase of flight, including landing weight [[1:255|PHAK 10-11]] [[22:54|W&B 5-6]]."
+       ],
+       [
+        "Chart routine without understanding",
+        "Fast on the school airplane, lost on a new one.",
+        "Give unfamiliar charts and ask why, not only what [[25:79|AIH 3-28]]."
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "The fix is usually a question, not the answer: \"Where did that number come from? Does it make sense?\" Learners who explain their path find their own errors [[25:79|AIH 3-28]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "A learner works the landing distance at the takeoff weight. What do you ask?",
+    "a": "\"What will you weigh when you land?\" The landing weight must be recomputed for the fuel used [[1:282|PHAK 11-26]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "AI.II.F-1.jpg",
+   "res": "1",
+   "page": 250,
+   "caption": "Figure 10-4. Establishing a balance. (PHAK 10-6)",
+   "alt": "A board on a fulcrum at the datum. To the left a 50-pound ball hangs at 50 inches and a 100-pound ball at 25 inches, each producing 2,500 inch-pounds; to the right a 50-pound ball at 100 inches produces 5,000 inch-pounds. A box shows weight times arm equals moment and the totals of 5,000 on each side.",
+   "source": "PHAK, PDF p. 250"
+  },
+  "f2": {
+   "file": "AI.II.F-2.jpg",
+   "res": "1",
+   "page": 252,
+   "caption": "Figure 10-7. Loading graph. Figure 10-8. CG moment envelope. (PHAK 10-8)",
+   "alt": "Top: a loading graph with load weight in pounds up the left and load moment/1,000 along the bottom. Diagonal lines for pilot and front passenger, fuel, rear passengers and two baggage areas fan out from zero; a red line runs across from 340 pounds to the front seat line and down to 12.7. Bottom: a CG moment envelope with loaded weight up the left and loaded moment/1,000 along the bottom, a solid normal category outline and a dashed utility category outline, with red lines from 2,367 pounds and 105.2 meeting inside the envelope.",
+   "source": "PHAK, PDF p. 252"
+  },
+  "f3": {
+   "file": "AI.II.F-3.jpg",
+   "res": "1",
+   "page": 253,
+   "caption": "Figure 10-9. Loading schedule placard. (PHAK 10-9)",
+   "alt": "A top view of an airplane surrounded by tables: usable fuel at arm 75, occupants at arms 85 and 121, oil, baggage or fifth seat at arm 140, CG limits by weight, a sample loading problem totaling 2,799 pounds and 2,278 moment/100, and long columns of minimum and maximum moment/100 for weights from 2,100 to 2,950 pounds. Some cells are highlighted in yellow.",
+   "source": "PHAK, PDF p. 253"
+  },
+  "f4": {
+   "file": "AI.II.F-4.jpg",
+   "res": "22",
+   "page": 18,
+   "caption": "Figure 1-2. If the CG is too far aft at the low stall airspeed, there might not be enough elevator nose-down authority to get the nose down for recovery. (W&B 1-4)",
+   "alt": "A gray airplane in a nose-high attitude with a lift arrow up and a weight arrow down from a CG mark labeled CG too far aft. A small arrow at the tail is labeled insufficient elevator nose-down force.",
+   "source": "W&B Handbook, PDF p. 18"
+  },
+  "f5": {
+   "file": "AI.II.F-5.jpg",
+   "res": "22",
+   "page": 18,
+   "caption": "Figure 1-3. If the CG is too far forward, there is not enough elevator nose-up force to flare the airplane for landing. (W&B 1-4)",
+   "alt": "A gray airplane just above a runway with the CG mark near the engine labeled CG too far forward, a lift arrow behind it, and a downward arrow at the tail labeled insufficient elevator nose-up force.",
+   "source": "W&B Handbook, PDF p. 18"
+  },
+  "f6": {
+   "file": "CA.I.F-1.jpg",
+   "res": "1",
+   "page": 278,
+   "caption": "Figure 11-24. Takeoff distance short field charts. (PHAK 11-22)",
+   "alt": "Short-field takeoff distance table, flaps 10°, full throttle before brake release, paved level runway, zero wind. Notes cover leaning above 3,000 feet, headwind and tailwind corrections and dry grass. Rows for 2,400, 2,200 and 2,000 pounds give ground roll and total feet to clear a 50-foot obstacle from sea level to 8,000 feet at 0 to 40 °C, with dashes where no data is given.",
+   "source": "PHAK, PDF p. 278"
+  },
+  "f7": {
+   "file": "PA.I.F-2.jpg",
+   "res": "1",
+   "page": 278,
+   "caption": "Figure 11-23. Takeoff distance graph. (PHAK 11-22)",
+   "alt": "A combined takeoff graph with sections for outside air temperature and pressure altitude, weight, wind component and obstacle height, separated by three reference lines, plus a takeoff speed table and an associated conditions box. A red line traces the sample problem.",
+   "source": "PHAK, PDF p. 278"
+  }
+ },
+ "scenario": {
+  "title": "The load sheet that ends two pounds over",
+  "codes": [
+   "AI.II.F.R4",
+   "AI.II.F.R5",
+   "AI.II.F.R6",
+   "AI.II.F.R3",
+   "AI.II.F.S2",
+   "AI.II.F.K4"
+  ],
+  "setup": "Your learner is planning a dual cross-country in the four-seat airplane from the W&B Handbook's Figure 5-1 (basic empty weight 1,874 pounds at +36.1; 3,100 pounds maximum takeoff and 2,950 landing; CG range +40.9 to +46.0 at 3,100 pounds and +33.0 to +46.0 at 2,250 pounds or less). The plan: you and the learner in front (340 pounds at +37), one 200-pound passenger in back (+74), full fuel of 88 gallons (528 pounds at +46.6), 100 pounds in baggage area A (+97) and 60 in area B (+116). The learner's sheet shows 3,102 pounds and a CG of 43.94 inches.",
+  "questions": [
+   {
+    "q": "The learner says the 2 pounds over is rounding error. How do you respond?",
+    "a": "Maximum takeoff weight is 3,100 pounds [[22:50|W&B 5-2]], and exceeding any weight and balance limit is contrary to the operating limitations and 14 CFR [[24:263|AFH 13-14]] [[60:436|14 CFR 91.9(a)]]. Use it to teach why: every overload pound is multiplied by the load factor on the structure [[1:139|PHAK 5-42]]."
+   },
+   {
+    "q": "The learner takes off 10 gallons. What are the new weight and CG, and is the takeoff condition within limits?",
+    "a": "3,102 - 60 = 3,042 pounds; 136,296.2 - 60 x 46.6 = 133,500.2 inch-pounds; CG 43.89 inches. The forward limit at 3,042 pounds is about 40.4 by straight-line variation and the aft limit is 46.0, so takeoff is within limits [[22:50|W&B 5-2]]."
+   },
+   {
+    "q": "What about landing?",
+    "a": "At 3,042 pounds the airplane is 92 pounds over the 2,950-pound landing weight, so about 15.3 gallons must be burned before landing, including on an early return [[22:50|W&B 5-2]] [[22:54|W&B 5-6]]. If an emergency forces an overweight landing, an overweight landing inspection may be advisable [[24:263|AFH 13-14]]."
+   },
+   {
+    "q": "Leaving the 60-pound bag in area B behind also gives 3,042 pounds, with the CG at 42.52. Which fix is right?",
+    "a": "Both are within limits. This is a good scenario point because it has more than one acceptable answer [[25:120|AIH 5-17]]; have the learner weigh fuel reserve against the bag and explain the choice."
+   },
+   {
+    "q": "The sheet used an empty weight copied from the school's sample form, not this airplane's current record. Why does that matter?",
+    "a": "Equipment changes and repairs change empty weight and CG, sample problems are guidance only, and each airplane must be treated separately [[1:250|PHAK 10-6]]. The PIC must use the most current weight and balance data [[22:18|W&B 1-4]]."
+   },
+   {
+    "q": "How do you close the lesson so the learner does it better next time?",
+    "a": "Let the learner critique the work first, then point out what was done well [[25:79|AIH 3-28]]. Next time the learner plans the load and performance alone [[25:157|AIH 7-13]], and you hand over an unfamiliar airplane's chart to test understanding rather than routine [[25:79|AIH 3-28]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "AI.II.F.S1",
+   "do": "Use the appropriate airplane performance charts, tables and data: work takeoff, climb, cruise and landing figures for given conditions while explaining each step out loud: conditions box, pressure and density altitude, interpolation, every note, units, and a margin [[1:275|PHAK 11-19]] [[1:276|PHAK 11-20]]. The CFI ACS gives no numeric tolerance for this Task; the evaluator judges accuracy and how clearly you teach it.",
+   "practice": "Work the PHAK sample problems on pages 11-20 to 11-28 aloud as if teaching, then change one condition and rework them [[1:276|PHAK 11-20]]. Practice one chart from a POH you have never used [[25:79|AIH 3-28]]."
+  },
+  {
+   "code": "AI.II.F.S2",
+   "do": "Compute the weight and balance, correct out-of-center of gravity loading errors and determine if the weight and balance remains within limits during all phases of flight: compute ramp, takeoff and landing conditions, find the minimum shift or removal to fix an out-of-limits load, and explain each step [[1:254|PHAK 10-10]] [[1:255|PHAK 10-11]]. No numeric tolerance is given; the evaluator judges correct results and teaching.",
+   "practice": "Solve the W&B Handbook's Figure 5-3 load by computation and by the loading graph [[22:51|W&B 5-3]] [[22:52|W&B 5-4]], then invent an aft-CG load and fix it with the shift formula [[22:24|W&B 2-4]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "The PHAK says manufacturers may base their performance data on:",
+   "options": [
+    "Standard conditions, pressure altitude or density altitude",
+    "Density altitude only",
+    "Indicated altitude only",
+    "Field elevation only"
+   ],
+   "answer": 0,
+   "why": "The data is not standardized and may be based on any of the three [[1:258|PHAK 11-2]]."
+  },
+  {
+   "q": "A headwind that is 50 percent of the takeoff speed leaves a takeoff distance of about:",
+   "options": [
+    "50 percent of the zero-wind distance",
+    "75 percent of the zero-wind distance",
+    "25 percent of the zero-wind distance",
+    "90 percent of the zero-wind distance"
+   ],
+   "answer": 2,
+   "why": "About 25 percent of the zero-wind distance, a 75 percent reduction [[1:271|PHAK 11-15]]."
+  },
+  {
+   "q": "Landing at a higher density altitude increases landing distance mainly because:",
+   "options": [
+    "Braking friction is lower",
+    "The airplane touches down at a higher true airspeed",
+    "The indicated approach speed must be higher",
+    "The flaps are less effective"
+   ],
+   "answer": 1,
+   "why": "Same indicated airspeed, higher true airspeed; deceleration is unchanged [[1:273|PHAK 11-17]]."
+  },
+  {
+   "q": "What does the PHAK give for computing the effect of humidity on density altitude?",
+   "options": [
+    "A 3 percent correction per 10 percent humidity",
+    "A humidity line on the density altitude chart",
+    "No rule of thumb or chart, though humidity still contributes",
+    "Nothing, because humidity raises density"
+   ],
+   "answer": 2,
+   "why": "There is no rule of thumb or chart, but it must be considered [[1:261|PHAK 11-5]]."
+  },
+  {
+   "q": "Lowering the flaps or landing gear affects climb by:",
+   "options": [
+    "Reducing only the rate of climb",
+    "Reducing both excess thrust and excess power",
+    "Increasing the angle of climb",
+    "Changing nothing below 5,000 feet"
+   ],
+   "answer": 1,
+   "why": "Both decrease, so maximum angle and rate of climb both decrease [[1:264|PHAK 11-8]]."
+  },
+  {
+   "q": "An older airplane's records use licensed empty weight. What must the pilot add?",
+   "options": [
+    "Unusable fuel",
+    "Optional equipment",
+    "Oil",
+    "Hydraulic fluid"
+   ],
+   "answer": 2,
+   "why": "Licensed empty weight does not include full oil; oil should be added [[24:262|AFH 13-13]]."
+  },
+  {
+   "q": "Why do some POHs use moment indexes?",
+   "options": [
+    "To show moments in kilograms",
+    "To keep large numbers manageable by dividing by a constant",
+    "To correct for fuel density",
+    "To give the CG in percent MAC"
+   ],
+   "answer": 1,
+   "why": "A moment divided by 100, 1,000 or 10,000 simplifies the work [[1:249|PHAK 10-5]]."
+  },
+  {
+   "q": "Which effect comes with a CG aft of the allowable range?",
+   "options": [
+    "Heavy control forces",
+    "Very light control forces that make overstress easy",
+    "Higher stall speed",
+    "Difficulty raising the nose for landing"
+   ],
+   "answer": 1,
+   "why": "Aft CG gives very light control forces, less stability and violent stalls [[1:247|PHAK 10-3]]."
+  },
+  {
+   "q": "In the PHAK's Figure 10-9 table, which printed value is a misprint?",
+   "options": [
+    "Minimum moment 1,848 at 2,400 pounds",
+    "Minimum moment 1,092 at 2,470 pounds",
+    "Maximum moment 2,499 at 2,950 pounds",
+    "Maximum moment 2,143 at 2,500 pounds"
+   ],
+   "answer": 1,
+   "why": "1,092 sits between 1,894 and 1,911 and breaks the trend; 2,470 x 77.0 / 100 = 1,902 (application) [[1:253|PHAK 10-9]]."
+  },
+  {
+   "q": "Most small airplanes carry fuel near the CG. What does burning that fuel do to the CG?",
+   "options": [
+    "Moves it far aft",
+    "Moves it far forward",
+    "Changes it little",
+    "Makes it impossible to compute"
+   ],
+   "answer": 2,
+   "why": "Burning fuel near the CG has little effect on the loaded CG [[1:247|PHAK 10-3]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "Your learner needs the total distance over 50 feet at 2,200 pounds, 3,500 feet and 25 °C from the short-field table. What does double interpolation give?",
+   "options": [
+    "About 1,835 feet",
+    "About 1,905 feet",
+    "About 2,013 feet",
+    "About 2,200 feet"
+   ],
+   "answer": 2,
+   "why": "At 3,000 feet: (1,835 + 1,975) / 2 = 1,905. At 4,000 feet: (2,040 + 2,200) / 2 = 2,120. Halfway: 2,012.5, about 2,013 feet [[1:278|PHAK Figure 11-24]]."
+  },
+  {
+   "q": "A learner reads 37 in the fuel column of a climb table for 3,700 pounds from sea level to 12,000 feet and plans 37 gallons. The column is in pounds and note 1 adds 16 pounds for start, taxi and takeoff. What should the learner plan?",
+   "options": [
+    "37 gallons",
+    "About 6.2 gallons",
+    "About 8.8 gallons",
+    "53 gallons"
+   ],
+   "answer": 2,
+   "why": "(37 + 16) / 6 = 8.8 gallons [[1:279|PHAK 11-23]] [[1:280|PHAK 11-24]]."
+  },
+  {
+   "q": "Totals on a loading graph are 2,367 pounds and a moment/1,000 of 105.2. Your learner writes CG = 0.044 inches. What is the right CG?",
+   "options": [
+    "4.44 inches",
+    "44.4 inches",
+    "105.2 inches",
+    "444 inches"
+   ],
+   "answer": 1,
+   "why": "Multiply the index back: 105,200 / 2,367 = 44.4 inches [[1:251|PHAK 10-7]] [[22:97|W&B 10-5]]."
+  },
+  {
+   "q": "In the W&B Handbook's Figure 5-3 load (3,027 pounds, 131,806.2 inch-pounds), the airplane burns 40 gallons from tanks at +46.6. What is the CG now?",
+   "options": [
+    "43.54 inches",
+    "43.28 inches",
+    "44.10 inches",
+    "41.90 inches"
+   ],
+   "answer": 1,
+   "why": "3,027 - 240 = 2,787 pounds; 131,806.2 - 11,184 = 120,622.2; 120,622.2 / 2,787 = 43.28 inches [[22:51|W&B 5-3]] [[22:50|W&B 5-2]]."
+  },
+  {
+   "q": "A hunting party's dogs ride loose in the back of a small airplane. What happened in the W&B Handbook case like this?",
+   "options": [
+    "The airplane was too heavy to lift off",
+    "The dogs moved aft on takeoff, the CG went well aft of the limit, and the airplane stalled and crashed",
+    "The forward CG made the flare impossible",
+    "Fuel imbalance caused a wing to drop"
+   ],
+   "answer": 1,
+   "why": "All the dogs went aft during takeoff, the CG shifted well aft, and the airplane stalled and crashed [[22:20|W&B 1-6]]."
+  },
+  {
+   "q": "A learner wants to practice spins in an airplane approved for spins in the utility category, but with a rear passenger loaded to the normal category. What is the risk?",
+   "options": [
+    "None if the weight is below gross",
+    "The airplane may not recover from a spin allowed past one turn",
+    "The stall speed will be too low to spin",
+    "The spin will be slower and easier to stop"
+   ],
+   "answer": 1,
+   "why": "Loaded to the normal category it may not recover from a spin that goes beyond one turn [[24:131|AFH 5-26]]."
+  },
+  {
+   "q": "On landing with two heavy people in front and nothing in back, the learner runs out of up elevator in the flare. What does this suggest?",
+   "options": [
+    "CG too far aft",
+    "CG too far forward",
+    "Too little weight",
+    "Too much flap"
+   ],
+   "answer": 1,
+   "why": "With the CG too far forward there may not be enough elevator nose-up force to flare [[22:18|W&B 1-4]] [[1:247|PHAK 10-3]]."
+  },
+  {
+   "q": "An airplane with a published maximum zero fuel weight of 4,400 pounds is loaded to 4,440 pounds before fuel. The learner proposes carrying less fuel. Your answer?",
+   "options": [
+    "Fine, as long as takeoff weight is legal",
+    "Fuel does not count toward zero fuel weight; remove 40 pounds of passengers or cargo",
+    "Add ballast in the nose",
+    "Zero fuel weight applies only to landing"
+   ],
+   "answer": 1,
+   "why": "Above the zero fuel weight, passengers or cargo must be reduced [[1:254|PHAK 10-10]]; the weight above zero fuel weight should be only usable fuel [[24:262|AFH 13-13]]."
+  },
+  {
+   "q": "Which lead-off question best starts a guided discussion on density altitude?",
+   "options": [
+    "\"Is takeoff longer at Denver or New Orleans?\"",
+    "\"Why does an aircraft need a longer takeoff run at Denver than at New Orleans?\"",
+    "\"What is the density altitude formula?\"",
+    "\"Is high density altitude good or bad?\""
+   ],
+   "answer": 1,
+   "why": "Lead-off questions should usually begin with how or why so they start a discussion instead of a one-word answer [[25:118|AIH 5-15]]."
+  },
+  {
+   "q": "A learner who solves the school airplane's weight and balance quickly struggles with a new airplane's charts. What does the AIH say is happening?",
+   "options": [
+    "The new chart is wrong",
+    "Overlearned chart routines have replaced understanding of the concepts",
+    "The learner needs a different calculator",
+    "Weight and balance cannot be taught on the ground"
+   ],
+   "answer": 1,
+   "why": "Automatic routines tuned to familiar charts can crowd out the underlying concepts; even instructors scored low [[25:79|AIH 3-28]]."
+  },
+  {
+   "q": "Calculated total takeoff distance is 2,480 feet. Your learner uses a 20 percent personal safety factor, as in the RMH case study. The runway is 2,900 feet. What follows?",
+   "options": [
+    "Go; 2,480 fits in 2,900",
+    "Needed 2,976 feet exceeds 2,900; reduce weight or wait for better conditions",
+    "Needed 2,600 feet; go",
+    "Safety factors apply only to landing"
+   ],
+   "answer": 1,
+   "why": "2,480 x 1.2 = 2,976 feet, more than 2,900 (application of the RMH method) [[30:36|RMH 4-3]]."
+  },
+  {
+   "q": "On a soft-field takeoff the learner pulls out of ground effect before reaching climb speed, and the airplane will not climb at full power. Why?",
+   "options": [
+    "Carburetor ice",
+    "It is in the region of reversed command, where slower flight needs more power",
+    "The CG has moved aft",
+    "The flaps are retracting"
+   ],
+   "answer": 1,
+   "why": "Below minimum-power speed more power is needed; the only fix is to lower the pitch to gain speed [[1:268|PHAK 11-12]] [[1:267|PHAK 11-11]]."
+  },
+  {
+   "q": "Using the takeoff graph's speed table, what speed should be held at 50 feet at 2,400 pounds?",
+   "options": [
+    "61 knots",
+    "63 knots",
+    "66 knots",
+    "70 knots"
+   ],
+   "answer": 2,
+   "why": "The table gives 61 knots at lift-off and 66 knots at 50 feet for 2,400 pounds [[1:278|PHAK Figure 11-23]]."
+  }
+ ],
+ "takeaways": [
+  "Chart numbers come from a new airplane flown with average skill; treat them as the best case and add a margin.",
+  "Read every chart's conditions and notes, interpolate both variables, and check that the answer makes sense.",
+  "Density altitude, technique, configuration, the runway and the load each change performance; teach each by name.",
+  "Weight times arm is moment; total moment divided by total weight is CG. Every method is that idea in a different form.",
+  "Too far forward means no flare; too far aft means unstable and hard to recover. Secure anything that can move.",
+  "Check takeoff and landing, and every phase in between, for weight and CG.",
+  "Teach the concept before the chart, use demonstration-performance, and test with an unfamiliar airplane."
+ ],
+ "cfi_notes": [
+  "The PHAK disagrees with itself on excess landing speed: \"at least a 21 percent increase\" for 10 percent excess speed and later \"20 percent\" on the same page [[1:273|PHAK 11-17]], with 20 percent used in the runway 27 example [[1:274|PHAK 11-18]]. Teach the 21 percent principle (distance grows with the square of speed) and explain the 20 percent as rounding.",
+  "In the runway 27 example the PHAK says the tailwind correction is computed on the increased estimate, yet it adds 320 feet, 20 percent of the original 1,600; computed as stated it would be 384 feet (2,304 total). It also gives the tailwind as 20 percent per 10 mph while the previous page gives about 21 percent for a 10-knot tailwind [[1:274|PHAK 11-18]] [[1:273|PHAK 11-17]]. Use it to teach careful arithmetic and units.",
+  "PHAK Figure 11-24 prints ground rolls longer than the totals in the 2,000-pound rows at 30 °C for 5,000 to 7,000 feet [[1:278|PHAK Figure 11-24]]. Do not use those cells; use them as a sanity-check exercise.",
+  "PHAK Figure 10-9 prints 1,092 (minimum moment, 2,470 pounds) and 3,460 (maximum moment, 2,900 pounds); both break their column's trend [[1:253|PHAK 10-9]]. Figure 10-7 labels 40 gallons as 189.3 liters, the same as 50 gallons [[1:252|PHAK 10-8]]; the W&B Handbook graph shows 40 gallons as 151.4 liters [[22:53|W&B 5-5]].",
+  "PHAK chapter 11 labels the crosswind chart \"Figure 10-31\" and refers to the landing table as \"Figure 10-32\", though the landing table is printed as Figure 11-32 [[1:282|PHAK 11-26]] [[1:283|PHAK 11-27]]. Point learners to the page, not just the number.",
+  "Landing distance and altitude: the PHAK gives 16 percent more at 5,000 feet and also about 3.5 percent per 1,000 feet, which would be 17.5 percent [[1:273|PHAK 11-17]]. Both are approximations; the POH governs.",
+  "The W&B Handbook notes that any airplane can fly above maximum gross weight with a long enough runway and low enough density altitude [[22:20|W&B 1-6]]. Make sure learners hear the rest of that passage: hidden structural damage, and the illegality under the operating limitations [[60:436|14 CFR 91.9(a)]].",
+  "The CFI ACS gives no numeric tolerance for this Task. Expect the evaluator to judge correct answers, the explanation, and your ability to analyze a learner's error.",
+  "Teaching tip: hand the learner a load sheet with one planted error (gallons for pounds, a missing landing line, oil counted twice) and ask them to find it. It practices the analysis step the AIH ties to higher-order thinking [[25:57|AIH 3-6]] [[25:120|AIH 5-17]]."
+ ],
+ "gaps": [
+  "The sources do not give your airplane's charts, CG envelope, maximum demonstrated crosswind or seat and baggage placards; use the airplane's POH/AFM and current weight and balance record.",
+  "There is no chart or rule of thumb for humidity [[1:261|PHAK 11-5]], and some AFMs give little or no guidance for contaminated runways [[30:25|RMH 3-7]].",
+  "No source sets a required safety factor for chart performance; the RMH case uses a 20 percent personal factor as one example [[30:36|RMH 4-3]].",
+  "The sources say to compensate for an airplane not in good working order or below-average skill but give no method or amount [[1:275|PHAK 11-19]].",
+  "The sources do not say which temperature to use for a climb table's \"above standard\" note when departing a high airport; the PHAK example starts at sea level [[1:280|PHAK 11-24]]. Use the POH's instructions."
+ ],
+ "activities": [
+  {
+   "type": "label",
+   "key": "h1",
+   "after": 2,
+   "title": "Read the short-field table like an instructor",
+   "figure": "f6",
+   "intro": "Drag each label to its pin on the table.",
+   "pins": [
+    {
+     "x": 15,
+     "y": 7,
+     "label": "Assumptions behind every number in the table"
+    },
+    {
+     "x": 50,
+     "y": 17.3,
+     "label": "Correction for wind along the runway"
+    },
+    {
+     "x": 13.4,
+     "y": 36.6,
+     "label": "Lift-off speed for the heaviest weight"
+    },
+    {
+     "x": 74,
+     "y": 42,
+     "label": "PHAK Sample Problem 3 ground roll before the wind note"
+    },
+    {
+     "x": 74,
+     "y": 51.5,
+     "label": "No data: do not extend the trend"
+    },
+    {
+     "x": 74,
+     "y": 84,
+     "label": "A misprint: ground roll longer than the total"
+    }
+   ],
+   "why": "Conditions box, notes, speeds and data from the table [[1:278|PHAK Figure 11-24]]; Sample Problem 3 [[1:277|PHAK 11-21]]."
+  },
+  {
+   "type": "sort",
+   "key": "h2",
+   "after": 5,
+   "title": "Name the factor",
+   "intro": "Tap each item, then the K2 factor it belongs to.",
+   "buckets": [
+    "Atmospheric conditions",
+    "Pilot technique",
+    "Airplane configuration",
+    "Airport environment",
+    "Loading and weight and balance"
+   ],
+   "items": [
+    {
+     "t": "Warm, humid afternoon",
+     "b": 0
+    },
+    {
+     "t": "Altimeter setting well below 29.92",
+     "b": 0
+    },
+    {
+     "t": "Lifting off 10 percent above book speed",
+     "b": 1
+    },
+    {
+     "t": "Forcing the airplane off with back pressure",
+     "b": 1
+    },
+    {
+     "t": "No wheel fairings installed",
+     "b": 2
+    },
+    {
+     "t": "Flaps set differently than the chart assumes",
+     "b": 2
+    },
+    {
+     "t": "Upsloping grass runway",
+     "b": 3
+    },
+    {
+     "t": "Standing water on the runway",
+     "b": 3
+    },
+    {
+     "t": "Two extra passengers",
+     "b": 4
+    },
+    {
+     "t": "CG near the forward limit",
+     "b": 4
+    }
+   ],
+   "why": "Density and humidity [[1:260|PHAK 11-4]] [[1:261|PHAK 11-5]]; speed and technique [[1:272|PHAK 11-16]] [[24:137|AFH 6-5]]; configuration [[1:264|PHAK 11-8]] [[1:281|PHAK 11-25]]; runway [[1:268|PHAK 11-12]] [[1:269|PHAK 11-13]]; loading [[1:271|PHAK 11-15]] [[22:18|W&B 1-4]]."
+  },
+  {
+   "type": "match",
+   "key": "h3",
+   "after": 7,
+   "title": "Read the data box",
+   "intro": "Tap a term, then its value for the W&B Handbook Figure 5-1 airplane.",
+   "pairs": [
+    {
+     "l": "Basic empty weight",
+     "r": "1,874 pounds"
+    },
+    {
+     "l": "Useful load at maximum takeoff weight",
+     "r": "1,226 pounds"
+    },
+    {
+     "l": "Maximum landing weight",
+     "r": "2,950 pounds"
+    },
+    {
+     "l": "Aft CG limit",
+     "r": "+46.0 inches"
+    },
+    {
+     "l": "Forward CG limit at 2,250 pounds or less",
+     "r": "+33.0 inches"
+    },
+    {
+     "l": "Arm of baggage area B",
+     "r": "+116.0 inches"
+    }
+   ],
+   "why": "Values from the data box; useful load is 3,100 - 1,874 = 1,226 pounds [[22:50|W&B 5-2]] [[1:249|PHAK 10-5]]."
+  },
+  {
+   "type": "tf",
+   "key": "h4",
+   "after": 10,
+   "title": "True or false: aerodynamics and limits",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "A forward CG gives a higher stall speed than an aft CG at the same weight.",
+     "a": true,
+     "why": "True. The higher tail down load raises wing loading [[1:141|PHAK 5-44]]."
+    },
+    {
+     "s": "Doubling airspeed in level flight doubles the power needed to overcome parasite drag.",
+     "a": false,
+     "why": "False. Parasite drag becomes four times as great and the power eight times [[1:261|PHAK 11-5]]."
+    },
+    {
+     "s": "The service ceiling is where the airplane can no longer climb faster than 100 feet per minute.",
+     "a": true,
+     "why": "True [[1:264|PHAK 11-8]]."
+    },
+    {
+     "s": "Below maneuvering speed you may make full control inputs in two axes at once without risk.",
+     "a": false,
+     "why": "False. VA does not protect against full inputs in more than one axis at the same time [[1:275|PHAK 11-19]]."
+    },
+    {
+     "s": "A Vg diagram is valid at a certain weight and altitude.",
+     "a": true,
+     "why": "True [[1:134|PHAK 5-37]]."
+    },
+    {
+     "s": "Maximum range for a propeller airplane occurs at the speed for minimum power required.",
+     "a": false,
+     "why": "False. Minimum power gives maximum endurance; maximum range is at L/DMAX [[1:266|PHAK 11-10]]."
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h5",
+   "after": 11,
+   "title": "Work the numbers a learner gets wrong",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "Figure 10-9 sample: 2,799 pounds and a moment/100 of 2,278. What is the CG in inches? (1 decimal)",
+     "answer": 81.4,
+     "tol": 0.1,
+     "unit": "inches",
+     "why": "2,278 x 100 / 2,799 = 81.39 inches [[1:253|PHAK 10-9]]."
+    },
+    {
+     "q": "CG 44.0 inches, LEMAC at station 25.98, MAC 58.0 inches. What is the CG in percent MAC? (1 decimal)",
+     "answer": 31.1,
+     "tol": 0.1,
+     "unit": "percent MAC",
+     "why": "(44.0 - 25.98) x 100 / 58.0 = 31.07 percent [[22:66|W&B 7-6]] [[22:41|W&B 3-9]]."
+    },
+    {
+     "q": "In the W&B Handbook's Figure 5-3 load (3,027 pounds, 131,806.2 inch-pounds), 50 pounds of baggage moves from area B (+116) to a rear seat (+74). New CG? (2 decimals)",
+     "answer": 42.85,
+     "tol": 0.02,
+     "unit": "inches",
+     "why": "Moment drops 50 x 42 = 2,100: 129,706.2 / 3,027 = 42.85 inches [[22:51|W&B 5-3]] [[1:254|PHAK 10-10]]."
+    },
+    {
+     "q": "An airplane weighs 2,900 pounds with the CG at 46.4; the aft limit is 46.0. How many pounds must move from station 97 to station 74 to reach the limit? (1 decimal)",
+     "answer": 50.4,
+     "tol": 0.2,
+     "unit": "pounds",
+     "why": "Weight shifted = 2,900 x 0.4 / 23 = 50.4 pounds [[22:24|W&B 2-4]] [[1:255|PHAK 10-11]]."
+    },
+    {
+     "q": "In the PHAK's runway 27 story, the planned 1,600 feet grows 20 percent for excess speed, then 20 percent for the tailwind computed on the increased estimate, as the text says. What is the total landing distance?",
+     "answer": 2304,
+     "tol": 1,
+     "unit": "feet",
+     "why": "1,600 x 1.2 = 1,920; 1,920 x 1.2 = 2,304 feet. The PHAK's own figure of 2,240 adds 20 percent of the original 1,600 instead [[1:274|PHAK 11-18]]."
+    },
+    {
+     "q": "Application: climb table for 3,400 pounds, 4,000 feet to 12,000 feet: 5 to 16 minutes. Note 2 adds 10 percent per 7 °C above standard. It is 21 °C at 4,000 feet, where standard is 7.1 °C; treat it as 2 steps (14 °C). Time to climb? (1 decimal)",
+     "answer": 13.2,
+     "tol": 0.1,
+     "unit": "minutes",
+     "why": "16 - 5 = 11 minutes; 21 - 7.1 = 13.9, about 14 °C, so 20 percent: 11 x 1.2 = 13.2 minutes [[1:279|PHAK 11-23]] [[1:259|PHAK 11-3]]. Comparing with 15 °C would wrongly give no correction."
+    }
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h6",
+   "after": 12,
+   "title": "A dual cross-country, one decision at a time",
+   "intro": "You and your learner (420 pounds together, front seats at +37) take one 170-pound passenger (+74), full fuel of 88 gallons (528 pounds at +46.6) and 60 pounds of bags in area A (+97) in the W&B Handbook Figure 5-1 airplane: basic empty weight 1,874 pounds at +36.1.",
+   "steps": [
+    {
+     "s": "The learner's totals are 3,052 pounds and 126,196.2 inch-pounds. What do you conclude?",
+     "options": [
+      "Over maximum takeoff weight; offload",
+      "CG 41.35, inside the takeoff envelope (forward limit about 40.45), but 102 pounds over the landing weight; plan about 17 gallons of burn before landing",
+      "Within all limits; nothing more to check",
+      "CG out of limits aft"
+     ],
+     "answer": 1,
+     "why": "126,196.2 / 3,052 = 41.35; forward limit at 3,052 by straight-line variation is about 40.45, aft 46.0; landing limit 2,950 pounds [[22:50|W&B 5-2]] [[22:54|W&B 5-6]]."
+    },
+    {
+     "s": "The learner asks whether to add 12 quarts of oil to the empty weight.",
+     "options": [
+      "Yes, always add oil",
+      "No; a GAMA basic empty weight already includes full oil. Add it only to a licensed empty weight",
+      "Only for flights over 2 hours",
+      "Add half the oil"
+     ],
+     "answer": 1,
+     "why": "Basic empty weight includes full oil; licensed empty weight does not [[24:261|AFH 13-12]] [[24:262|AFH 13-13]]."
+    },
+    {
+     "s": "Twenty minutes out, after burning 8 gallons, the passenger feels unwell but is stable and wants to go back. You weigh 3,004 pounds.",
+     "options": [
+      "Land at once at 3,004 pounds",
+      "Fly about 9 more gallons (54 pounds) off before landing; if it becomes an emergency, land and have an overweight inspection considered",
+      "Dump fuel",
+      "Continue to the destination"
+     ],
+     "answer": 1,
+     "why": "3,004 - 2,950 = 54 pounds = 9 gallons. In an emergency, structural margins are not fully available when overweight and an inspection may be advisable [[24:263|AFH 13-14]]."
+    },
+    {
+     "s": "Instead, the flight continues. At the destination you have burned 22 gallons. Is the landing condition within limits?",
+     "options": [
+      "No, still over the landing weight",
+      "Yes: 2,920 pounds, CG 41.11, forward limit about 39.23",
+      "No, CG forward of the limit",
+      "Cannot be known without the loading graph"
+     ],
+     "answer": 1,
+     "why": "3,052 - 132 = 2,920; 126,196.2 - 132 x 46.6 = 120,045.0; CG 41.11. Forward limit at 2,920 is about 39.23 [[22:50|W&B 5-2]] [[1:255|PHAK 10-11]]."
+    },
+    {
+     "s": "Debrief: what is the best next step for this learner?",
+     "options": [
+      "You do the weight and balance from now on to save time",
+      "The learner self-critiques, then plans the next flight's load and performance alone, using a different airplane's charts",
+      "Skip weight and balance on local flights",
+      "Give the learner a printed form to copy each time"
+     ],
+     "answer": 1,
+     "why": "Let the learner critique first [[25:79|AIH 3-28]], hand over planning as soon as possible [[25:157|AIH 7-13]], and use unfamiliar charts to test understanding [[25:79|AIH 3-28]]."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h7",
+   "after": 13,
+   "title": "Teach weight and balance by demonstration-performance",
+   "intro": "Use the arrows to put the steps in order, then tap Check.",
+   "steps": [
+    "Explain the steps and show the end result: total moment divided by total weight, checked against the envelope",
+    "Demonstrate one full loading problem, saying each step aloud",
+    "Have the learner work a problem right away while you coach",
+    "Have the learner solve one alone while you supervise",
+    "Evaluate with a new load from an unfamiliar airplane's charts, worked independently"
+   ],
+   "why": "Explanation, demonstration, learner performance, instructor supervision, evaluation [[25:124|AIH 5-21]] [[25:125|AIH 5-22]]; unfamiliar charts test understanding [[25:79|AIH 3-28]]."
+  }
+ ]
+}
