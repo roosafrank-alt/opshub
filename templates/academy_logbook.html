@@ -78,14 +78,18 @@
 {% for e in entries %}{% set k = (e.entry_date or '')[:7] %}{% set _ = mt.hrs.update({k: (mt.hrs.get(k, 0) + (e.total or 0))}) %}{% set _ = mt.n.update({k: mt.n.get(k, 0) + 1}) %}{% endfor %}
 <style>
   .lb-month { position:sticky; top:0; z-index:1; background:linear-gradient(90deg,#14213d,#2a5db0); color:#fff; border-top:2px solid #f59e0b; }
-  .lb-month .text-muted { color:rgba(255,255,255,.75)!important; }
-  .lb-row { cursor:pointer; border-left:5px solid #22c55e; }
+  .lb-month strong { color:#fff !important; font-size:1.05rem; }
+  .lb-month .text-muted { color:rgba(255,255,255,.8)!important; }
+  .lb-row { cursor:pointer; border-left:5px solid #22c55e; background:rgba(255,255,255,.03); color:#e8f0ff !important; }
   .lb-row.imp { border-left-color:#94a3b8; }
-  .lb-row.pending { background:#fff8e1; border-left-color:#f59e0b; }
-  .lb-row:hover { background:#eaf2ff; }
-  .lb-date { background:#eaf2ff; border-radius:10px; padding:.2rem 0; color:#14213d; }
-  .lb-row.pending .lb-date { background:#ffe8a3; }
-  .lb-hrs { background:#14213d; color:#fff; border-radius:999px; padding:.05rem .6rem; font-weight:700; }
+  .lb-row.pending { background:rgba(245,158,11,.16); border-left-color:#f59e0b; }
+  .lb-row:hover { background:rgba(56,189,248,.18); }
+  .lb-row .fw-semibold { color:#fff; font-size:1.02rem; }
+  .lb-row .small.text-muted { color:#7dd3fc !important; font-weight:600; }
+  .lb-date { background:rgba(59,130,246,.3); border-radius:10px; padding:.2rem 0; color:#fff; }
+  .lb-date .text-muted { color:#bfdbfe !important; }
+  .lb-row.pending .lb-date { background:rgba(245,158,11,.4); }
+  .lb-hrs { background:linear-gradient(135deg,#22c55e,#0ea5e9); color:#fff; border-radius:999px; padding:.05rem .65rem; font-weight:800; }
 </style>
 <div class="card academy-card overflow-hidden">
   {% set cur = namespace(m='') %}
@@ -101,8 +105,8 @@
     <a href="{{ url_for('pilotlog.entry', entry_id=e.id) }}" class="lb-row {{ 'pending' if e.status == 'pending' else ('imp' if e.source == 'foreflight') }} d-flex align-items-center gap-3 px-3 py-2 border-bottom text-decoration-none text-body">
       <div class="text-center flex-shrink-0 lb-date" style="width:2.8rem;"><div class="fw-bold lh-1">{{ (e.entry_date or '')[8:10]|int }}</div><div class="small text-muted">{{ (months[(mk[5:7]|int) - 1] if mk else '')[:3] }}</div></div>
       <div class="flex-grow-1" style="min-width:0;">
-        <div class="fw-semibold text-truncate">{{ e.tail or '-' }} <small class="text-muted fw-normal">{{ e.make_model or '' }}</small></div>
-        <div class="small text-muted text-truncate">{{ [e.route_from, e.route_to]|select|join(' - ') or '-' }}</div>
+        <div class="fw-semibold">{{ e.tail or '-' }} <small class="text-muted fw-normal">{{ e.make_model or '' }}</small></div>
+        <div class="small text-muted">{{ [e.route_from, e.route_to]|select|join(' - ') or '-' }}</div>
       </div>
       <div class="text-end flex-shrink-0">
         <div class="lb-hrs">{{ '%.1f'|format(e.total or 0) }}</div>
