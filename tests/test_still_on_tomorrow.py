@@ -31,7 +31,10 @@ class StillOnTomorrowTest(OpsHubTestCase):
         html = self.login("flight_student").get("/flight/dashboard").get_data(as_text=True)
         self.assertIn("Still on for tomorrow?", html)
         self.assertIn(f"/flight/schedule/{sid}/still_on", html)
-        self.assertIn("Can't make it", html)
+        # Idea "Still on for tomorrow?": the blue Details & changes button
+        # replaces the red Can't make it button inside the box.
+        self.assertIn("Details &amp; changes", html)
+        self.assertNotIn('class="btn btn-outline-danger fw-bold flex-fill js-cant-make-it"', html)
 
     def test_card_does_not_ask_about_a_lesson_days_away(self):
         self._book(5)
@@ -50,6 +53,8 @@ class StillOnTomorrowTest(OpsHubTestCase):
         html = c.get("/flight/dashboard").get_data(as_text=True)
         self.assertIn("You're confirmed for tomorrow", html)
         self.assertNotIn("Still on for tomorrow?", html)
+        self.assertIn("Details &amp; changes", html)
+        self.assertNotIn("Can't make it after all", html)
 
     def test_only_the_booked_student_can_answer(self):
         sid = self._book(1)

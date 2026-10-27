@@ -710,22 +710,22 @@
          delegated handler (_schedule_detail_modal.html) that opens this
          same popup for the card itself - no separate data-* needed here. #}
       {% if next_lesson.still_on_prompt %}
-      {#- "Still on for tomorrow?": stopPropagation keeps these taps from also
-         opening the details popup; Can't make it opens the same Cancel
-         Flight form straight away (js-cant-make-it, _schedule_detail_modal.html). #}
-      <div class="border rounded p-2 mt-2" onclick="event.stopPropagation();" data-change="still-on">
+      {#- "Still on for tomorrow?": I'll be there confirms in one tap; the blue
+         Details & changes button (same popup as tapping the card, where
+         Cancel / Request Change live) replaces the old Can't make it button.
+         Only the confirm form stops the tap from also opening the popup. #}
+      <div class="border rounded p-2 mt-2" data-change="still-on">
         {% if next_lesson.still_on_at %}
         <div class="fw-bold text-success"><i class="bi bi-check-circle-fill"></i> You're confirmed for {{ next_lesson.still_on_day }}</div>
-        <div class="small text-muted">Can't make it after all? Tell us as early as you can.</div>
-        <button type="button" class="btn btn-sm btn-outline-danger mt-1 js-cant-make-it"><i class="bi bi-x-lg"></i> Can't make it</button>
+        <button type="button" class="btn btn-primary w-100 mt-2"><i class="bi bi-info-circle"></i> Details &amp; changes <i class="bi bi-chevron-right"></i></button>
         {% else %}
         <div class="fw-bold"><i class="bi bi-bell"></i> Still on for {{ next_lesson.still_on_day }}?</div>
         <div class="small text-muted">{% if next_lesson.fee_before %}No cancel fee if you tell us before {{ next_lesson.fee_before }}.{% else %}Tell us early so someone else can take the plane.{% endif %}</div>
         <div class="d-flex gap-2 mt-2">
-          <form method="post" action="{{ url_for('flight.schedule_still_on', scheduled_id=next_lesson.id) }}" class="flex-fill">
+          <form method="post" action="{{ url_for('flight.schedule_still_on', scheduled_id=next_lesson.id) }}" class="flex-fill" onclick="event.stopPropagation();">
             <button class="btn btn-success w-100 fw-bold"><i class="bi bi-check-lg"></i> I'll be there</button>
           </form>
-          <button type="button" class="btn btn-outline-danger fw-bold flex-fill js-cant-make-it"><i class="bi bi-x-lg"></i> Can't make it</button>
+          <button type="button" class="btn btn-primary fw-bold flex-fill"><i class="bi bi-info-circle"></i> Details &amp; changes</button>
         </div>
         {% endif %}
       </div>
@@ -751,8 +751,8 @@
         <a href="{{ url_for('flight.log_new', asset_id=next_lesson.asset_id, student_id=next_lesson.student_id, cfi_id=next_lesson.cfi_id or '', solo='on' if next_lesson.solo else '', flight_date=next_lesson.scheduled_date, scheduled_flight_id=next_lesson.id) }}"
            class="btn {{ 'btn-outline-secondary' if _late_first else 'btn-outline-success' }} fw-bold flex-fill"><i class="bi bi-journal-check"></i> Log Flight</a>
       </div>
-      <button type="button" class="btn btn-link btn-sm w-100 mt-1"><i class="bi bi-info-circle"></i> Details &amp; changes</button>
-      {% else %}
+      {% if not next_lesson.still_on_prompt %}<button type="button" class="btn btn-link btn-sm w-100 mt-1"><i class="bi bi-info-circle"></i> Details &amp; changes</button>{% endif %}
+      {% elif not next_lesson.still_on_prompt %}
       <button type="button" class="btn btn-primary w-100 mt-2"><i class="bi bi-info-circle"></i> Details &amp; changes <i class="bi bi-chevron-right"></i></button>
       {% endif %}
       {% elif not log_lesson %}
