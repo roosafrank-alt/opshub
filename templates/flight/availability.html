@@ -302,7 +302,10 @@ b.addEventListener('click',function(){var open=n.hidden;n.hidden=!open;b.setAttr
           {#- A student can join the cancellation waitlist for this exact
              plane, weekday and part of the day, until this date (the
              waitlist_join route does the rest). #}
-          {% if (is_student_viewer or wl_students) and not cell.is_past %}
+          {% set cell_period = 'morning' if cell.start_min < 720 else ('afternoon' if cell.start_min < 1020 else 'evening') %}
+          {% if is_student_viewer and (row.plane.id|string, cell_period) in wl_on and not cell.is_past %}
+          <div class="mt-1 text-success fw-semibold" style="font-size:.62rem"><i class="bi bi-check-square-fill"></i> On the waitlist</div>
+          {% elif (is_student_viewer or wl_students) and not cell.is_past %}
           <form method="post" action="{{ url_for('flight.waitlist_join') }}" class="mt-1">
             {% if wl_students %}
             <select name="student_id" data-no-combo class="form-select form-select-sm py-0 mb-1" style="font-size:.62rem" required aria-label="Student to waitlist">
@@ -314,6 +317,7 @@ b.addEventListener('click',function(){var open=n.hidden;n.hidden=!open;b.setAttr
             <input type="hidden" name="periods" value="{{ 'morning' if cell.start_min < 720 else ('afternoon' if cell.start_min < 1020 else 'evening') }}">
             <input type="hidden" name="asset_id" value="{{ row.plane.id }}">
             <input type="hidden" name="until_date" value="{{ day_str }}">
+            <input type="hidden" name="next" value="{{ request.full_path.rstrip('?') }}">
             <button type="submit" class="btn btn-outline-primary btn-sm py-0 px-1" style="font-size:.62rem" title="Get a text/notification if {{ row.plane.tag }} opens up at {{ cell.label }}">Add to waitlist</button>
           </form>
           {% endif %}

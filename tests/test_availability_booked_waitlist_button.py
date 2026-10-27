@@ -51,3 +51,27 @@ class AvailabilityBookedWaitlistButtonTest(OpsHubTestCase):
     def test_student_has_no_picker(self):
         html = self.login("flight_student").get(self.url).get_data(as_text=True)
         self.assertNotIn('name="student_id"', html)
+
+
+class AvailabilityWaitlistOnStateTest(AvailabilityBookedWaitlistButtonTest):
+    """Idea "on the students account when they click add to wait list": after
+    joining, the slot shows "On the waitlist" with a check instead of the button."""
+
+    def test_student_join_returns_to_grid_and_shows_check(self):
+        c = self.login("flight_student")
+        r = c.post("/flight/waitlist/join", data={
+            "days": str(self.day.weekday()), "periods": "morning", "asset_id": str(self.plane),
+            "until_date": self.day.isoformat(), "next": self.url})
+        self.assertEqual(r.status_code, 302)
+        self.assertIn("/flight/schedule/availability", r.headers["Location"])
+        html = c.get(self.url).get_data(as_text=True)
+        self.assertIn("On the waitlist", html)
+        self.assertIn("bi-check-square-fill", html)
+        self.assertNotIn("Add to waitlist", html)
+
+    def test_off_site_next_is_ignored(self):
+        c = self.login("flight_student")
+        r = c.post("/flight/waitlist/join", data={
+            "days": str(self.day.weekday()), "periods": "morning", "asset_id": str(self.plane),
+            "until_date": self.day.isoformat(), "next": "https://evil.example/"})
+        self.assertIn("/flight/waitlist", r.headers["Location"])

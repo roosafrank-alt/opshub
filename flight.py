@@ -5549,6 +5549,21 @@ def schedule_availability():
                    month_next=next_month_date.strftime("%Y-%m-%d"))
 
     ctx["day_weekday"] = day_date.weekday()
+    # A student's own active waitlist entries that already cover this plane +
+    # part of the day, so the booked slot shows "On the waitlist" with a check
+    # instead of offering the button again.
+    wl_on = set()
+    if session.get("student_id") and not (session.get("cfi_id") or is_flight_admin()):
+        for w in conn.execute("""SELECT days, periods, asset_ids FROM flight_waitlist
+                                 WHERE student_id = ? AND active = 1 AND asset_ids IS NOT NULL
+                                   AND (until_date IS NULL OR until_date = '' OR until_date >= ?)""",
+                              (session.get("student_id"), day_str)).fetchall():
+            if str(day_date.weekday()) not in (w["days"] or "").split(","):
+                continue
+            for a in (w["asset_ids"] or "").split(","):
+                for per in (w["periods"] or "").split(","):
+                    wl_on.add((a, per))
+    ctx["wl_on"] = wl_on
     # Staff (CFIs/admins) add a chosen student to the waitlist from a booked slot.
     ctx["wl_students"] = conn.execute("SELECT id, name FROM students WHERE active = 1 AND is_station = 0 ORDER BY name").fetchall() \
         if (session.get("cfi_id") or is_flight_admin()) else []
@@ -11195,6 +11210,11 @@ def waitlist_join():
                   until, (request.form.get("note") or "").strip()[:300] or None, now_iso(), session.get("user_name")))
     conn.commit()
     conn.close()
+    back = (request.form.get("next") or "").strip()
+    if not staff and back.startswith("/flight/schedule/availability"):
+        # Joined from the availability grid: stay there, where the slot now
+        # shows "On the waitlist" with a check.
+        return redirect(back)
     flash("On the waitlist - you'll get a text/notification the moment a matching slot opens." if not staff
           else "Added to the waitlist.", "success")
     return redirect(url_for("flight.waitlist_page"))
