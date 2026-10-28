@@ -933,6 +933,40 @@
     "q": "What does \"homing\" to a VOR look like, and why is it an error?",
     "a": "Recentering the needle and flying the new course each time. It makes a curved path to the station, like ADF homing, instead of a straight track [[23:257|IFH 9-14]]."
    }
+  },
+  {
+   "title": "Reading the chart: NAVAID boxes and radar frequencies",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.B.S1",
+    "CA.VI.B.S2",
+    "CA.VI.B.S6"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Before you tune anything, read the NAVAID box on the chart. The blue box holds the name, the frequency (or TACAN channel), the Morse code and the identifier. Extra items appear only when they differ, such as an NDB frequency, FSS frequencies, an ASOS/AWOS, a weather camera, or a note on operating hours. A crosshatch shows the NAVAID is shut down [[2:14|Chart Users' Guide p 14]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "The top line of the box tells you what kind of facility it is: VOR, VORTAC, VOR-DME or DME. A DME alone is drawn without a compass rose. When a NAVAID is on an airport, a small open circle marks it, and the type is in the box [[2:14|Chart Users' Guide p 14]]."
+    },
+    {
+     "p": "Now radar services. The chart border lists approach control frequencies for Class B, Class C, TRSA and some radar approach control facilities, with service hours in local time. A facility with several frequencies has sectors, so choose the one for your direction or runway. Bristol TRSA is not continuous: its hours are 0600-2400 local [[2:21|Chart Users' Guide p 21]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "Write the right frequency on your kneeboard and tune it in standby. For Class C, a magenta boxed note near the airport gives the approach control frequency to use before you enter, generally within 20 NM [[2:16|Chart Users' Guide p 16]]. The rule is to establish two-way radio communications before entering and keep them while inside [[60:454|14 CFR 91.130(c)(1)]]."
+    }
+   ],
+   "check": {
+    "q": "Your chart shows a crosshatch on a VOR box. What should you do with that VOR on a cross-country?",
+    "a": "Treat it as shut down. Do not rely on it, and plan another way to fix your position, such as another VOR or GPS cross-checked with the chart [[2:14|Chart Users' Guide p 14]]."
+   }
   }
  ],
  "figures": {
@@ -983,6 +1017,22 @@
    "caption": "FIG 4-1-1 and FIG 4-1-2. Induced Error in Position of Traffic. (AIM 4-1-15)",
    "alt": "Top: with a wind from the north, airplane A tracks east while its nose points left of track, and airplane B tracks west with its nose pointing right of track. The example text says traffic called at 12 o'clock appears at 2 o'clock to A and 10 o'clock to B. Bottom: with a wind from the west, airplane C tracks north crabbed left, and airplane D tracks west with no crab.",
    "source": "AIM, PDF p. 216"
+  },
+  "f7": {
+   "file": "CA.VI.B-7.jpg",
+   "res": "2",
+   "page": 21,
+   "caption": "Chart Users' Guide: Class B, Class C, TRSA and radar approach control frequencies (p 21).",
+   "alt": "A table titled CLASS B, CLASS C, TRSA AND SELECTED RADAR APPROACH CONTROL FREQUENCIES with columns for facility, frequencies and service availability. Rows: Cincinnati Class B (VHF 119.7 and 123.875, UHF 363.15, with runway-dependent sectors), Charleston Class C, Columbus Class C, Dayton Class C with three direction sectors, Bristol TRSA (0600-2400 local), Huntington TRSA and Perkinson/BAAF Radar. Callouts mark the airspace name, radar approach control, sectors for VHF and UHF traffic and local time.",
+   "source": "Chart Users' Guide, PDF p. 21"
+  },
+  "f8": {
+   "file": "CA.VI.B-8.jpg",
+   "res": "2",
+   "page": 14,
+   "caption": "Chart Users' Guide: radio aids to navigation boxes (p 14).",
+   "alt": "A sample blue VORTAC PONTIAC box with callouts: crosshatch indicates shutdown status, weather camera, FSS radio frequencies 122.1R and 123.6, operates less than continuous or on request, NDB frequency 379, frequency, channel, ASOS/AWOS, name, Morse code, identifier PTK, and an operational note (FSS oper 0600-2200). Below, a VOR compass rose with a VOR SALEM 114.3 SVM box and a note that an open circle shows a NAVAID on an airport. Text explains that the NAVAID type is VOR, VORTAC, VOR-DME or DME and that DMEs have no compass rose.",
+   "source": "Chart Users' Guide, PDF p. 14"
   }
  },
  "scenario": {
@@ -1173,6 +1223,77 @@
    ],
    "answer": 2,
    "why": "Receivers may sequence when you are off the active route because you pass near a waypoint; the non-sequencing mode stops this [[33:99|AIM 1-1-17]]."
+  },
+  {
+   "q": "What does a crosshatch on a NAVAID box show?",
+   "options": [
+    "The NAVAID is part of a Class B",
+    "The NAVAID has a weather camera",
+    "The NAVAID is shut down",
+    "The NAVAID is a DME only"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The callout on the sample box says crosshatch indicates shutdown status [[2:14|Chart Users' Guide p 14]]."
+  },
+  {
+   "q": "On the sample VORTAC box, which text is the identifier you should hear in the Morse code?",
+   "options": [
+    "PONTIAC",
+    "379",
+    "123.6",
+    "PTK"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "The callouts point to PONTIAC as the name and PTK as the identifier [[2:14|Chart Users' Guide p 14]]."
+  },
+  {
+   "q": "A small open circle appears on an airport icon with a VOR box. What does it mean?",
+   "options": [
+    "The airport is closed",
+    "The NAVAID is located on that airport",
+    "The airport has a rotating beacon",
+    "The VOR is a DME only"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "The note says an open circle is shown when the NAVAID is located on the airport, and the NAVAID type is shown in the top of the box [[2:14|Chart Users' Guide p 14]]."
+  },
+  {
+   "q": "Which frequency pair is listed for the Dayton Class C sector marked (091 to 180)?",
+   "options": [
+    "127.65 and 294.5",
+    "134.45 and 316.7",
+    "118.85 and 327.1",
+    "132.3 and 279.6"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The row shows 118.85 and 327.1 for the 091 to 180 sector. The other sectors are 360 to 090 and 181 to 359 [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "What service hours are listed for Bristol TRSA?",
+   "options": [
+    "Continuous",
+    "0600-2400 local",
+    "0600-2300 UTC",
+    "Sunrise to sunset"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "Its service availability reads 0600-2400, and the chart labels it local time [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "You are VFR and about to enter Class B airspace. What must you have before you operate in it?",
+   "options": [
+    "Radio contact only",
+    "A transponder code from the tower",
+    "Flight following",
+    "An ATC clearance from the facility with jurisdiction"
+   ],
+   "answer": 3,
+   "why": "No one may operate an aircraft within Class B airspace without first receiving an ATC clearance from the facility with jurisdiction [[60:455|14 CFR 91.131(a)(1)]]."
   }
  ],
  "final_quiz": [
@@ -1318,6 +1439,41 @@
    ],
    "answer": 3,
    "why": "WAAS users under part 91 are not required to carry VOR avionics and cannot use the MON; prudent planning should consider a GPS outage [[33:70|AIM 1-1-3]]. A MON airport as alternate is not required [[33:70|AIM 1-1-3]]."
+  },
+  {
+   "q": "Which facility in the table does not have continuous service?",
+   "options": [
+    "Cincinnati Class B",
+    "Charleston Class C",
+    "Bristol TRSA",
+    "Huntington TRSA"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "Bristol TRSA is listed 0600-2400 local, while the others read CONTINUOUS [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "How is a DME-only NAVAID drawn on the chart?",
+   "options": [
+    "With a double compass rose",
+    "In magenta",
+    "With a flag symbol",
+    "Without a compass rose"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "The page says DMEs are shown without the compass rose [[2:14|Chart Users' Guide p 14]]."
+  },
+  {
+   "q": "You approach Class C airspace in VFR. What does 91.130 say to do before you enter?",
+   "options": [
+    "Establish two-way radio communications with the ATC facility providing services",
+    "Get a clearance from the tower",
+    "Make a position report at the boundary",
+    "Squawk 7600"
+   ],
+   "answer": 0,
+   "why": "Before entering Class C airspace, establish two-way radio communications with the ATC facility providing services and keep it while in the airspace [[60:454|14 CFR 91.130(c)(1)]]."
   }
  ],
  "takeaways": [

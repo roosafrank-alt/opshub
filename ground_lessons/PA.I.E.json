@@ -696,6 +696,41 @@
     "q": "You are getting flight following from approach and drifting toward a Class D. Must you still call the tower?",
     "a": "Yes. The pilot is responsible for meeting the radio and clearance requirements for B, C and D even when receiving radar advisories [[33:178|AIM 3-2-1]]."
    }
+  },
+  {
+   "title": "Reading the chart: ceilings, floors, vignettes and special areas",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.E.K2",
+    "PA.I.E.S2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Controlled airspace on a sectional is drawn with lines, numbers and color bands. Learn the numbers first. For Class C the top number is the ceiling and the bottom number is the floor, in hundreds of feet MSL. So 48 over 30 means 3,000 ft up to 4,800 ft MSL [[2:27|Chart Users' Guide p 27]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "Class D shows one number in a dashed box, also in hundreds of feet MSL. A minus sign in front, as in -27, means from the surface up to but not including 2,700 ft MSL [[2:27|Chart Users' Guide p 27]] [[2:16|Chart Users' Guide p 16]]."
+    },
+    {
+     "p": "A magenta dashed line is Class E that starts at the surface. Where Class E starts above the ground, a soft color band called a vignette shows it. Magenta means a floor of 700 ft AGL. Blue means a floor higher than 700 ft, usually 1,200 ft AGL, next to Class G. Class E exists at 1,200 ft AGL unless the chart shows another floor [[2:17|Chart Users' Guide p 17]] [[2:27|Chart Users' Guide p 27]]."
+    },
+    {
+     "figure": "f9"
+    },
+    {
+     "p": "Some areas are not Class A to E. A broken magenta line marks a National Security Area. A broken blue line marks a TFR relating to national security. An ADIZ has its own dotted symbol [[2:18|Chart Users' Guide p 18]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The chart shows only the TFRs that relate to national security. Most TFRs are not charted, so check NOTAMs before every flight [[2:18|Chart Users' Guide p 18]]."
+     }
+    }
+   ]
   }
  ],
  "figures": {
@@ -754,6 +789,22 @@
    "caption": "AIM FIG 3-5-5. SFRA Boundary.",
    "alt": "Sectional chart excerpt with a green line with square ticks labeled Washington DC Metropolitan SFRA, next to blue Class B boundaries.",
    "source": "AIM, PDF p. 202"
+  },
+  "f8": {
+   "file": "PA.I.E-8.jpg",
+   "res": "2",
+   "page": 27,
+   "caption": "Chart Users' Guide: Class C and Class D numbers, the Class E surface line and Class E vignettes.",
+   "alt": "Legend page. Class C shows a magenta arc named Burbank Class C, the numbers 48 over 30 for ceiling and floor in hundreds of feet MSL, and a magenta box with an approach frequency. Class D shows a blue dashed circle with a boxed 27 and a boxed minus 27. Class E shows a magenta dashed outline, a magenta vignette band for 700 feet AGL, a second magenta band marked Class G, and a blue band for 1,200 feet AGL.",
+   "source": "Chart Guide, PDF p. 27"
+  },
+  "f9": {
+   "file": "PA.I.E-9.jpg",
+   "res": "2",
+   "page": 18,
+   "caption": "Chart Users' Guide: national security areas, SFRAs, TFRs, ADIZ and TRSAs.",
+   "alt": "Text with small symbols. A broken magenta line marks a National Security Area, a blue-and-white bar marks an SFRA, a screened blue bar marks the Washington DC FRZ, a broken blue line marks TFRs relating to national security, a dotted magenta band marks an ADIZ, red cross-hatching marks a National Defense Airspace TFR and a gray bar marks a TRSA.",
+   "source": "Chart Guide, PDF p. 18"
   }
  },
  "scenario": {
@@ -915,6 +966,65 @@
    ],
    "answer": 0,
    "why": "No pilot may use code 1200 in the DC SFRA [[60:706|14 CFR 93.339(e)]]."
+  },
+  {
+   "q": "A Class C sector on the chart is marked 48 over 30. What are its limits?",
+   "options": [
+    "30 ft up to 48 ft AGL",
+    "3,000 ft up to 4,800 ft MSL",
+    "4,800 ft up to 3,000 ft AGL",
+    "300 ft up to 480 ft MSL"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "The numbers are in hundreds of feet MSL. The top is the ceiling and the bottom is the floor [[2:27|Chart Users' Guide p 27]]."
+  },
+  {
+   "q": "A Class D area is marked with a boxed -27. What does the minus sign mean?",
+   "options": [
+    "The ceiling is 27 ft below sea level",
+    "Class D starts at 2,700 ft MSL",
+    "Class D is active only at night",
+    "From the surface up to but not including 2,700 ft MSL"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "A minus sign before the figure means from the surface to, but not including, that altitude. The figure is in hundreds of feet MSL [[2:27|Chart Users' Guide p 27]] [[2:16|Chart Users' Guide p 16]]."
+  },
+  {
+   "q": "What does the blue vignette band on the legend show?",
+   "options": [
+    "Class E airspace with a floor of 1,200 ft AGL or higher next to Class G",
+    "Class E starting at the surface",
+    "Class E with a floor of 700 ft AGL",
+    "A Class D area"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "A blue vignette marks controlled airspace with a floor other than 700 ft that laterally abuts Class G. A magenta vignette marks a 700 ft AGL floor [[2:27|Chart Users' Guide p 27]] [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "On the national security legend, what does a broken blue line mark?",
+   "options": [
+    "A National Security Area",
+    "A TFR relating to national security",
+    "An Air Defense Identification Zone",
+    "A Terminal Radar Service Area"
+   ],
+   "answer": 1,
+   "figure": "f9",
+   "why": "A broken blue line marks TFR areas relating to national security. A broken magenta line marks a National Security Area [[2:18|Chart Users' Guide p 18]]."
+  },
+  {
+   "q": "You plan to fly VFR through Class B airspace at 4,000 ft MSL. What does 14 CFR 91.131(a)(1) require before you operate in that area?",
+   "options": [
+    "Only two-way radio contact with that facility",
+    "Only a transponder code of 1200",
+    "An ATC clearance from the facility that has jurisdiction",
+    "A filed IFR flight plan"
+   ],
+   "answer": 2,
+   "why": "In Class B the operator must receive an ATC clearance before operating in the area [[60:455|14 CFR 91.131(a)(1)]]. Radio contact alone is the Class C and D rule."
   }
  ],
  "takeaways": [
@@ -1086,6 +1196,46 @@
      "why": "Yes. Warning areas extend from 3 NM outward from the coast and warn of hazardous activity [[33:191|AIM 3-4-4]]."
     }
    ]
+  },
+  {
+   "type": "label",
+   "figure": "f8",
+   "title": "Read the airspace legend",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 23.6,
+     "y": 21.1,
+     "label": "Class C ceiling: 4,800 ft MSL"
+    },
+    {
+     "x": 33.6,
+     "y": 31.7,
+     "label": "Box with the Class C approach frequency to call"
+    },
+    {
+     "x": 88.3,
+     "y": 27.4,
+     "label": "Class D from the surface up to but not including 2,700 ft MSL"
+    },
+    {
+     "x": 80.4,
+     "y": 39.4,
+     "label": "Class E that begins at the surface (dashed magenta)"
+    },
+    {
+     "x": 37.9,
+     "y": 73.3,
+     "label": "Class E floor 700 ft AGL next to Class G (magenta vignette)"
+    },
+    {
+     "x": 37.9,
+     "y": 80.4,
+     "label": "Class E floor 1,200 ft AGL next to Class G (blue vignette)"
+    }
+   ],
+   "key": "h5",
+   "after": 13
   }
  ],
  "final_quiz": [
@@ -1231,6 +1381,41 @@
    ],
    "answer": 1,
    "why": "ATC service does not relieve you of VFR weather minimums. Advise approach and get a revised clearance or instruction [[33:184|AIM 3-2-4]]."
+  },
+  {
+   "q": "A magenta dashed line surrounds an airport. What does it mark?",
+   "options": [
+    "Class C airspace",
+    "Class D airspace",
+    "Class E airspace that starts at the surface",
+    "A National Security Area"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "Class E surface airspace is symbolized by a magenta dashed line. Class D is a blue dashed line [[2:17|Chart Users' Guide p 17]] [[2:27|Chart Users' Guide p 27]]."
+  },
+  {
+   "q": "The legend says an ADIZ is an area where what is required?",
+   "options": [
+    "Ready identification, location and control of all aircraft, for national security",
+    "Radio silence for all aircraft",
+    "Military training flights only",
+    "Aerobatic flight practice"
+   ],
+   "answer": 0,
+   "figure": "f9",
+   "why": "An ADIZ is an area in which the ready identification, location and control of all aircraft is required in the interest of national security [[2:18|Chart Users' Guide p 18]]."
+  },
+  {
+   "q": "A restricted area on your route is active. Under 14 CFR 91.133(a), when may you operate in it?",
+   "options": [
+    "Any time you have a transponder on",
+    "Any time you are above 3,000 ft AGL",
+    "Any time you are talking to flight following",
+    "Only with the permission of the using or controlling agency"
+   ],
+   "answer": 3,
+   "why": "No person may operate an aircraft within a restricted area contrary to its restrictions unless that person has the permission of the using or controlling agency [[60:456|14 CFR 91.133(a)]]."
   }
  ]
 }

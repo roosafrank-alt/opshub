@@ -901,6 +901,35 @@
     "q": "You hear a clearance and aren't sure it was for you; another plane has a similar call sign. What do you say?",
     "a": "\"Verify clearance for\" your full call sign [[33:229|AIM 4-2-4a2]]."
    }
+  },
+  {
+   "title": "Reading the chart: find the frequency you need",
+   "kind": "knowledge",
+   "codes": [
+    "PA.III.A.K1",
+    "PA.III.A.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Look up frequencies before you fly, not while you are busy in the cockpit. Airports with control towers are marked CT with the primary tower frequency. A table on the chart border gives more: the tower hours in local time, then tower, ground control and ATIS frequencies [[2:20|Chart Users' Guide p 20]] [[2:21|Chart Users' Guide p 21]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "Read across one row at a time. Some frequencies depend on the runway in use or on approach direction. The letters ASR or PAR mean a radar instrument approach is published. A second table lists approach control frequencies for Class B, Class C and TRSA, sometimes split by sector [[2:21|Chart Users' Guide p 21]]."
+    },
+    {
+     "p": "Next to the airport symbol you get a data block. CT is the tower frequency. ATIS is the recorded airport information. A number in italics, such as 122.95, is the UNICOM or advisory station. The long number before it, like 72, is the longest runway in hundreds of feet, and the usable length may be less [[2:24|Chart Users' Guide p 24]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "A circled C after the tower frequency means the airport follows the Common Traffic Advisory Frequency. RP means right traffic on the listed runways. A star means a part-time operation, so check the tower table for hours [[2:24|Chart Users' Guide p 24]]."
+    }
+   ]
   }
  ],
  "figures": {
@@ -951,6 +980,22 @@
    "caption": "Figure 14-44. Traffic advisories. (PHAK 14-26) The AIM shows the same case (AIM FIG 4-1-1) and says pilot A would actually see the traffic at 2 o'clock, not 1 o'clock. Use the AIM; the lesson is the same: ATC calls traffic by your track.",
    "alt": "Two airplanes flying toward each other on opposite tracks, both crabbing into a wind from the top of the picture; ATC calls each other's traffic at 12 o'clock, but pilot A sees it to the right (PHAK: 1 o'clock; AIM: 2 o'clock) and pilot B at 10 o'clock.",
    "source": "PHAK, PDF p. 360"
+  },
+  "f7": {
+   "file": "PA.III.A-7.jpg",
+   "res": "2",
+   "page": 21,
+   "caption": "Chart Users' Guide: the chart tabulation of tower and approach control frequencies.",
+   "alt": "Two tables. The first lists control towers by airport name with columns for hours of operation, tower, ground control and ATIS frequencies and a radar approach column, for airports such as Airborne, Blue Grass, Bolton, Charlottesville-Albemarle, Cincinnati/Northern Kentucky Intl, Cox Dayton Intl and Eastern WV Rgnl. Notes mark runway-dependent and approach-direction-dependent frequencies. The second lists Class B, Class C and TRSA approach control frequencies with sectors and service availability.",
+   "source": "Chart Guide, PDF p. 21"
+  },
+  "f8": {
+   "file": "PA.III.A-8.jpg",
+   "res": "2",
+   "page": 24,
+   "caption": "Chart Users' Guide: the airport data block and what each item means.",
+   "alt": "Two sample airport data blocks, one magenta and one blue, with callouts for the rotating beacon and UNICOM, above a two-column list of items: FSS on field, NO SVFR, FAR 93 box, identifiers, CT 118.3, a star for part-time operation, a circled C for CTAF, ATIS 123.8, AFIS 135.2, ASOS or AWOS 135.42, elevation 285, lighting L, longest runway 72, UNICOM 122.95, RP 23,34, VFR Advsy 125.0, weather camera and airport of entry.",
+   "source": "Chart Guide, PDF p. 24"
   }
  },
  "scenario": {
@@ -1093,6 +1138,77 @@
    ],
    "answer": 2,
    "why": "You are in at least an urgency condition the moment you are doubtful about position or fuel; ask for help then [[34:28|AIM 6-1-2a]]."
+  },
+  {
+   "q": "On the tower table, what is the ATIS frequency for Cox Dayton Intl?",
+   "options": [
+    "119.9",
+    "121.9",
+    "125.8",
+    "257.8"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "In the Cox Dayton Intl row the ATIS column shows 125.8. 119.9 is the tower frequency and 121.9 is ground [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "The tower table marks Cincinnati/Northern Kentucky Intl's tower frequencies as \"Runway dependent.\" What does that mean for you?",
+   "options": [
+    "Which tower frequency you call depends on the runway in use",
+    "The tower works only on some days",
+    "The tower speaks only to IFR traffic",
+    "You must call ground first"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "The note beside the Cincinnati tower frequencies says runway dependent, so you choose the frequency for the runway in use [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "The tower table lists hours of operation for each airport. In what time are they given?",
+   "options": [
+    "UTC",
+    "Local time",
+    "Eastern time at every airport",
+    "The time of the last ATIS"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "The chart notes say that operational hours are local time [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "On the airport data legend, which frequency does the figure label UNICOM?",
+   "options": [
+    "123.8",
+    "118.3",
+    "125.0",
+    "122.95"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "The arrow labeled UNICOM points to the italic number 122.95. 123.8 is ATIS, 118.3 is the tower and 125.0 is VFR advisory [[2:24|Chart Users' Guide p 24]]."
+  },
+  {
+   "q": "The legend shows a small circled C after CT - 118.3. What does it mean?",
+   "options": [
+    "The tower is closed",
+    "A weather camera is on the field",
+    "That frequency is also the Common Traffic Advisory Frequency (CTAF)",
+    "The airport is an airport of entry"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The circled C follows the Common Traffic Advisory Frequency [[2:24|Chart Users' Guide p 24]]."
+  },
+  {
+   "q": "A tower controller tells you to enter a right base. You would like a straight-in instead. Under 14 CFR 91.123(b), what is the rule?",
+   "options": [
+    "Except in an emergency, you may not operate contrary to an ATC instruction in an area where ATC is exercised",
+    "You may ignore it if you are VFR",
+    "You may ignore it if it adds time to the flight",
+    "You may ignore it if you have the airport in sight"
+   ],
+   "answer": 0,
+   "why": "[[60:450|14 CFR 91.123(b)]] says that except in an emergency, no person may operate an aircraft contrary to an ATC instruction in an area where ATC is exercised. Ask for what you want and follow the answer."
   }
  ],
  "takeaways": [
@@ -1250,6 +1366,46 @@
      "why": "No. Lights going out is not a clearance. RWSL only confirms a clearance from ATC; it never replaces one [[33:129|AIM 2-1-6d4]]."
     }
    ]
+  },
+  {
+   "type": "label",
+   "figure": "f8",
+   "title": "Read the airport data legend",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 40.8,
+     "y": 62.4,
+     "label": "Control tower, primary frequency"
+    },
+    {
+     "x": 40.8,
+     "y": 75.1,
+     "label": "Follows the Common Traffic Advisory Frequency (CTAF)"
+    },
+    {
+     "x": 41.1,
+     "y": 80.7,
+     "label": "ATIS frequency"
+    },
+    {
+     "x": 89.2,
+     "y": 33.5,
+     "label": "Airport elevation in feet"
+    },
+    {
+     "x": 89.0,
+     "y": 50.2,
+     "label": "Longest runway in hundreds of feet"
+    },
+    {
+     "x": 89.0,
+     "y": 58.5,
+     "label": "Runways with right traffic patterns"
+    }
+   ],
+   "key": "h5",
+   "after": 11
   }
  ],
  "final_quiz": [
@@ -1396,6 +1552,41 @@
    ],
    "answer": 2,
    "why": "\"Have numbers\" means only wind, runway and altimeter. It does not mean you have the ATIS; say \"information (letter)\" for that [[33:213|AIM 4-1-13h]]."
+  },
+  {
+   "q": "On the airport data legend, what does RP 23,34 mean?",
+   "options": [
+    "Radar approach on runways 23 and 34",
+    "Right traffic patterns on runways 23 and 34",
+    "Restricted parking on runways 23 and 34",
+    "Runways 23 and 34 are rough"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "RP means runways with right traffic patterns. An asterisk before it means see the Chart Supplement [[2:24|Chart Users' Guide p 24]]."
+  },
+  {
+   "q": "In the sample block 285 L 72 122.95, what does 72 tell you?",
+   "options": [
+    "The longest runway is about 7,200 ft, though usable length may be less",
+    "The elevation is 72 ft",
+    "The ATIS is 72 minutes old",
+    "The tower closes at 7:20"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "The number is the length of the longest runway in hundreds of feet. Usable length may be less [[2:24|Chart Users' Guide p 24]]."
+  },
+  {
+   "q": "You deviated from an ATC clearance during an emergency. What does 14 CFR 91.123(c) require next?",
+   "options": [
+    "Nothing, because an emergency removes all duties",
+    "File a report within 90 days",
+    "Notify ATC of the deviation as soon as possible",
+    "Call ATC only if the FAA asks you to"
+   ],
+   "answer": 2,
+   "why": "A pilot in command who deviates from an ATC clearance or instruction in an emergency must notify ATC of that deviation as soon as possible [[60:450|14 CFR 91.123(c)]]."
   }
  ]
 }

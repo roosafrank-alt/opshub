@@ -967,6 +967,38 @@
     "q": "Why is \"climbing to the next MEA right after the fix\" sometimes wrong?",
     "a": "If an MCA is published, you must already be at or above it when you cross the fix [[60:480|14 CFR 91.177(b)]]."
    }
+  },
+  {
+   "title": "Reading the chart: MEA gaps, MCA and MTA boxes, and crossing restrictions",
+   "kind": "knowledge",
+   "codes": [
+    "IR.V.B.K1",
+    "IR.V.B.K2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "A gap in signal coverage is flagged on the airway. The longest gap allowed grows with altitude. On the IPH graph, enter the MEA on the left and read the gap across the bottom. The sample shows 13,000 ft gives about 18.5 NM [[29:89|IPH p 89]] [[29:90|IPH Figure 2-49]]. The chart does not mark where the gap starts and ends, so plan to dead reckon through it."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "An MCA box lists the airway, altitude and direction letter. At JACKSON the yellow box reads V520 14600 W and V330 13200 W. A red MTA box covers turns: V330 E to V520 W 16000 means you need 16,000 ft before you start that turn [[29:97|IPH Figure 2-59]]. You must be at or above the MTA before beginning the turn [[29:98|IPH p 98]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "A STAR can add crossing restrictions. On the PENNS TWO ARRIVAL, RACKI to PENNS is 23 NM and you cross PENNS at 6,000 ft. At 180 knots (3 NM per minute) from 12,000 ft at RACKI, that is about 8 minutes, so you need at least 750 fpm [[29:132|IPH Figure 3-17]]."
+    },
+    {
+     "figure": "f9"
+    },
+    {
+     "p": "The method is simple. Distance divided by groundspeed gives minutes. Altitude to lose divided by minutes gives the descent rate. Do the math before the fix, then check it against your climb or descent capability [[29:132|IPH Figure 3-17]]."
+    }
+   ]
   }
  ],
  "figures": {
@@ -1017,6 +1049,30 @@
    "caption": "Figure 3-8. The descent planning task.",
    "alt": "An airplane cruising at 11,000 ft and 270 knots reaches a top-of-descent point, then follows a dashed yellow path labeled 180 knots at 1,000 fpm to a bottom-of-descent point at the assigned altitude of 3,000 ft over the ECA VOR. A wind arrow points both ways.",
    "source": "IPH, PDF p. 120"
+  },
+  "f7": {
+   "file": "IR.V.B-7.jpg",
+   "res": "29",
+   "page": 90,
+   "caption": "Figure 2-49. Navigational course guidance gaps.",
+   "alt": "Graph with the MEA of the airway segment in thousands of feet on the vertical axis from 0 to 60 and the allowable navigation course guidance gap in NM on the horizontal axis from 0 to 95. A straight line rises from the origin. A dashed sample at 13,000 ft reads 18.5 NM. A chart excerpt on V134 near the CARBON VOR shows a red box marked MEA GAP.",
+   "source": "IPH, PDF p. 90"
+  },
+  "f8": {
+   "file": "IR.V.B-8.jpg",
+   "res": "29",
+   "page": 97,
+   "caption": "Figure 2-59. Minimum turning altitude (MTA).",
+   "alt": "Excerpt of an en route chart around the JACKSON VORTAC with airways V330 and V520, a yellow box reading MCA V520 14600 W and V330 13200 W, and a red box reading MTA V330 E to V520 W 16000 and V465 NE to 330 W or V520 W 16000.",
+   "source": "IPH, PDF p. 97"
+  },
+  "f9": {
+   "file": "IR.V.B-9.jpg",
+   "res": "29",
+   "page": 132,
+   "caption": "Figure 3-17. Altitude restrictions.",
+   "alt": "PENNS TWO ARRIVAL chart with a red banner reading Piper 6319K, cross PENNS Intersection at 6,000, maintain 6,000. Fixes HAYED, RACKI and PENNS are marked with 22 NM and 23 NM legs and 6000 ft altitudes. A yellow box works a descent of at least 750 fpm from RACKI, and a green box works a 36 NM descent start from HAYED.",
+   "source": "IPH, PDF p. 132"
   }
  },
  "scenario": {
@@ -1208,6 +1264,66 @@
    ],
    "answer": 0,
    "why": "Begin the climb immediately after passing the point where the higher minimum applies. With an MCA, you must cross the fix at or above it [[60:480|14 CFR 91.177(b)]]."
+  },
+  {
+   "q": "On the graph, enter with an MEA of 13,000 ft. What allowable gap does the sample show?",
+   "options": [
+    "8.5 NM",
+    "13 NM",
+    "18.5 NM",
+    "30 NM"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The sample reads: enter with MEA of 13,000 feet, read allowable gap 18.5 NM [[29:90|IPH Figure 2-49]]."
+  },
+  {
+   "q": "On the graph, as the MEA gets higher, the allowable gap:",
+   "options": [
+    "Gets shorter",
+    "Gets longer",
+    "Stays the same",
+    "Is always zero"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "The line rises to the right, so the allowed gap grows with altitude [[29:89|IPH p 89]] [[29:90|IPH Figure 2-49]]."
+  },
+  {
+   "q": "You are westbound on V330 at JACKSON. What is the MCA in the yellow box?",
+   "options": [
+    "14,600 ft",
+    "16,000 ft",
+    "12,000 ft",
+    "13,200 ft"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "The yellow box reads V330 13200 W. 14,600 ft is for V520 westbound [[29:97|IPH Figure 2-59]]."
+  },
+  {
+   "q": "You turn at this fix from V330 eastbound to V520 westbound. You need to be at or above:",
+   "options": [
+    "13,200 ft",
+    "14,600 ft",
+    "16,000 ft",
+    "15,000 ft"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The MTA box reads V330 E to V520 W 16000 [[29:97|IPH Figure 2-59]]."
+  },
+  {
+   "q": "At RACKI at 12,000 ft you have 23 NM to PENNS, 180 knots groundspeed, and must cross at 6,000 ft. What is the least descent rate?",
+   "options": [
+    "750 fpm",
+    "500 fpm",
+    "1,000 fpm",
+    "1,500 fpm"
+   ],
+   "answer": 0,
+   "figure": "f9",
+   "why": "23 NM at 3 NM per minute is about 8 minutes. 6,000 ft divided by 8 is 750 fpm [[29:132|IPH Figure 3-17]]."
   }
  ],
  "takeaways": [
@@ -1509,6 +1625,42 @@
      "why": "On a new frequency, state the altitude you are leaving and \"descending via\" the procedure name, plus any runway transition or extra restrictions [[33:395|AIM 5-4-1a2b]]."
     }
    ]
+  },
+  {
+   "type": "label",
+   "key": "h8",
+   "after": 14,
+   "title": "Read the MCA and MTA boxes",
+   "figure": "f8",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 86.5,
+     "y": 59.4,
+     "label": "MCA box"
+    },
+    {
+     "x": 92.0,
+     "y": 70.6,
+     "label": "MTA box"
+    },
+    {
+     "x": 53.4,
+     "y": 39.6,
+     "label": "Jackson VORTAC"
+    },
+    {
+     "x": 23.1,
+     "y": 46.8,
+     "label": "V330"
+    },
+    {
+     "x": 18.8,
+     "y": 10.7,
+     "label": "V520"
+    }
+   ],
+   "why": "The yellow box lists MCAs and the red box lists the MTA. The VORTAC sits in the compass rose, and the airways are labeled V330 and V520 [[29:97|IPH Figure 2-59]]."
   }
  ],
  "final_quiz": [
@@ -1654,6 +1806,64 @@
    ],
    "answer": 3,
    "why": "Datalinked mosaics show where precipitation was and may be 15 to 20 minutes older than the indicated age [[28:327|AWH 24-43]]. NEXRAD is for strategic avoidance, never for navigating through storms [[28:25|AWH 3-2]]."
+  },
+  {
+   "q": "In the CARBON VOR box on the excerpt, what MCA is printed for V134?",
+   "options": [
+    "13,000 ft westbound",
+    "10,200 ft eastbound",
+    "10,200 ft westbound",
+    "8,100 ft westbound"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The box reads MCA V134 10200 W [[29:90|IPH Figure 2-49]]."
+  },
+  {
+   "q": "How many airway and direction lines are in the yellow MCA box at JACKSON?",
+   "options": [
+    "One",
+    "Two",
+    "Three",
+    "Four"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "It lists V520 14600 W and V330 13200 W [[29:97|IPH Figure 2-59]]."
+  },
+  {
+   "q": "On the PENNS TWO ARRIVAL, what is the distance from HAYED to PENNS through RACKI?",
+   "options": [
+    "35 NM",
+    "45 NM",
+    "58 NM",
+    "23 NM"
+   ],
+   "answer": 1,
+   "figure": "f9",
+   "why": "HAYED to RACKI is 22 NM and RACKI to PENNS is 23 NM, so 45 NM [[29:132|IPH Figure 3-17]]."
+  },
+  {
+   "q": "You are on an airway in controlled airspace under IFR. Where must you fly?",
+   "options": [
+    "Within 4 NM of the airway",
+    "Along the centerline of the airway",
+    "On the edge to avoid traffic",
+    "Anywhere inside the primary area"
+   ],
+   "answer": 1,
+   "why": "On an ATS route you fly along the centerline unless ATC authorizes otherwise [[60:482|14 CFR 91.181(a)]]."
+  },
+  {
+   "q": "Under radar control, which position reports do you need to make?",
+   "options": [
+    "Every designated reporting point",
+    "None at all",
+    "Only points ATC specifically requests",
+    "Only the first one"
+   ],
+   "answer": 2,
+   "why": "While under radar control, only the reporting points ATC specifically requests need be reported [[60:482|14 CFR 91.183(a)]]."
   }
  ]
 }

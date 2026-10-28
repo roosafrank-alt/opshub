@@ -1048,6 +1048,35 @@
     "q": "Your learner corrects toward the needle and it moves further away. What is the likely error and the fix?",
     "a": "Reverse sensing from an OBS set to the reciprocal of the course; set the OBS to agree with the intended course [[23:257|IFH 9-14]]."
    }
+  },
+  {
+   "title": "Reading the chart: the NAVAID box, part by part",
+   "kind": "knowledge",
+   "codes": [
+    "AI.II.H.K1",
+    "AI.II.H.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "Teach the NAVAID box as a small data block read left to right: name, frequency, channel, identifier and Morse code. The box also carries extra marks: a star, an underline, an icon for automated weather, and a crosshatch [[2:14|Chart Users' Guide p 14]] [[2:25|Chart Users' Guide p 25]]. Students who tune the frequency and skip these marks miss important facts."
+    },
+    {
+     "p": "Three marks cause most misreads. A star before the frequency means the station operates less than continuously or on request, so it may be off when the student needs it. An underlined frequency means no voice on that frequency, so do not wait for a voice broadcast. A crosshatched box means the NAVAID is shut down; do not plan to use it [[2:25|Chart Users' Guide p 25]]. Make the student say each one out loud before using the station."
+    },
+    {
+     "p": "The circled A icon means an ASOS or AWOS is available at the site [[2:25|Chart Users' Guide p 25]] [[2:26|Chart Users' Guide p 26]]. A student who reads it as 'airport' will not tune the weather. Also point out the compass rose: it is a reference oriented to magnetic north, so radials read from it are magnetic, not true [[2:25|Chart Users' Guide p 25]]."
+    },
+    {
+     "p": "The FSS and RCO boxes work the same way. Frequencies above a thin-line box are remoted to the NAVAID site, and the name below it is the FSS that provides the voice communications. A thin-line box with a name but no frequencies means no FSS frequency is available; check the Chart Supplement for the rest [[2:26|Chart Users' Guide p 26]]."
+    },
+    {
+     "p": "Finish with the rule behind the boxes: for IFR use of a VOR, the check must be within the preceding 30 days [[60:470|14 CFR 91.171(a)]]. The chart tells the student what the station is; the regulation tells him whether his own receiver is good to use."
+    }
+   ]
   }
  ],
  "figures": {
@@ -1106,6 +1135,22 @@
    "caption": "Figure 9-7. Comparison of the teaching process, the demonstration-performance method and the telling-and-doing technique. (AIH 9-7)",
    "alt": "A three-column table. Traditional teaching process: preparation, presentation, application, review and evaluation. Demonstration-performance method: explanation, demonstration, learner performance supervision, evaluation. Telling-and-doing technique: preparation; instructor tells, instructor does; an orange arrow box learner tells, instructor does; learner tells, learner does; learner does, instructor evaluates.",
    "source": "AIH, PDF p. 177"
+  },
+  "f8": {
+   "file": "AI.II.H-5.jpg",
+   "res": "2",
+   "page": 25,
+   "caption": "Chart Users' Guide: Radio Aids to Navigation (VOR, VORTAC, VOR-DME, DME, NDB, compass rose).",
+   "alt": "Chart legend of NAVAID boxes: a VOR box with a star and an underlined frequency, a VORTAC box with labelled parts and an A weather icon, a crosshatched VOR-DME box marking shutdown status, DME boxes, NDB boxes, a compass rose oriented to magnetic north and a compass rosette.",
+   "source": "Chart Users' Guide, PDF p. 25"
+  },
+  "f9": {
+   "file": "AI.II.H-6.jpg",
+   "res": "2",
+   "page": 26,
+   "caption": "Chart Users' Guide: Radio Aids to Navigation (continued): AWOS/ASOS, FSS, weather camera, broadcast stations and RCO.",
+   "alt": "Chart legend showing the AWOS/ASOS symbol, Flight Service Station boxes with frequencies, an off-airport AWOS/ASOS box, the WX CAM weather camera symbol, broadcast station boxes and Remote Communications Outlet boxes with an FSS name below.",
+   "source": "Chart Users' Guide, PDF p. 26"
   }
  },
  "scenario": {
@@ -1287,6 +1332,65 @@
    ],
    "answer": 1,
    "why": "14 CFR 91.217 requires correspondence within 125 feet on a 95 percent probability basis [[60:495|14 CFR 91.217]]."
+  },
+  {
+   "q": "A VOR box on the legend shows a star before the frequency. What does the star tell your student?",
+   "options": [
+    "The station is shut down",
+    "The station operates less than continuously or on request",
+    "The station has weather broadcasts",
+    "The station is a military facility"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "The legend labels the star as 'operates less than continuous or on-request' [[2:25|Chart Users' Guide p 25]]."
+  },
+  {
+   "q": "A student sees an underline under the frequency in an NDB box, as for MONTAGUE 404. What is the correct reading?",
+   "options": [
+    "No voice on this frequency",
+    "The frequency is for emergencies only",
+    "The station is crosshatched and shut down",
+    "The station gives a continuous weather broadcast"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "The legend says the underline indicates no voice on this frequency [[2:25|Chart Users' Guide p 25]]."
+  },
+  {
+   "q": "On the legend, the SALEM VOR-DME box is drawn with crosshatching. What do you teach your student to do?",
+   "options": [
+    "Use it only at night",
+    "Tune it, since crosshatching shows an ILS",
+    "Use it, but expect no DME",
+    "Treat it as shut down and not rely on it"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "The legend states that crosshatch indicates shutdown status [[2:25|Chart Users' Guide p 25]]."
+  },
+  {
+   "q": "A small 'WX CAM' symbol appears on the legend. What does it show?",
+   "options": [
+    "A weather radar site",
+    "A Class B reporting point",
+    "An off-airport weather camera location",
+    "A military weather unit"
+   ],
+   "answer": 2,
+   "figure": "f9",
+   "why": "The legend lists WX CAM under off-airport weather camera locations [[2:26|Chart Users' Guide p 26]]."
+  },
+  {
+   "q": "Your IFR student's VOR was last checked 35 days ago, and the airplane is not maintained under an approved VOR procedure. May she use it for IFR flight today?",
+   "options": [
+    "Yes, a VOR check is good for 60 days",
+    "Yes, if the error found was under 6 degrees",
+    "No, the operational check must be within the preceding 30 days",
+    "No, a VOR check is only valid on the day of the flight"
+   ],
+   "answer": 2,
+   "why": "For IFR use of VOR, the equipment must be maintained under an approved procedure or have been checked within the preceding 30 days [[60:470|14 CFR 91.171(a)]]."
   }
  ],
  "final_quiz": [
@@ -1432,6 +1536,41 @@
    ],
    "answer": 2,
    "why": "ADS-B traffic displays are only to help visual acquisition; no avoidance maneuvers are authorized as a direct result of a displayed target [[33:304|AIM 4-5-7]]."
+  },
+  {
+   "q": "A VORTAC box on the legend has a small circle with an A at its upper right. What does your student gain from it?",
+   "options": [
+    "An approach lighting system is installed",
+    "The station is an NDB",
+    "An ASOS or AWOS is available at the site",
+    "The station operates on request only"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The legend labels the circled A as ASOS/AWOS [[2:25|Chart Users' Guide p 25]]; automated weather services are shown by the same symbol [[2:26|Chart Users' Guide p 26]]."
+  },
+  {
+   "q": "On the legend, HANCOCK RCO shows 122.525 and 123.65 above the box and 'GREEN BAY' below it. What does 'GREEN BAY' tell the student?",
+   "options": [
+    "The FSS that provides the voice communications on those frequencies",
+    "The nearest towered airport",
+    "The name of a Class C airport",
+    "The location of the remote receiver, 20 NM away"
+   ],
+   "answer": 0,
+   "figure": "f9",
+   "why": "Frequencies above the box are remoted to the NAVAID site, and the controlling FSS name below it shows the FSS providing voice communications [[2:26|Chart Users' Guide p 26]]."
+  },
+  {
+   "q": "Your learner's transponder was last tested and inspected 26 calendar months ago. What does the regulation say?",
+   "options": [
+    "It is fine until 36 months",
+    "It is fine if the Mode C reads true",
+    "It is fine for VFR only",
+    "It may not be used until it has been tested; the test must be within the preceding 24 calendar months"
+   ],
+   "answer": 3,
+   "why": "No one may use an ATC transponder unless it has been tested and inspected within the preceding 24 calendar months [[60:525|14 CFR 91.413(a)]]."
   }
  ],
  "takeaways": [
@@ -1735,6 +1874,46 @@
     "At the parking spot: select STBY or OFF"
    ],
    "why": "Sequence from [[33:221|AIM 4-1-20]]."
+  },
+  {
+   "type": "label",
+   "key": "h8",
+   "after": 15,
+   "title": "Read the NAVAID legend",
+   "figure": "f8",
+   "intro": "Drag each meaning to the numbered pin.",
+   "pins": [
+    {
+     "x": 32.9,
+     "y": 10.7,
+     "label": "Operates less than continuous or on request"
+    },
+    {
+     "x": 84.8,
+     "y": 9.8,
+     "label": "Underlined frequency: no voice"
+    },
+    {
+     "x": 44.0,
+     "y": 23.9,
+     "label": "ASOS or AWOS available"
+    },
+    {
+     "x": 34.5,
+     "y": 43.7,
+     "label": "Crosshatch: shutdown status"
+    },
+    {
+     "x": 36.5,
+     "y": 61.4,
+     "label": "DME only, shown without a compass rose"
+    },
+    {
+     "x": 38.2,
+     "y": 81.7,
+     "label": "Reference rose oriented to magnetic north"
+    }
+   ]
   }
  ]
 }

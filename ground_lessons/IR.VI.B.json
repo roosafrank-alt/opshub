@@ -956,6 +956,30 @@
     "q": "Why is chasing the needles a problem near the runway?",
     "a": "Both needles get more sensitive close in, so big corrections cause overshoots. Small corrections, reduced as the course narrows, keep you aligned [[23:283|IFH 9-40]] [[23:285|IFH 9-42]]."
    }
+  },
+  {
+   "title": "Reading the chart: an ILS from top to bottom",
+   "kind": "knowledge",
+   "codes": [
+    "IR.VI.B.K1",
+    "IR.VI.B.K3",
+    "IR.VI.B.S10"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Begin with the top strip. The box on the left gives the localizer ident and frequency, here I-SMF 111.1, and the approach course, 166 degrees. The middle strip shows the approach lighting system and the full missed approach text [[2:101|Chart Users' Guide p 101]] [[2:102|Chart Users' Guide p 102]]. At Sacramento the lights are ALSF-2 [[29:213|IPH Figure 4-44]]."
+    },
+    {
+     "p": "In the profile, the glide slope intercept altitude is drawn with a lightning bolt and an altitude. The profile also gives the glide slope angle, the threshold crossing height and the glide slope altitude at the outer marker or designated fix [[2:117|Chart Users' Guide p 117]]. Here the intercept altitude is 1800, the glide slope is 3.00 degrees and the TCH is 57."
+    },
+    {
+     "p": "Read the minimums by line. S-ILS is the line with the glide slope. It gives a DA, not an MDA, so 225/18 means 225 feet MSL and RVR 1800, with a HAT of 200 [[2:120|Chart Users' Guide p 120]]. If the glide slope is out, use the S-LOC line, here 400/24 for categories A to C. The two lines are not the same, so say which one you are flying in your briefing."
+    },
+    {
+     "p": "Finish the briefing with the notes and the missed approach. Here circling is not authorized east of runway 16R-34L, and radar or DME is required. The missed approach climbs to 500, then turns right to 2000 [[29:213|IPH Figure 4-44]]. The table under the airport sketch gives FAF to MAP time for a localizer-only approach. If RVR is not reported for the runway, the RVR minimum is converted to ground visibility [[60:474|14 CFR 91.175(h)]]."
+    }
+   ]
   }
  ],
  "figures": {
@@ -1006,6 +1030,14 @@
    "caption": "Figure 10-17. Glideslope deviations due to wind shear encounter.",
    "alt": "Two colored panels. Left: tailwind shearing to headwind near a front, the airplane balloons above the dotted glideslope from the outer marker. Right: headwind shearing to tailwind, the airplane sinks below the glideslope.",
    "source": "IFH, PDF p. 316"
+  },
+  "f8": {
+   "file": "IR.VI.B-8.jpg",
+   "res": "29",
+   "page": 213,
+   "caption": "Figure 4-44. Sacramento International KSMF, Sacramento, California, ILS or LOC RWY 16R.",
+   "alt": "ILS or LOC RWY 16R chart for Sacramento International. Top strip: LOC/DME I-SMF 111.1, approach course 166, TDZE 25, ALSF-2 lights, and the missed approach: climb to 500, then climbing right turn to 2000 via heading 350 and SAC R-329 to GRIME and hold. Note: circling not authorized east of Rwy 16R-34L; radar or DME required. Profile: 2000 at TUDOR INT, 1800 at JARNU with the glide slope intercept, GS 3.00 degrees, TCH 57, segments of 11.4, 5.2 and 0.1 NM. Minimums: S-ILS 16R 225/18 (HAT 200), S-LOC 16R 400/24 (HAT 375), circling 440-1 to 580-2. A FAF to MAP table for 5.3 NM runs from 5:18 at 60 knots to 1:46 at 180 knots.",
+   "source": "IPH, PDF p. 213"
   }
  },
  "scenario": {
@@ -1235,6 +1267,77 @@
    ],
    "answer": 1,
    "why": "With ceiling 800 or higher and visibility 2 miles or more, no protection is given unless you ask [[33:84|AIM 1-1-9k2]]."
+  },
+  {
+   "q": "What are the decision altitude and the HAT for the ILS line?",
+   "options": [
+    "400 feet MSL, HAT 375",
+    "225 feet MSL, HAT 25",
+    "1800 feet MSL, HAT 1775",
+    "225 feet MSL, HAT 200"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "The S-ILS 16R line reads 225/18 with 200 below it. The DA is 225 MSL, the RVR is 1800 and the HAT is 200 (225 - 25) [[29:213|IPH Figure 4-44]] [[2:120|Chart Users' Guide p 120]]."
+  },
+  {
+   "q": "What glide slope angle and threshold crossing height are published?",
+   "options": [
+    "3.00 degrees, TCH 50",
+    "3.00 degrees, TCH 25",
+    "3.00 degrees, TCH 57",
+    "2.75 degrees, TCH 57"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The note at the left of the profile reads GS 3.00 degrees and TCH 57 [[29:213|IPH Figure 4-44]]. The glide slope angle and TCH sit in the lower half of the profile box [[2:118|Chart Users' Guide p 118]]."
+  },
+  {
+   "q": "What altitude does the profile show for intercepting the glide slope?",
+   "options": [
+    "2000 feet",
+    "1800 feet",
+    "400 feet",
+    "225 feet"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "The glide slope intercept altitude is marked with a lightning bolt, and here it reads 1800 [[2:117|Chart Users' Guide p 117]] [[29:213|IPH Figure 4-44]]."
+  },
+  {
+   "q": "The glide slope fails. You are in a Category B airplane. What are the minimums you may use?",
+   "options": [
+    "S-LOC 16R: 400 feet MSL, RVR 2400",
+    "S-ILS 16R: 225 feet MSL, RVR 1800",
+    "Circling: 480 feet MSL, visibility 1",
+    "S-LOC 16R: 400 feet MSL, visibility 3/4"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "With no glide slope you use the S-LOC line, 400/24, for categories A to C. Only category D has 400/40, which is RVR 4000 [[29:213|IPH Figure 4-44]]."
+  },
+  {
+   "q": "What is the first thing the missed approach text tells you to do?",
+   "options": [
+    "Turn left to heading 350 right away",
+    "Climb straight ahead to 1800",
+    "Climb to 500, then turn right and climb to 2000",
+    "Climb to 2000 on the R-086"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The text says climb to 500, then a climbing right turn to 2000 via heading 350 and SAC R-329 to GRIME [[29:213|IPH Figure 4-44]]. The full text is in the middle briefing strip [[2:102|Chart Users' Guide p 102]]."
+  },
+  {
+   "q": "A procedure prescribes an RVR minimum of 2400, but RVR is not reported for your runway. What visibility minimum applies?",
+   "options": [
+    "1/4 mile",
+    "1/2 mile",
+    "5/8 mile",
+    "3/4 mile"
+   ],
+   "answer": 1,
+   "why": "14 CFR 91.175(h) converts RVR to ground visibility when RVR is not reported. The table gives RVR 2,400 as 1/2 statute mile [[60:474|14 CFR 91.175(h)]]."
   }
  ],
  "takeaways": [
@@ -1540,6 +1643,46 @@
      "why": "The requirements are not met, so you must go missed immediately [[60:472|14 CFR 91.175(e)(1)]]. Climb pitch and power first [[23:312|IFH 10-21]]."
     }
    ]
+  },
+  {
+   "type": "label",
+   "key": "h8",
+   "after": 15,
+   "title": "Find it on the Sacramento ILS",
+   "figure": "f8",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 12.1,
+     "y": 5.9,
+     "label": "Localizer frequency and ident"
+    },
+    {
+     "x": 22.7,
+     "y": 6.5,
+     "label": "Final approach course"
+    },
+    {
+     "x": 48.7,
+     "y": 9.9,
+     "label": "Approach lighting system"
+    },
+    {
+     "x": 36.7,
+     "y": 81.5,
+     "label": "Glide slope angle and TCH"
+    },
+    {
+     "x": 64.0,
+     "y": 86.6,
+     "label": "ILS decision altitude and RVR"
+    },
+    {
+     "x": 21.4,
+     "y": 91.1,
+     "label": "FAF to MAP time table"
+    }
+   ]
   }
  ],
  "final_quiz": [
@@ -1685,6 +1828,53 @@
    ],
    "answer": 3,
    "why": "Flags mean weak signal or a receiver problem [[23:283|IFH 9-40]]. Change to another source and request an amended clearance [[33:87|AIM 1-1-13c]]."
+  },
+  {
+   "q": "Which approach lighting system is listed for this runway?",
+   "options": [
+    "MALSR",
+    "SSALR",
+    "ODALS",
+    "ALSF-2"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "The middle briefing strip shows the lighting system name and its icon, here ALSF-2 [[2:102|Chart Users' Guide p 102]] [[29:213|IPH Figure 4-44]]."
+  },
+  {
+   "q": "Your groundspeed on final is 120 knots. How long from the FAF to the MAP on the localizer-only approach?",
+   "options": [
+    "5:18",
+    "3:32",
+    "2:39",
+    "2:07"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The table says FAF to MAP 5.3 NM, and 120 knots reads 2:39 [[29:213|IPH Figure 4-44]] [[2:122|Chart Users' Guide p 122]]."
+  },
+  {
+   "q": "Where does the chart say circling is not authorized?",
+   "options": [
+    "West of Rwy 16R-34L",
+    "East of Rwy 16R-34L",
+    "At night",
+    "On runway 16R"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "The note in the top strip reads: circling not authorized east of Rwy 16R-34L [[29:213|IPH Figure 4-44]]."
+  },
+  {
+   "q": "The outer marker is out of service for your ILS. Under 14 CFR 91.175(k), which of these may take its place?",
+   "options": [
+    "A fix you choose yourself that is not in the procedure",
+    "A DME fix authorized in the standard instrument approach procedure",
+    "A visual landmark near the airport",
+    "Nothing, the ILS cannot be flown"
+   ],
+   "answer": 1,
+   "why": "14 CFR 91.175(k) lets a compass locator, PAR or ASR, or a DME, VOR or NDB fix authorized in the procedure stand in for the outer marker 14 CFR 91.175(k). This chart says radar or DME is required [[29:213|IPH Figure 4-44]]."
   }
  ]
 }

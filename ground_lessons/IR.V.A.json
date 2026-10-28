@@ -885,6 +885,36 @@
     "q": "Why does chasing the CDI end up as homing?",
     "a": "You keep turning to center the needle instead of holding a corrected heading, so you fly a curved path. Bracket the wind correction instead [[23:259|IFH 9-16]] [[23:257|IFH 9-14]]."
    }
+  },
+  {
+   "title": "Reading the chart: VOT table, checkpoint sign and DME fix symbols",
+   "kind": "knowledge",
+   "codes": [
+    "IR.V.A.K1",
+    "IR.V.A.S1",
+    "IR.V.A.S2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "A VOT list gives the airport and the test frequency. In the example, Groton is 110.25 and Hartford is 108.20 [[29:90|IPH Figure 2-50]]. On the test signal, set the course selector to 0 and the track bar should center with FROM showing. Set 180 and it should center with TO. The most error allowed is plus or minus 4 degrees [[29:90|IPH p 90]] [[60:470|14 CFR 91.171(b)(1)]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "A checkpoint sign marks the spot on the airport where the signal is strong enough to check your VOR [[29:90|IPH p 90]]. The sign here reads VOR 116.4 and 147 degrees 4.1 NM. Tune 116.4 and the VOR should show the 147 degree radial. A DME should show 4.1 NM. The limit is again plus or minus 4 degrees [[60:470|14 CFR 91.171(b)(2)]]."
+    },
+    {
+     "p": "On the en route chart, an arrow beside a fix shows which facility forms it. On a VHF chart it points away from that NAVAID. A DME fix has its own symbol, and the distance is the same as the airway mileage. When the mileage is not obvious, an encircled arrow gives it. In the example, 5 NM plus 10 NM gives 15 in the encircled arrow [[2:82|Chart Users' Guide p 82]]."
+    },
+    {
+     "figure": "f9"
+    },
+    {
+     "p": "Remember the paperwork too. The check must be within the last 30 days, and you record the date, place, bearing error and your signature [[60:470|14 CFR 91.171(a)(2)]] [[60:471|14 CFR 91.171(d)]]."
+    }
+   ]
   }
  ],
  "figures": {
@@ -943,6 +973,22 @@
    "caption": "Figure 9-13. A typical horizontal situation indicator (HSI).",
    "alt": "Close-up of the analog HSI face without its name labels: orange lubber line at the top, yellow heading bug near 33, yellow course pointer set near 020 with its deviation bar offset from the orange symbolic aircraft, yellow glideslope pointer on the left edge, red-striped GS, NAV and HDG flags, and the course select knob at lower left.",
    "source": "IFH, PDF p. 255"
+  },
+  "f8": {
+   "file": "IR.V.A-8.jpg",
+   "res": "29",
+   "page": 90,
+   "caption": "Figures 2-50 and 2-51. VOR test facilities (VOT) frequencies and a VOR checkpoint sign.",
+   "alt": "A table titled VOR test facilities (VOT) listing Bradley Intl 111.40, Bridgeport 109.25, Groton 110.25 and Hartford 108.20, each type G, and below it a sign reading VOR 116.4, 147 degrees 4.1 NM, DME and VOR check radial.",
+   "source": "IPH, PDF p. 90"
+  },
+  "f9": {
+   "file": "IR.V.A-9.jpg",
+   "res": "2",
+   "page": 82,
+   "caption": "Chart Users' Guide: IFR Enroute Symbology, off-set arrows and DME fixes.",
+   "alt": "Rows from the symbology table showing the off-set arrow fix symbol, two DME fix symbols, an encircled DME arrow with the number 15, and an example with a first segment of 5 NM, a second segment of 10 NM and a total of 15 in the encircled arrow.",
+   "source": "Chart Guide, PDF p. 82"
   }
  },
  "scenario": {
@@ -1146,6 +1192,66 @@
    ],
    "answer": 0,
    "why": "Green annunciators are engaged; white ones are armed but not engaged [[30:52|RMH 7-3]]."
+  },
+  {
+   "q": "Which VOT frequency is listed for Groton?",
+   "options": [
+    "108.20",
+    "111.40",
+    "110.25",
+    "109.25"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The table lists Groton at 110.25 [[29:90|IPH Figure 2-50]]."
+  },
+  {
+   "q": "A checkpoint sign reads VOR 116.4, 147 degrees 4.1 NM. Which frequency do you tune?",
+   "options": [
+    "116.4",
+    "147.4",
+    "141.6",
+    "4.1"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "The first line of the sign gives the VOR frequency [[29:90|IPH Figure 2-51]]."
+  },
+  {
+   "q": "At that sign, the VOR should show which radial?",
+   "options": [
+    "116",
+    "041",
+    "4.1",
+    "147"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "The sign is the DME and VOR check radial, 147 degrees [[29:90|IPH Figure 2-51]]."
+  },
+  {
+   "q": "In the DME example, the first segment is 5 NM and the second is 10 NM. What is in the encircled DME arrow?",
+   "options": [
+    "5",
+    "10",
+    "15",
+    "50"
+   ],
+   "answer": 2,
+   "figure": "f9",
+   "why": "The encircled arrow gives the total mileage, 15 NM [[2:82|Chart Users' Guide p 82]]."
+  },
+  {
+   "q": "On a VHF airway, an arrow beside a fix points:",
+   "options": [
+    "Toward the next fix on the airway",
+    "Away from the VHF/UHF NAVAID that forms the fix",
+    "Toward magnetic north",
+    "Toward the nearest airport"
+   ],
+   "answer": 1,
+   "figure": "f9",
+   "why": "Off-set arrows show the facility forming a fix. For VHF/UHF the arrow points away from the NAVAID [[2:82|Chart Users' Guide p 82]]."
   }
  ],
  "takeaways": [
@@ -1469,6 +1575,39 @@
      "why": "Yes. Routine crosschecks against VOR or DME can reveal a compromised GPS signal [[33:119|AIM 1-2-4]]."
     }
    ]
+  },
+  {
+   "type": "match",
+   "key": "h8",
+   "after": 14,
+   "title": "VOR check limits and symbols",
+   "intro": "Tap a term, then the answer that matches it.",
+   "pairs": [
+    {
+     "l": "Error limit on a VOT or ground checkpoint",
+     "r": "Plus or minus 4 degrees"
+    },
+    {
+     "l": "Error limit on an airborne checkpoint",
+     "r": "Plus or minus 6 degrees"
+    },
+    {
+     "l": "Dual VOR check, most difference allowed",
+     "r": "4 degrees"
+    },
+    {
+     "l": "Time limit between VOR checks",
+     "r": "30 days"
+    },
+    {
+     "l": "Sign reading 147 degrees 4.1 NM",
+     "r": "Check radial and DME distance"
+    },
+    {
+     "l": "Encircled DME arrow with 15",
+     "r": "Total mileage between fixes"
+    }
+   ]
   }
  ],
  "final_quiz": [
@@ -1614,6 +1753,63 @@
    ],
    "answer": 3,
    "why": "The autopilot can make the control inputs while you complete other tasks, reducing workload [[30:51|RMH 7-2]]."
+  },
+  {
+   "q": "Which VOT frequency is listed for Hartford?",
+   "options": [
+    "109.25",
+    "108.20",
+    "111.40",
+    "110.25"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "The table lists Hartford at 108.20 [[29:90|IPH Figure 2-50]]."
+  },
+  {
+   "q": "The checkpoint sign reads 147 degrees 4.1 NM. What DME reading do you expect at the sign?",
+   "options": [
+    "4.1 NM",
+    "147 NM",
+    "116.4 NM",
+    "1.47 NM"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "The sign gives the distance as 4.1 NM [[29:90|IPH Figure 2-51]]."
+  },
+  {
+   "q": "Your last VOR check was 45 days ago. Can you fly IFR using the VOR system today without a new check?",
+   "options": [
+    "Yes, if the VOR looks accurate",
+    "Yes, if you are on an airway",
+    "No, the check must be within 30 days",
+    "Yes, for 60 days"
+   ],
+   "answer": 2,
+   "why": "Unless the equipment is kept on an approved procedure, the VOR must have been checked within the preceding 30 days [[60:470|14 CFR 91.171(a)(2)]]."
+  },
+  {
+   "q": "You check two independent VORs against each other on the same station. They read 3 degrees apart. Is that within limits?",
+   "options": [
+    "Yes, the limit is 4 degrees",
+    "No, the limit is 1 degree",
+    "No, the limit is 2 degrees",
+    "Yes, any difference is fine"
+   ],
+   "answer": 0,
+   "why": "With dual VORs, the maximum permissible variation between the two bearings is 4 degrees [[60:471|14 CFR 91.171(c)]]."
+  },
+  {
+   "q": "On the airport, a ground checkpoint shows your VOR is off by 5 degrees. Is it legal for IFR?",
+   "options": [
+    "Yes, up to 6 degrees is allowed",
+    "No, the limit is plus or minus 4 degrees",
+    "Yes, up to 10 degrees is allowed",
+    "Only at night"
+   ],
+   "answer": 1,
+   "why": "At a VOT or airport checkpoint the maximum error is plus or minus 4 degrees. The 6 degree limit is for airborne checks [[60:470|14 CFR 91.171(b)(2)]]."
   }
  ]
 }

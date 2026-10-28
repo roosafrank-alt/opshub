@@ -962,6 +962,35 @@
     "q": "ATC says “line up and wait.” You read it back. May you start the takeoff roll?",
     "a": "No. Line up and wait is not a takeoff clearance. Wait for “cleared for takeoff” [[33:344|AIM 5-2-5]]."
    }
+  },
+  {
+   "title": "Reading the chart: a SID and a STAR behind the clearance",
+   "kind": "knowledge",
+   "codes": [
+    "IR.III.A.K1",
+    "IR.III.A.S3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "When ATC clears you to fly a SID, the chart holds the details. Read the route description box at the bottom first. On the LUFKIN SIX DEPARTURE it says to climb on the assigned heading for radar vectors to KYANN INT, maintain 5000, and expect the filed altitude 10 minutes after departure [[29:40|IPH Figure 1-22]]."
+    },
+    {
+     "p": "Then check the notes and the take-off minimums box. This chart says radar is required. Runway 22 needs a standard minimum with a climb of 290 ft per NM to 1,500 ft, and Runway 17 is 300-1 [[29:40|IPH Figure 1-22]]. Make sure you can meet every note and minimum before you accept the SID."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "A STAR works the same way. The title carries the name, here CHINS SEVEN ARRIVAL, and the STAR starts at CHINS intersection. Transitions bring you to CHINS from places such as Ephrata, Kimberly and Pendleton [[29:125|IPH Figure 3-11]]. The hold at RADDY helps controllers when weather causes delays. Radar vectors then lead to a north or south final approach course [[29:125|IPH Figure 3-11]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "Look for a lost communications line. On this chart it says to proceed direct to the SEA VORTAC after the AUBRN DME fix [[29:125|IPH Figure 3-11]]. A STAR clearance can be short, such as cleared as filed, then the arrival name and transition, maintain 10,000. The chart holds the rest [[29:127|IPH p 127]]."
+    }
+   ]
   }
  ],
  "figures": {
@@ -1004,6 +1033,22 @@
    "caption": "Figure 2-68. ATC reporting procedures.",
    "alt": "Blue table of reports made without ATC request, each with an example call from Marathon 564: leaving an assigned altitude, VFR-on-top altitude change, leaving a holding fix, missed approach, unable 500 fpm, TAS change of 5% or 10 knots, reaching a holding fix or clearance limit, loss of nav/comm, and unforecast weather; plus nonradar reports for leaving the FAF or OM inbound and a revised ETA of more than three minutes.",
    "source": "IPH, PDF p. 105"
+  },
+  "f6": {
+   "file": "IR.III.A-6.jpg",
+   "res": "29",
+   "page": 125,
+   "caption": "Figure 3-11. STAR interpretation.",
+   "alt": "CHINS SEVEN ARRIVAL chart for Seattle-Tacoma over a sectional chart strip, with orange callouts: the primary airport is Seattle-Tacoma, the STAR starts at CHINS intersection, the hold at RADDY, radar vectors to the final approach course, and a lost communication line reading After AUBRN DME fix proceed direct SEA VORTAC.",
+   "source": "IPH, PDF p. 125"
+  },
+  "f7": {
+   "file": "IR.III.A-7.jpg",
+   "res": "29",
+   "page": 40,
+   "caption": "Figure 1-22. SID chart.",
+   "alt": "LUFKIN SIX DEPARTURE chart for Houston Hobby with frequencies at the top left, a RADAR required note, take-off minimums for runways 12L, 12R, 30L, 30R, 35, 4, 17 and 22, a route through KYANN, COLET, SUSHI and SKKIP to Little Rock VORTAC, and a departure route description box at the bottom.",
+   "source": "IPH, PDF p. 40"
   }
  },
  "scenario": {
@@ -1191,6 +1236,66 @@
    ],
    "answer": 3,
    "why": "Maintain assigned speeds within plus or minus 10 knots: 100 to 120 knots [[33:283|AIM 4-4-12]]."
+  },
+  {
+   "q": "At which fix does the CHINS SEVEN ARRIVAL start?",
+   "options": [
+    "AUBRN",
+    "RADDY",
+    "HUMPP",
+    "CHINS"
+   ],
+   "answer": 3,
+   "figure": "f6",
+   "why": "The callout says the CHINS SEVEN ARRIVAL starts at CHINS intersection [[29:125|IPH Figure 3-11]]."
+  },
+  {
+   "q": "Which fix is named as the common holding point on this STAR?",
+   "options": [
+    "RADDY",
+    "SUNED",
+    "BRUKK",
+    "AUBRN"
+   ],
+   "answer": 0,
+   "figure": "f6",
+   "why": "A callout says the hold at RADDY intersection often helps controllers manage traffic during weather delays [[29:125|IPH Figure 3-11]]."
+  },
+  {
+   "q": "The lost communications line says that after the AUBRN DME fix you proceed:",
+   "options": [
+    "To Boeing Field",
+    "Direct to the SEA VORTAC",
+    "Direct to RADDY",
+    "To the Yakima VOR"
+   ],
+   "answer": 1,
+   "figure": "f6",
+   "why": "The line reads After AUBRN DME FIX proceed direct SEA VORTAC [[29:125|IPH Figure 3-11]]."
+  },
+  {
+   "q": "On the LUFKIN SIX chart, Runway 22 takeoff needs a climb of 290 ft per NM up to:",
+   "options": [
+    "300 ft",
+    "1,000 ft",
+    "1,500 ft",
+    "5,000 ft"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The take-off minimums box reads Rwy 22, standard with minimum climb of 290 ft per NM to 1500 [[29:40|IPH Figure 1-22]]."
+  },
+  {
+   "q": "What does the note on the LUFKIN SIX chart say about radar?",
+   "options": [
+    "Radar is advised only",
+    "Radar contact ends at KYANN",
+    "Radar is not available",
+    "Radar is required"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "The note reads RADAR Required [[29:40|IPH Figure 1-22]]."
   }
  ],
  "takeaways": [
@@ -1489,6 +1594,47 @@
     "Complete the before-takeoff checklist and run-up, then tell tower you're ready",
     "After takeoff, contact departure when told, giving your altitude"
    ]
+  },
+  {
+   "type": "label",
+   "key": "h8",
+   "after": 15,
+   "title": "Read the SID chart",
+   "figure": "f7",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 20.2,
+     "y": 5.6,
+     "label": "Procedure name"
+    },
+    {
+     "x": 12.4,
+     "y": 10.7,
+     "label": "Frequencies"
+    },
+    {
+     "x": 17.1,
+     "y": 43.6,
+     "label": "Radar note"
+    },
+    {
+     "x": 21.5,
+     "y": 54.5,
+     "label": "Take-off minimums"
+    },
+    {
+     "x": 58.3,
+     "y": 75.6,
+     "label": "Route description"
+    },
+    {
+     "x": 79.0,
+     "y": 8.5,
+     "label": "Transition end (LIT)"
+    }
+   ],
+   "why": "The title names the procedure. Frequencies are listed at the top left, the note says radar is required, take-off minimums sit under the sketch, and the route description is in the box at the bottom. The Little Rock transition ends at the LIT VORTAC [[29:40|IPH Figure 1-22]]."
   }
  ],
  "final_quiz": [
@@ -1634,6 +1780,52 @@
    ],
    "answer": 2,
    "why": "Backup radios usually switch within 60 seconds, so wait at least 1 minute. Then try the last controller, another sector, or an FSS [[33:375|AIM 5-3-1]]."
+  },
+  {
+   "q": "The LUFKIN SIX route description says to expect the filed altitude:",
+   "options": [
+    "At KYANN intersection",
+    "10 minutes after departure",
+    "After the LFK VORTAC",
+    "At 1,500 ft"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "It reads Expect filed altitude 10 minutes after departure [[29:40|IPH Figure 1-22]]."
+  },
+  {
+   "q": "The primary arrival airport for the CHINS SEVEN ARRIVAL is:",
+   "options": [
+    "Boeing Field/King County",
+    "Ephrata",
+    "Seattle-Tacoma International",
+    "Yakima"
+   ],
+   "answer": 2,
+   "figure": "f6",
+   "why": "The callout names Seattle-Tacoma International as primary. Other airports, such as Boeing Field, may also be served [[29:125|IPH Figure 3-11]]."
+  },
+  {
+   "q": "You are not sure you heard a clearance altitude correctly. What does 14 CFR 91.123 say to do?",
+   "options": [
+    "Fly the altitude you think you heard",
+    "Immediately ask ATC for clarification",
+    "Wait until ATC corrects you",
+    "Climb to the MEA and say nothing"
+   ],
+   "answer": 1,
+   "why": "When a pilot is uncertain of a clearance, that pilot shall immediately request clarification from ATC [[60:450|14 CFR 91.123(a)]]."
+  },
+  {
+   "q": "You deviate from a clearance because of a TCAS resolution advisory. What must you do under 14 CFR 91.123?",
+   "options": [
+    "Nothing, because ATC saw it",
+    "File a report within 10 days",
+    "Notify ATC of the deviation as soon as possible",
+    "Return to the old altitude without a call"
+   ],
+   "answer": 2,
+   "why": "A pilot who deviates because of an emergency or a TCAS RA must notify ATC as soon as possible [[60:450|14 CFR 91.123(c)]]."
   }
  ]
 }

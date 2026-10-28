@@ -667,6 +667,42 @@
     "q": "Approach answers, \"N123AB, remain outside the Class Charlie airspace and standby.\" May you enter?",
     "a": "No. Contact is established, but you have been told to remain outside until conditions permit [[33:182|AIM 3-2-4c3]]."
    }
+  },
+  {
+   "title": "Reading the chart: class limits and the Mode C veil",
+   "kind": "knowledge",
+   "codes": [
+    "RF.III.A.K1",
+    "RF.III.A.K3",
+    "RF.III.A.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "The chart tells you which class you are in and where it starts and stops. Read it before you read the rule. Altitudes are in hundreds of feet MSL, with the last two zeros left off [[2:16|Chart Users' Guide p 16]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "Class B is solid blue and Class C is solid magenta. In each pair the top number is the ceiling and the bottom is the floor, so 90 over 20 is 2,000 to 9,000 ft MSL. A plus sign before a Class B floor means the airspace is above that altitude. At and below it you are outside the Class B. In Class C, a T ceiling means up to, but not including, the floor of the Class B above, and SFC means the surface [[2:16|Chart Users' Guide p 16]]."
+    },
+    {
+     "p": "A magenta box near a Class C gives the approach frequencies to call before you enter, generally within 20 NM. Class D is a blue dashed line, and a boxed number is its ceiling. A minus sign means from the surface up to, but not including, that altitude [[2:16|Chart Users' Guide p 16]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "A solid magenta arc labeled MODE C & ADS-B OUT 30 NM marks the Mode C veil: from the surface to 10,000 ft MSL within 30 NM of the primary airport of a Class B. The chart does not draw every transponder rule. Mode C within and above Class C up to 10,000 ft MSL is not drawn, and neither is the en route Mode C rule at and above 10,000 ft MSL [[2:17|Chart Users' Guide p 17]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The chart is a clue, not the rule. Boxed airport names are FAR 93 airports. NO SVFR over a name means fixed-wing special VFR is prohibited there. Always check the Chart Supplement and NOTAMs [[2:17|Chart Users' Guide p 17]]."
+     }
+    }
+   ]
   }
  ],
  "figures": {
@@ -709,6 +745,22 @@
    "caption": "Airspace Information (Continued): Class C, Class D and Class E Airspace.",
    "alt": "Sectional symbols: a magenta Class C arc with 48 over 30 for ceiling and floor and a CTC approach box; blue dashed Class D circles with boxed 27 and -27 ceilings and a Class D exclusion below 1,500 ft MSL; magenta dashed Class E surface areas; magenta vignette for a 700 ft AGL Class E floor, blue vignette for a 1,200 ft AGL floor next to Class G, and a ceiling symbol of 14,000 ft MSL.",
    "source": "Chart Users' Guide, PDF p. 27"
+  },
+  "f6": {
+   "file": "RF.III.A-6.jpg",
+   "res": "2",
+   "page": 16,
+   "caption": "Chart Users' Guide: how Class A, B, C and D are shown on VFR charts.",
+   "alt": "Text with small symbols. Class B altitudes are shown as 90 over 20 in solid blue figures, and the name appears as LAS VEGAS CLASS B. Class C altitudes are 70 over 15 in magenta, a T over SFC symbol, the name BURBANK CLASS C and a magenta box reading CTC BURBANK APP WITHIN 20 NM ON 124.6 395.9. Class D shows a blue dashed line and a boxed 30 ceiling.",
+   "source": "Chart Users' Guide, PDF p. 16"
+  },
+  "f7": {
+   "file": "RF.III.A-7.jpg",
+   "res": "2",
+   "page": 17,
+   "caption": "Chart Users' Guide: the Mode C 30 NM veil, FAR 93 airports and NO SVFR airports.",
+   "alt": "Text with small symbols. A purple arc labeled MODE C and ADS-B OUT 30 NM shows the Mode C required airspace. A boxed airport name TRUCKEE - TAHOE marks a FAR 93 airport. The text describes the NO SVFR note above an airport name and miscellaneous activity areas.",
+   "source": "Chart Users' Guide, PDF p. 17"
   }
  },
  "scenario": {
@@ -849,6 +901,77 @@
    ],
    "answer": 1,
    "why": "Federal airways and low-altitude RNAV routes are Class E from 1,200 ft AGL up to, but not including, 18,000 ft MSL, unless otherwise specified [[33:188|AIM 3-2-6e]]."
+  },
+  {
+   "q": "A Class B sector is labeled 90 over 20 on the chart. What are its limits?",
+   "options": [
+    "2,000 ft up to 9,000 ft MSL",
+    "9,000 ft up to 20,000 ft MSL",
+    "20 ft up to 90 ft AGL",
+    "900 ft up to 200 ft AGL"
+   ],
+   "answer": 0,
+   "figure": "f6",
+   "why": "Class B altitudes are solid blue figures in hundreds of feet MSL with the last two zeros omitted. The top is the ceiling and the bottom is the floor [[2:16|Chart Users' Guide p 16]]."
+  },
+  {
+   "q": "A Class C sector is labeled with a T over SFC. What does the T ceiling mean?",
+   "options": [
+    "The ceiling is 10,000 ft MSL",
+    "The ceiling is the top of the terrain",
+    "Up to, but not including, the floor of the Class B above",
+    "The Class C is active only at night"
+   ],
+   "answer": 2,
+   "figure": "f6",
+   "why": "A T ceiling means the ceiling is to, but not including, the floor of the overlying Class B [[2:16|Chart Users' Guide p 16]]."
+  },
+  {
+   "q": "What does a magenta box reading CTC BURBANK APP WITHIN 20 NM ON 124.6 give you?",
+   "options": [
+    "The frequency to call after you land",
+    "The approach frequency for VFR aircraft to call before entering the Class C",
+    "The ATIS frequency",
+    "The frequency for ground control"
+   ],
+   "answer": 1,
+   "figure": "f6",
+   "why": "Magenta boxes give the approach control frequencies VFR aircraft use to establish two-way radio communication before entering the Class C, generally within 20 NM [[2:16|Chart Users' Guide p 16]]."
+  },
+  {
+   "q": "A solid magenta arc labeled MODE C & ADS-B OUT 30 NM is drawn on the chart. What does it show?",
+   "options": [
+    "The edge of the Class B shelf",
+    "The limit of Class C",
+    "A Special Flight Rules Area",
+    "The Mode C veil: the surface to 10,000 ft MSL within 30 NM of a Class B primary airport"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "Mode C required airspace, from the surface to 10,000 ft MSL within 30 NM of the primary airport of a Class B, is a solid magenta line [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "The words NO SVFR appear above an airport name. What does that tell you?",
+   "options": [
+    "Fixed-wing special VFR operations are prohibited at that airport",
+    "Special VFR is allowed at night only",
+    "The airport is private",
+    "The airport has no tower"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "NO SVFR marks airports where fixed-wing special VFR operations are prohibited [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "You fly at 8,500 ft MSL above a Class C area whose ceiling is 4,800 ft MSL, inside its lateral boundary. Under 14 CFR 91.215(b)(4), what equipment must you have?",
+   "options": [
+    "No transponder, because you are above the Class C ceiling",
+    "A transponder with Mode C, up to 10,000 ft MSL above the Class C ceiling",
+    "A transponder only if you talk to ATC",
+    "A transponder only below 4,800 ft MSL"
+   ],
+   "answer": 1,
+   "why": "Mode C is required in all airspace above the ceiling and within the lateral boundaries of a Class B or C area, up to 10,000 ft MSL. This is 14 CFR 91.215(b)(4), and the chart does not draw it."
   }
  ],
  "takeaways": [
@@ -1156,6 +1279,46 @@
     "Listen for your call sign in the reply: communication is established",
     "Enter the Class C and keep talking to ATC while inside"
    ]
+  },
+  {
+   "type": "label",
+   "figure": "f6",
+   "title": "Read the class legend",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 94.9,
+     "y": 28.3,
+     "label": "Class B ceiling and floor figures"
+    },
+    {
+     "x": 21.0,
+     "y": 37.4,
+     "label": "Name of the Class B area"
+    },
+    {
+     "x": 3.9,
+     "y": 55.4,
+     "label": "T over SFC: Class C ceiling and floor"
+    },
+    {
+     "x": 40.0,
+     "y": 63.3,
+     "label": "Name of the Class C area"
+    },
+    {
+     "x": 82.3,
+     "y": 72.0,
+     "label": "Approach frequency box to call before entering Class C"
+    },
+    {
+     "x": 36.1,
+     "y": 87.8,
+     "label": "Class D ceiling in a box"
+    }
+   ],
+   "key": "h8",
+   "after": 11
   }
  ],
  "final_quiz": [
@@ -1301,6 +1464,41 @@
    ],
    "answer": 3,
    "why": "Requests for deviation from any provision of 91.135 must be submitted in writing at least 4 days before the operation [[60:456|14 CFR 91.135(d)]]. The 1 hour rule of 91.215(d)(3) does not replace this Class A rule [[60:495|14 CFR 91.215(d)(2)-(3)]]."
+  },
+  {
+   "q": "On the Class D legend, a boxed -30 appears. What does it mean?",
+   "options": [
+    "From 3,000 ft up to 30,000 ft MSL",
+    "From the surface up to 30 ft AGL",
+    "From the surface up to, but not including, 3,000 ft MSL",
+    "The Class D is closed at 3,000 ft"
+   ],
+   "answer": 2,
+   "figure": "f6",
+   "why": "A minus sign before the figure means from the surface to, but not including, that altitude. The figure is in hundreds of feet MSL [[2:16|Chart Users' Guide p 16]]."
+  },
+  {
+   "q": "On the chart, an airport name appears in a box, such as TRUCKEE - TAHOE. What does the box mean?",
+   "options": [
+    "A FAR 93 special air traffic rule applies at the airport",
+    "The airport is private",
+    "The airport has a control tower",
+    "Fuel is sold there"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "Airports and heliports under FAR 93, special air traffic rules and traffic patterns, are shown by boxing the airport name [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "You fly at 3,500 ft MSL in Class E, 25 NM from the primary airport of a Class B, below the Class B shelf. Under 14 CFR 91.215(b)(2), what must the airplane have?",
+   "options": [
+    "Nothing, because you are below the shelf",
+    "A transponder with Mode C, because you are within 30 NM",
+    "A transponder only above 10,000 ft MSL",
+    "A transponder only within 10 NM"
+   ],
+   "answer": 1,
+   "why": "Within 30 NM of an Appendix D, section 1 airport, from the surface up to 10,000 ft MSL, the aircraft needs a transponder with Mode C. This is 14 CFR 91.215(b)(2), and the chart's veil shows it."
   }
  ]
 }

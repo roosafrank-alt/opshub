@@ -888,6 +888,38 @@
     "q": "You have an EFC of 1610Z and reach the clearance limit (not an approach fix) at 1550Z. When do you leave it?",
     "a": "At 1610Z, the EFC. You leave on arrival only when you have no EFC [[60:483|14 CFR 91.185(c)(3)(ii)]]."
    }
+  },
+  {
+   "title": "Reading the chart: the MEA part of the lost-comm altitude",
+   "kind": "knowledge",
+   "codes": [
+    "IR.VII.A.K1",
+    "IR.VII.A.S3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "For each route segment, the lost-comm altitude is the highest of three: the altitude in your last clearance, the minimum IFR altitude, and the altitude ATC told you to expect [[60:483|14 CFR 91.185(c)(2)]]. The chart supplies the middle one, segment by segment. The IPH uses the MEA for it [[29:108|IPH p 108]]."
+    },
+    {
+     "p": "Directional MEAs show two numbers with arrows. Each number applies when you fly the way its arrow points. An asterisk before a number is a MOCA [[2:83|Chart Users' Guide p 83]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "Use example 3 as practice. Traveling east from DBS, the MEA is 13,000 ft for the first two segments and 15,000 ft on the third. Traveling west from QUIRT it is 15,000, then 10,000, then 9,000 ft. The MOCA is 8,100 ft on the first two segments [[2:85|Chart Users' Guide p 85]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "Now compare. Say you are westbound from QUIRT with 12,000 ft assigned and nothing to expect. You need 15,000 ft on the first segment. On the second and third segments the MEAs are 10,000 and 9,000 ft, so your assigned 12,000 ft is the highest [[60:483|14 CFR 91.185(c)(2)]]."
+    },
+    {
+     "p": "Timing matters. When the MEA rises at a fix, begin the climb at that fix. If the fix has an MCA, be at or above it when you reach the fix. When the next MEA is lower, descend to your assigned or expected altitude at the fix where it drops [[29:108|IPH p 108]]. Plan with the MEA, not the lower MOCA, which assures signals only within 22 NM of a VOR [[2:69|Chart Users' Guide p 69]]."
+    }
+   ]
   }
  ],
  "figures": {
@@ -938,6 +970,22 @@
    "caption": "Figure 14-42. Light gun signals.",
    "alt": "Table of light gun signals with colored bars: steady green, flashing green, steady red, flashing red, flashing white, and alternating red and green, with their meanings for vehicles and personnel, aircraft on the ground, and aircraft in flight.",
    "source": "PHAK, PDF p. 359"
+  },
+  "f7": {
+   "file": "IR.VII.A-7.jpg",
+   "res": "2",
+   "page": 85,
+   "caption": "Chart Users' Guide: Low Enroute Chart example 3, MOCA and directional MEAs along a Victor route.",
+   "alt": "Example 3 from the guide. A strip of V298 from the DUBOIS VOR through SABAT and LAMON to QUIRT, with directional MEAs 13000 and 9000 and a MOCA of *8100 on the first segments, 15000 on the third, and a description: traveling east MEA 13,000 for two segments then 15,000; traveling west from QUIRT 15,000, 10,000 and 9,000; MOCA 8100.",
+   "source": "Chart Guide, PDF p. 85"
+  },
+  "f8": {
+   "file": "IR.VII.A-8.jpg",
+   "res": "2",
+   "page": 83,
+   "caption": "Chart Users' Guide: IFR Enroute Symbology, Minimum Enroute Altitude (MEA) and directional MEAs.",
+   "alt": "Top of the MEA row of the symbology table showing a plain MEA number, and a directional MEA symbol on a segment with 13000 and an arrow pointing right, 10000 with an arrow pointing left, an asterisk MOCA of 8100 and a distance of 18, plus high chart MEA examples.",
+   "source": "Chart Guide, PDF p. 83"
   }
  },
  "scenario": {
@@ -1106,6 +1154,66 @@
    ],
    "answer": 0,
    "why": "Enter a standard (right turn) pattern on the course on which you approached the fix [[33:382|AIM 5-3-8]] [[29:111|IPH 2-51]]."
+  },
+  {
+   "q": "You fly east from DBS on V298 with 9,000 ft assigned and nothing to expect. Radio fails on the first segment. What altitude do you fly?",
+   "options": [
+    "8,100 ft",
+    "9,000 ft",
+    "13,000 ft",
+    "15,000 ft"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The highest of assigned 9,000 ft and the MEA of 13,000 ft is 13,000 ft [[60:483|14 CFR 91.185(c)(2)]]. The MEA comes from the chart [[2:85|Chart Users' Guide p 85]]."
+  },
+  {
+   "q": "Westbound from QUIRT you have 12,000 ft assigned and nothing to expect. What altitude on the second segment, where the MEA is 10,000 ft?",
+   "options": [
+    "10,000 ft",
+    "12,000 ft",
+    "15,000 ft",
+    "9,000 ft"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "Your assigned altitude is higher than the 10,000 ft MEA, so it is the highest of the three [[60:483|14 CFR 91.185(c)(2)]] [[2:85|Chart Users' Guide p 85]]."
+  },
+  {
+   "q": "Same flight, westbound from QUIRT with 12,000 ft assigned. What altitude on the first segment, where the MEA is 15,000 ft?",
+   "options": [
+    "15,000 ft",
+    "12,000 ft",
+    "10,000 ft",
+    "8,100 ft"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "The MEA is higher than the assigned altitude, so you fly 15,000 ft on that segment [[60:483|14 CFR 91.185(c)(2)]] [[2:85|Chart Users' Guide p 85]]."
+  },
+  {
+   "q": "In the symbol with 13000 and a right arrow, 10000 and a left arrow, which MEA applies when you fly toward the left?",
+   "options": [
+    "13,000 ft",
+    "8,100 ft",
+    "10,000 ft",
+    "18,000 ft"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "Each number applies in the direction of its arrow. The left arrow goes with 10,000 ft [[2:83|Chart Users' Guide p 83]]."
+  },
+  {
+   "q": "On that segment you fly toward the right arrow with 9,000 ft assigned and nothing to expect. What altitude if the radio fails?",
+   "options": [
+    "9,000 ft",
+    "8,100 ft",
+    "10,000 ft",
+    "13,000 ft"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "The right arrow MEA is 13,000 ft, higher than 9,000 ft assigned [[2:83|Chart Users' Guide p 83]] [[60:483|14 CFR 91.185(c)(2)]]."
   }
  ],
  "takeaways": [
@@ -1409,6 +1517,42 @@
      "why": "Steady green to an aircraft in flight means cleared to land [[60:451|14 CFR 91.125]]. In VFR conditions you land as soon as practicable [[60:482|14 CFR 91.185(b)]]."
     }
    ]
+  },
+  {
+   "type": "label",
+   "key": "h8",
+   "after": 14,
+   "title": "Read the example 3 strip",
+   "figure": "f7",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 8.0,
+     "y": 37.6,
+     "label": "VOR (DBS)"
+    },
+    {
+     "x": 12.5,
+     "y": 59.1,
+     "label": "MOCA"
+    },
+    {
+     "x": 21.2,
+     "y": 55.0,
+     "label": "MCA and MRA flags"
+    },
+    {
+     "x": 29.3,
+     "y": 62.1,
+     "label": "Directional MEAs"
+    },
+    {
+     "x": 39.7,
+     "y": 77.1,
+     "label": "V298 airway"
+    }
+   ],
+   "why": "The VOR box sits at the left. The asterisk number is the MOCA. The X and R flags are at SABAT. Directional MEAs have arrows, V298 labels the airway and QUIRT ends the strip [[2:85|Chart Users' Guide p 85]] [[2:83|Chart Users' Guide p 83]]."
   }
  ],
  "final_quiz": [
@@ -1554,6 +1698,64 @@
    ],
    "answer": 0,
    "why": "In an emergency needing immediate action, the PIC may deviate from Part 91 as needed, with a written report if asked [[60:435|14 CFR 91.3]]. The AIM says not to be reluctant to use it [[34:53|AIM 6-4-1]]."
+  },
+  {
+   "q": "What is the MOCA on the DBS to SABAT segment in example 3?",
+   "options": [
+    "8,100 ft",
+    "9,000 ft",
+    "13,000 ft",
+    "11,100 ft"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "The guide gives a MOCA of 8100 for DBS to SABAT and SABAT to LAMON [[2:85|Chart Users' Guide p 85]]."
+  },
+  {
+   "q": "Eastbound in example 3, what is the MEA on the third segment?",
+   "options": [
+    "10,000 ft",
+    "13,000 ft",
+    "9,000 ft",
+    "15,000 ft"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "Traveling east, the MEA is 13,000 ft for two segments and 15,000 ft along the third [[2:85|Chart Users' Guide p 85]]."
+  },
+  {
+   "q": "Westbound from QUIRT you have 8,000 ft assigned and nothing to expect. What altitude on the third segment, where the MEA is 9,000 ft?",
+   "options": [
+    "8,000 ft",
+    "10,000 ft",
+    "9,000 ft",
+    "15,000 ft"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The MEA of 9,000 ft is higher than the assigned 8,000 ft [[60:483|14 CFR 91.185(c)(2)]] [[2:85|Chart Users' Guide p 85]]."
+  },
+  {
+   "q": "You lose radio while being radar vectored. Which route do you fly first?",
+   "options": [
+    "The filed route from where you are",
+    "A straight line to your destination",
+    "The direct route to the fix, route or airway in the vector clearance",
+    "Back to the departure airport"
+   ],
+   "answer": 2,
+   "why": "If being radar vectored, fly the direct route from the point of failure to the fix, route or airway in the vector clearance [[60:482|14 CFR 91.185(c)(1)(ii)]]."
+  },
+  {
+   "q": "You were never assigned a route, but ATC said to expect V10 in a further clearance. Radio fails. Which route do you fly?",
+   "options": [
+    "The route you filed",
+    "The route ATC advised to expect",
+    "Any route to the destination",
+    "Direct to the nearest airport"
+   ],
+   "answer": 1,
+   "why": "With no assigned route, use the route ATC advised to expect. Use the filed route only if there is none [[60:482|14 CFR 91.185(c)(1)]]."
   }
  ]
 }

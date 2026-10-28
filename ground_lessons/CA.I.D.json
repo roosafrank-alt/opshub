@@ -997,6 +997,39 @@
     "q": "The examiner asks what you will do if your tablet dies right after takeoff. What's a good answer?",
     "a": "Switch to the paper chart or a second device and the nav log you already prepared. AC 91-78A says to plan for EFB shutdown and failure [[42:4|AC 91-78A para 11]]."
    }
+  },
+  {
+   "title": "Reading the chart: MEF and airport data",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.D.K1",
+    "CA.I.D.S2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "The MEF is the highest terrain or obstacle in a quadrant, rounded up. Read it as a planning number, not a clearance. For a natural feature, the chart makers work four steps: take the feature's elevation, add the possible error of the source (100 ft), add 200 ft for uncharted natural or man-made obstacles, and round up to the next 100 ft. In the example, 13,161 + 100 + 200 = 13,461, so the chart prints 13 with a small 5, which means 13,500 ft MSL [[2:13|Chart Users' Guide p 13]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "A man-made obstacle is worked the same way but without the 200 ft allowance: 2,649 + 100 = 2,749, printed as 28 for 2,800 ft [[2:12|Chart Users' Guide p 12]]. The MEF is not checked by field surveys, so confirm your chart is current [[2:13|Chart Users' Guide p 13]]. A mountain pass symbol is not a recommended route, and its elevation is not a recommended clearance altitude [[2:13|Chart Users' Guide p 13]]."
+    },
+    {
+     "p": "Airport data is next. Elevation is the highest point on the usable landing area. Runway length is the longest active runway in hundreds of feet, rounded with 70 as the break: 8,070 ft shows as 81 and 8,069 ft as 80. Usable length may be less, so compare with your POH numbers, as 91.103(b) requires [[2:15|Chart Users' Guide p 15]] [[60:440|14 CFR 91.103(b)]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "For night planning, L means runway lights burn from dusk to dawn, and *L means lighting limits exist, so read the Chart Supplement. Blue data belongs to a tower airport, and everything else is magenta. A star after CT means the tower is part-time, so check the tower table [[2:15|Chart Users' Guide p 15]]."
+    }
+   ],
+   "check": {
+    "q": "The chart prints 72 beside an airport. A customer's airplane needs 6,000 ft to land. Is that enough to say yes?",
+    "a": "Not by itself. 72 means the longest runway is about 7,200 ft, but usable length may be less. Check the Chart Supplement and NOTAMs, then compare with the landing distance in your POH [[2:15|Chart Users' Guide p 15]] [[60:440|14 CFR 91.103(b)]]."
+   }
   }
  ],
  "figures": {
@@ -1039,6 +1072,22 @@
    "caption": "Figure 1-2. The PAVE checklist.",
    "alt": "Four overlapping colored boxes: blue Pilot (health, fatigue, a pilot who declined a 750-mile trip for the boss after 4 hours of sleep), purple Aircraft (an oil drip that turned out to be a loose oil cooler fitting), yellow Environment (weather, ATC, NAVAIDs, terrain, a hard landing in wake turbulence) and green External Pressures (a ferry pilot who added a fuel stop instead of arriving with 10 minutes of fuel).",
    "source": "RMH, PDF p. 11"
+  },
+  "f6": {
+   "file": "CA.I.D-6.jpg",
+   "res": "2",
+   "page": 13,
+   "caption": "Chart Users' Guide: Maximum Elevation Figure (MEF) for a natural terrain feature (p 13).",
+   "alt": "Four numbered steps for the MEF of a natural feature: find its elevation, add the possible vertical error (100 ft, or half the contour interval when the source interval is over 200 ft), add 200 ft for uncharted obstacles, and round up to the next hundred feet. Worked example: 13161 plus 100 plus 200 equals 13461, raised to 13500, shown as a blue 13 with a small 5. A mountain sectional excerpt shows the blue MEF 13 5, Red River airport and military training routes VR1175 and VR1176.",
+   "source": "Chart Users' Guide, PDF p. 13"
+  },
+  "f7": {
+   "file": "CA.I.D-7.jpg",
+   "res": "2",
+   "page": 15,
+   "caption": "Chart Users' Guide: airport data on a sectional (p 15).",
+   "alt": "A sample airport symbol with its data block (FSS, NO SVFR, name and identifiers, CT frequency, circled C, ATIS, elevation, L, runway length, UNICOM, RP and VFR Advisory) above a two-column table that explains each item: elevation, lighting L and *L, runway length in hundreds of feet, aeronautical advisory station, right traffic patterns, CTAF, ATIS, AFIS, ASOS/AWOS, weather camera and airport of entry.",
+   "source": "Chart Users' Guide, PDF p. 15"
   }
  },
  "scenario": {
@@ -1217,6 +1266,65 @@
    ],
    "answer": 1,
    "why": "An intercepted aircraft selects code 7700 unless instructed otherwise by ATC [[34:22|AIM 5-6-13]]."
+  },
+  {
+   "q": "A natural peak is 11,420 ft MSL. Using the steps on the chart (100 ft source error, 200 ft allowance, round up), what MEF is printed?",
+   "options": [
+    "11,700 ft",
+    "11,800 ft",
+    "11,600 ft",
+    "11,500 ft"
+   ],
+   "answer": 1,
+   "figure": "f6",
+   "why": "11,420 + 100 + 200 = 11,720, raised to the next hundred feet: 11,800 ft, printed as 118 [[2:13|Chart Users' Guide p 13]]."
+  },
+  {
+   "q": "The sectional excerpt prints a large blue 13 with a small 5. What does that mean?",
+   "options": [
+    "13.5 NM to the nearest airport",
+    "A 1,350 ft obstacle above ground",
+    "13,500 ft MSL, the highest elevation in the quadrant, rounded up",
+    "The 135th chart in the series"
+   ],
+   "answer": 2,
+   "figure": "f6",
+   "why": "The MEF drops the last two zeros, so 13 5 means 13,500 ft MSL (13,461 rounded up) [[2:13|Chart Users' Guide p 13]]."
+  },
+  {
+   "q": "At an airport, 72 is printed with the data block. What does it tell you?",
+   "options": [
+    "The elevation is 720 ft",
+    "The control tower closes at 7:20",
+    "The longest runway is about 7,200 ft, and the usable length may be less",
+    "The airport is 72 NM from the nearest FSS"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The table says the number is the length of the longest runway in hundreds of feet, and that usable length may be less [[2:15|Chart Users' Guide p 15]]."
+  },
+  {
+   "q": "You plan a night landing at an airport that shows *L in its data. What do you do?",
+   "options": [
+    "Assume the runway lights are on from dusk to dawn",
+    "Read the Chart Supplement to learn the lighting limits, such as on request or pilot-controlled",
+    "Plan to land on any other runway at that airport",
+    "Ignore it, since *L only marks a beacon"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "*L means lighting limitations exist and you should refer to the Chart Supplement; plain L means lights are on from sunset to sunrise [[2:15|Chart Users' Guide p 15]]."
+  },
+  {
+   "q": "You hold a commercial certificate with no instrument rating, and a customer wants to pay you for a 90 NM cross-country in daylight. What does the certificate say?",
+   "options": [
+    "It is allowed, because commercial privileges cover all VFR flights",
+    "It is allowed only if you fly above 3,000 ft AGL",
+    "It is not allowed: the certificate carries a limit on carrying passengers for hire beyond 50 NM or at night",
+    "It is allowed with a logbook endorsement from a CFI"
+   ],
+   "answer": 2,
+   "why": "Without an instrument rating in that category and class, the commercial certificate is limited: no carriage of passengers for hire on cross-country flights over 50 NM or at night [[60:322|14 CFR 61.133(b)(1)]]."
   }
  ],
  "takeaways": [
@@ -1518,6 +1626,35 @@
      "why": "If you land somewhere other than your destination, report it to the nearest FSS and give your original destination; otherwise a search starts [[34:34|AIM 6-2-6]] [[33:339|AIM 5-1-14]]."
     }
    ]
+  },
+  {
+   "type": "match",
+   "title": "Work out the MEF",
+   "intro": "Tap a step, then what it adds or does.",
+   "pairs": [
+    {
+     "l": "Elevation of the feature",
+     "r": "Where you start: 13,161 ft in the example"
+    },
+    {
+     "l": "Possible vertical error",
+     "r": "Add 100 ft, or half the contour interval over 200 ft"
+    },
+    {
+     "l": "Uncharted obstacle allowance",
+     "r": "Add 200 ft for a natural feature"
+    },
+    {
+     "l": "Last step",
+     "r": "Round up to the next 100 ft"
+    },
+    {
+     "l": "13 with a small 5",
+     "r": "13,500 ft MSL"
+    }
+   ],
+   "key": "h9",
+   "after": 15
   }
  ],
  "final_quiz": [
@@ -1663,6 +1800,41 @@
    ],
    "answer": 3,
    "why": "In an emergency, divert promptly; doing all the plotting first may make it worse. Then note the time and compute heading, GS, ETA and fuel [[1:422|PHAK 16-35]]."
+  },
+  {
+   "q": "Step 3 on the chart adds 200 ft to a natural feature's elevation. What is it for?",
+   "options": [
+    "The error in the chart's contour lines",
+    "The height of a tower on top of the peak",
+    "Uncharted natural or man-made obstacles too small to be shown",
+    "The pressure altitude on a hot day"
+   ],
+   "answer": 2,
+   "figure": "f6",
+   "why": "The allowance covers uncharted natural or man-made obstacles, because chart specs don't require showing obstacles below a minimum height [[2:13|Chart Users' Guide p 13]]."
+  },
+  {
+   "q": "The data above an airport name reads NO SVFR. What does that mean?",
+   "options": [
+    "No scheduled VFR flights are allowed",
+    "Special VFR is allowed only at night",
+    "Fixed-wing special VFR operations are prohibited at that airport",
+    "The airport has no VFR reporting point"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The legend says it marks airports where fixed-wing special VFR operations are prohibited [[2:15|Chart Users' Guide p 15]]."
+  },
+  {
+   "q": "Your route passes over a small town. The tallest obstacle within 2,000 ft of your track is a 400 ft tower. What is the lowest legal altitude over the town in cruise?",
+   "options": [
+    "500 ft AGL",
+    "1,000 ft AGL",
+    "1,400 ft above the surface (1,000 ft above the tower)",
+    "1,200 ft AGL"
+   ],
+   "answer": 2,
+   "why": "Over a congested area the minimum is 1,000 ft above the highest obstacle within a 2,000 ft horizontal radius [[60:449|14 CFR 91.119(b)]]. The tower is 400 ft tall, so 1,400 ft above the surface."
   }
  ]
 }

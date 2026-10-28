@@ -882,6 +882,39 @@
     "q": "Your ETA and fuel are perfect, but the altitude sagged 150 ft while you worked them out. Does that meet the commercial standard?",
     "a": "No. The standard is plus or minus 100 ft and 10 degrees throughout (ACS CA.VI.C.S3)."
    }
+  },
+  {
+   "title": "Reading the chart: pick a diversion airport and keep clear of hazards",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.C.S1",
+    "CA.VI.C.S2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "When you must divert, the chart helps you choose fast. Start with the airport symbol. A symbol drawn as the runway layout means hard-surfaced runways longer than 8,069 ft, or some multiple runways shorter than that. A filled circle with a runway cross means hard-surfaced runways of 1,500 to 8,069 ft. An open circle means no hard-surfaced runway [[2:14|Chart Users' Guide p 14]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "Tick marks around the symbol mean fuel is available, but the chart says to use the Chart Supplement for details and availability, so the symbol alone is not a promise of fuel [[2:14|Chart Users' Guide p 14]]. Check the runway length and lighting in the airport data against your POH numbers [[60:440|14 CFR 91.103(b)]] [[2:15|Chart Users' Guide p 15]]."
+    },
+    {
+     "p": "Then check the straight line to the airport. Look for special use airspace, a Mode C veil, a boxed FAR 93 airport name, or a NO SVFR notice. The solid magenta arc marks Mode C required airspace (surface to 10,000 ft MSL within 30 NM of a Class B primary airport). A symbol for a miscellaneous activity area means check NOTAMs before you go [[2:17|Chart Users' Guide p 17]]."
+    },
+    {
+     "figure": "f9"
+    },
+    {
+     "p": "Last, turn first and plan second. Turn toward the new airport right away, then work out heading, groundspeed, ETA and fuel [[1:422|PHAK 16-35]]. If the emergency is real, the pilot in command may deviate from any rule in Part 91 to the extent needed [[60:435|14 CFR 91.3(b)]]."
+    }
+   ],
+   "check": {
+    "q": "A diversion airport shows tick marks around the symbol. Is fuel certain?",
+    "a": "No. The tick marks show fuel is available, but the chart tells you to check the Chart Supplement for details and availability. Call ahead if you can [[2:14|Chart Users' Guide p 14]]."
+   }
   }
  ],
  "figures": {
@@ -940,6 +973,22 @@
    "caption": "Figure 6-1. The Swiss cheese model. (RMH 6-5)",
    "alt": "Arrows labeled Threats point at three stacks of Swiss cheese slices labeled Prevent, Trap and Mitigate, with Errors and Undesired aircraft state between them and an Incident/Accident burst at the end. Banners above read Anticipate, Recognize, Recover.",
    "source": "RMH, PDF p. 48"
+  },
+  "f8": {
+   "file": "CA.VI.C-8.jpg",
+   "res": "2",
+   "page": 14,
+   "caption": "Chart Users' Guide: airport symbols and fuel marks (p 14).",
+   "alt": "Legend of airport symbols. Public use airports: a symbol drawn as the runway layout for hard-surfaced runways greater than 8069 ft or some multiple runways under 8069 ft, a filled circle with a runway cross for hard-surfaced runways 1500 to 8069 ft, and an open circle for other than hard-surfaced runways. Military airports as double circles, a gray foreign airport circle, a symbol with tick marks for fuel available (consult the Chart Supplement) and a row of small lettered airport circles.",
+   "source": "Chart Users' Guide, PDF p. 14"
+  },
+  "f9": {
+   "file": "CA.VI.C-9.jpg",
+   "res": "2",
+   "page": 17,
+   "caption": "Chart Users' Guide: special use airspace and other airspace areas (p 17).",
+   "alt": "Text and symbols. Boxes for prohibited, restricted or warning areas (P-56, R-6401, W-518, blue), an alert area (A-631, magenta) and a military operations area (VANCE 2 MOA, magenta). Notes say alert areas do not extend into Class A, B, C or D airspace or Class E surface areas. Other areas: a solid magenta arc labeled MODE C & ADS-B OUT 30 NM, a boxed airport name for FAR 93 airports (TRUCKEE - TAHOE), NO SVFR for FAR 91 airports, and miscellaneous activity areas.",
+   "source": "Chart Users' Guide, PDF p. 17"
   }
  },
  "scenario": {
@@ -1127,6 +1176,77 @@
    ],
    "answer": 3,
    "why": "ATC systems cannot detect the presence or absence of clouds, and cannot tell rain from snow or hail, so they refer to all weather areas as precipitation [[34:97|AIM 7-1-12]]."
+  },
+  {
+   "q": "An airport on the chart is an open circle with no runway pattern. What does that tell you?",
+   "options": [
+    "It has an ATIS",
+    "It has a control tower",
+    "It is a military airport",
+    "It has no hard-surfaced runway"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "An open circle marks a public airport with other than hard-surfaced runways [[2:14|Chart Users' Guide p 14]]."
+  },
+  {
+   "q": "Tick marks around an airport symbol mean what?",
+   "options": [
+    "Fuel is available, but check the Chart Supplement for details",
+    "The airport has a rotating beacon",
+    "Runway lights are on from dusk to dawn",
+    "Customs service is available"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "The legend says fuel availability is shown by tick marks, and to consult the Chart Supplement for details and availability [[2:14|Chart Users' Guide p 14]]."
+  },
+  {
+   "q": "Which symbol shows a public airport with a hard-surfaced runway longer than 8,069 ft or some multiple runways?",
+   "options": [
+    "An open circle",
+    "A filled circle with a runway cross",
+    "A symbol drawn as the runway layout",
+    "A double circle"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The legend lists the runway-layout symbol for that case. The filled circle with a cross is for 1,500 to 8,069 ft [[2:14|Chart Users' Guide p 14]]."
+  },
+  {
+   "q": "Your diversion line passes next to a Class D airport and an alert area. Does the alert area extend into the Class D airspace?",
+   "options": [
+    "Yes, below 1,200 ft",
+    "No, it does not extend into Class A, B, C or D airspace",
+    "Yes, but only when the tower is closed",
+    "Yes, up to 4,000 ft MSL"
+   ],
+   "answer": 1,
+   "figure": "f9",
+   "why": "The note says alert areas do not extend into Class A, B, C and D airspace or Class E airport surface areas [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "An airport name is drawn inside a box. What does that mean?",
+   "options": [
+    "No fuel is sold",
+    "The airport is military",
+    "The tower is part-time",
+    "It is an airport under FAR 93 special air traffic rules and traffic pattern"
+   ],
+   "answer": 3,
+   "figure": "f9",
+   "why": "A boxed airport name marks airports and heliports under FAR 93 [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "In an emergency you deviate from an ATC clearance. What does 91.123 require afterward?",
+   "options": [
+    "Nothing, because emergencies cancel every rule",
+    "A written report within 24 hours",
+    "Notify ATC of the deviation as soon as possible",
+    "A call to your CFI"
+   ],
+   "answer": 2,
+   "why": "A pilot in command who deviates from an ATC clearance or instruction in an emergency shall notify ATC as soon as possible [[60:450|14 CFR 91.123(c)]]."
   }
  ],
  "final_quiz": [
@@ -1272,6 +1392,41 @@
    ],
    "answer": 2,
    "why": "One of the most common errors is failing to move to lower levels of automation suitable to a changing environment. If automation is not working as expected, reduce the level, fly manually and take time to resolve it [[30:51|RMH 7-2]]."
+  },
+  {
+   "q": "What does a solid magenta arc labeled MODE C & ADS-B OUT 30 NM mark?",
+   "options": [
+    "Surface to 10,000 ft MSL within 30 NM of the primary Class B airport",
+    "The boundary of a Class C area",
+    "A military training route",
+    "Class E airspace starting at 700 ft"
+   ],
+   "answer": 0,
+   "figure": "f9",
+   "why": "It marks Mode C required airspace, from the surface to 10,000 ft MSL within a 30 NM radius of the primary airport for which a Class B is designated [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "A symbol for a miscellaneous activity area is charted near your diversion route. What should you do?",
+   "options": [
+    "Nothing, since these areas are closed",
+    "Fly through it above 500 ft AGL",
+    "Check NOTAMs before the flight, since the area has both activity and regular air operations",
+    "Call the tower on 121.5"
+   ],
+   "answer": 2,
+   "figure": "f9",
+   "why": "The legend says to check NOTAMs for additional information on the airspace [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "After a precautionary diversion you used an emergency deviation from a Part 91 rule. The FAA asks about it. What must you do?",
+   "options": [
+    "Nothing, because the deviation was legal",
+    "Send a written report of the deviation to the Administrator on request",
+    "Surrender your certificate",
+    "Call the nearest FSS within 48 hours"
+   ],
+   "answer": 1,
+   "why": "A pilot in command who deviates under 91.3(b) shall send a written report to the Administrator on request [[60:435|14 CFR 91.3(c)]]."
   }
  ],
  "takeaways": [
@@ -1589,6 +1744,64 @@
      "why": "Most midair collisions happen in daylight VFR within 5 miles of an airport [[24:31|AFH 1-10]]. Traffic equipment does not relieve you of see and avoid [[16:14|AC 90-48E, para 15]], and high workload and distraction reduce situational awareness [[23:337|IFH 11-12]]."
     }
    ]
+  },
+  {
+   "type": "label",
+   "title": "Read the airport symbols",
+   "figure": "f8",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 6.4,
+     "y": 15.6,
+     "label": "Hard surface, over 8,069 ft or multiple runways"
+    },
+    {
+     "x": 6.4,
+     "y": 23.7,
+     "label": "Hard surface, 1,500 to 8,069 ft"
+    },
+    {
+     "x": 6.5,
+     "y": 84.4,
+     "label": "Fuel available (tick marks)"
+    }
+   ],
+   "key": "h8",
+   "after": 15
+  },
+  {
+   "type": "match",
+   "title": "Airspace to avoid on a diversion",
+   "intro": "Tap a chart sign, then what it means.",
+   "pairs": [
+    {
+     "l": "Blue hatched box, P-56 or R-6401",
+     "r": "Prohibited or restricted area"
+    },
+    {
+     "l": "Magenta hatched box, A-631",
+     "r": "Alert area"
+    },
+    {
+     "l": "Magenta hatched box, VANCE 2 MOA",
+     "r": "Military operations area"
+    },
+    {
+     "l": "Solid magenta arc, 30 NM",
+     "r": "Mode C required airspace around a Class B airport"
+    },
+    {
+     "l": "Boxed airport name",
+     "r": "FAR 93 special air traffic rules and traffic pattern"
+    },
+    {
+     "l": "NO SVFR above an airport name",
+     "r": "Fixed-wing special VFR is prohibited"
+    }
+   ],
+   "key": "h9",
+   "after": 15
   }
  ]
 }

@@ -805,6 +805,43 @@
     "q": "Your customer is waiting, and going around an active restricted area adds 25 minutes. The direct line saves the time. What do you do?",
     "a": "Get permission from the controlling agency or go around and accept the delay. Entering without permission breaks 91.133 and exposes you to hidden hazards [[60:456|14 CFR 91.133(a)]] [[33:190|AIM 3-4-3]] [[1:49|PHAK 2-10]]."
    }
+  },
+  {
+   "title": "Reading the chart: SUA tables, Class E edges and security areas",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.E.S2",
+    "CA.I.E.S3",
+    "CA.I.E.K3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Start with the tables on the chart border. Prohibited, restricted and warning areas are listed by number in blue. Alert areas are listed by number and MOAs by name, both in magenta. Each row gives the altitude, time of use, controlling agency and its frequency [[2:20|Chart Users' Guide p 20]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "Read the notes first. Altitudes are MSL unless the row says AGL, and times are local. TO means up to and including, so a row reading 4000 TO BUT NOT INCL 11,000 stops short of 11,000. NO A/G means no air-to-ground contact, so call the nearest FSS. For MOAs, the number is the floor, and a MOA reaches up to but not including FL 180 unless the row says otherwise. Alert areas do not extend into Class A, B, C or D airspace or Class E surface areas [[2:21|Chart Users' Guide p 21]]. No NOTAM is issued to announce permanently listed times of use [[2:20|Chart Users' Guide p 20]]."
+    },
+    {
+     "p": "Now the edges of Class E. A magenta vignette is a Class E floor of 700 ft above the surface. A cyan (blue) vignette is a floor of 1,200 ft or more that meets Class G. A different floor is written as a number, such as 2400 AGL or 4500 MSL [[2:17|Chart Users' Guide p 17]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "Some limits are not on the chart. Only TFRs for national security are charted, shown with a broken blue line, so a clean chart does not mean a clear route. Read the NOTAMs for every other TFR. National security areas use a broken magenta line, and pilots should avoid flying through them [[2:18|Chart Users' Guide p 18]]. Enter a restricted or prohibited area only with permission of the using or controlling agency [[60:456|14 CFR 91.133(a)]]."
+    },
+    {
+     "figure": "f9"
+    }
+   ],
+   "check": {
+    "q": "Your chart shows no TFR along the route. Can you leave the NOTAM check out?",
+    "a": "No. The chart shows only TFRs that relate to national security. A TFR for a disaster, special event or other hazard is a NOTAM and will not be on the chart [[2:18|Chart Users' Guide p 18]]."
+   }
   }
  ],
  "figures": {
@@ -855,6 +892,30 @@
    "caption": "FIG 3-5-3. VFR Transition Route.",
    "alt": "Phoenix Class B chart excerpt with blue Class B sector lines and altitudes such as 90 over SFC, 90 over 50 and 90 over 60, light blue suggested VFR flyway bands marked 5500 OR BELOW, blue dashed Class D circles with boxed ceilings, magenta arrows of the east/west VFR transition route over Phoenix Sky Harbor, and a boxed note that an ATC clearance is required.",
    "source": "AIM, PDF p. 200"
+  },
+  "f7": {
+   "file": "CA.I.E-7.jpg",
+   "res": "2",
+   "page": 21,
+   "caption": "Chart Users' Guide: special use airspace tabulation on a sectional (p 21).",
+   "alt": "Two tables with notes. Blue: prohibited, restricted, warning rows R-6602 A, B and C with altitude, time of use, controlling agency (Washington Center) and frequencies, then magenta alert area A-220 (to 4000 AGL, 0800-2200, NO A/G). Below, a magenta MOA table with Brush Creek, Buckeye and Evers, their floors, times, controlling agency and frequencies. Notes say altitudes are MSL unless noted, TO means to and including, NO A/G means no air to ground communications, and MOA altitudes are the floor.",
+   "source": "Chart Users' Guide, PDF p. 21"
+  },
+  "f8": {
+   "file": "CA.I.E-8.jpg",
+   "res": "2",
+   "page": 17,
+   "caption": "Chart Users' Guide: Class E vignettes, Class G and special use airspace symbols (p 17).",
+   "alt": "Text and symbols. A magenta vignette marks Class E with a floor of 700 ft above the surface, a second magenta band marks a 700 ft floor that abuts 1,200 ft or higher Class E, and a cyan band marks a 1,200 ft or higher floor that abuts Class G. A 2400 AGL over 4500 MSL floor symbol is shown. Below, blue prohibited, restricted or warning area box, magenta alert area A-631 box and magenta MOA box.",
+   "source": "Chart Users' Guide, PDF p. 17"
+  },
+  "f9": {
+   "file": "CA.I.E-9.jpg",
+   "res": "2",
+   "page": 18,
+   "caption": "Chart Users' Guide: national security areas, TFRs, ADIZ, TRSA and military training routes (p 18).",
+   "alt": "Paragraphs with small line samples. National security areas use a broken magenta line and SFRAs a blue dash symbol. The DC Flight Restricted Zone uses prohibited-area hatching. TFRs relating to national security use a broken blue line, ADIZ a dotted magenta symbol, and national defense airspace TFRs cross hatching. The text says only national-security TFRs are charted.",
+   "source": "Chart Users' Guide, PDF p. 18"
   }
  },
  "scenario": {
@@ -1021,6 +1082,77 @@
    ],
    "answer": 1,
    "why": "No part 91 or part 135 operation may be conducted in the DC FRZ unless the flight operates under an FAA/TSA authorization [[60:706|14 CFR 93.341(a)]]."
+  },
+  {
+   "q": "In the tabulation, A-220 shows NO A/G in the agency column. What does that tell you?",
+   "options": [
+    "You need an ATC clearance before entering",
+    "The area has no altitude limit",
+    "There is no air-to-ground communication; contact the nearest FSS for information",
+    "The area is closed to all aircraft"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The notes define NO A/G as no air to ground communications and say to contact the nearest FSS [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "R-6602 B is listed as 4000 TO BUT NOT INCL 11,000. At which altitude is a pilot flying in R-6602 B?",
+   "options": [
+    "10,500 ft MSL",
+    "11,000 ft MSL",
+    "11,500 ft MSL",
+    "3,500 ft MSL"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "The area runs from 4,000 ft up to but not including 11,000 ft MSL. 11,000 is the floor of R-6602 C [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "Buckeye MOA is listed with an altitude of 5000. What does 5000 mean?",
+   "options": [
+    "Its ceiling is 5,000 ft MSL",
+    "The MOA is 5,000 ft wide",
+    "It is active until 5,000 ft AGL",
+    "It is the floor, and the MOA runs up to but not including FL 180 unless noted"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "The note says altitudes in the MOA table indicate the floor, and all MOAs extend to but do not include FL 180 unless otherwise noted [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "A magenta vignette runs along the edge of Class E airspace. What does it mark?",
+   "options": [
+    "A Class E floor 700 ft above the surface",
+    "A Class E floor of 1,200 ft or more",
+    "Class E that starts at the surface",
+    "A transition area for Class B"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "Magenta vignettes define Class E floors of 700 ft above the ground; blue vignettes mark higher floors that abut Class G [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "Your sectional shows no TFR on your route. What does that prove?",
+   "options": [
+    "Nothing. Only national-security TFRs are charted, so check NOTAMs",
+    "The route is clear of every TFR",
+    "Only that no MOA is active",
+    "That TFRs do not exist at that altitude"
+   ],
+   "answer": 0,
+   "figure": "f9",
+   "why": "The chart shows only TFRs relating to national security. The actual NOTAM text holds the details [[2:18|Chart Users' Guide p 18]]."
+  },
+  {
+   "q": "You cruise at 11,500 ft MSL in Class E airspace. What flight visibility and distance from clouds does VFR require?",
+   "options": [
+    "3 SM; 500 ft below, 1,000 ft above, 2,000 ft horizontal",
+    "5 SM; 1,000 ft below, 1,000 ft above, 1 SM horizontal",
+    "3 SM; clear of clouds",
+    "1 SM; clear of clouds"
+   ],
+   "answer": 1,
+   "why": "At or above 10,000 ft MSL in Class E: 5 SM, 1,000 ft below, 1,000 ft above and 1 SM horizontal [[60:465|14 CFR 91.155(a)]]."
   }
  ],
  "takeaways": [
@@ -1326,6 +1458,79 @@
      "why": "On SVFR you must stay clear of clouds, and you are still responsible for obstacle clearance [[33:278|AIM 4-4-6]]. Tell ATC and get a revised plan [[33:184|AIM 3-2-4]]."
     }
    ]
+  },
+  {
+   "type": "label",
+   "title": "Read the SUA table",
+   "figure": "f7",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 5.9,
+     "y": 35.3,
+     "label": "Restricted area number"
+    },
+    {
+     "x": 18.7,
+     "y": 35.3,
+     "label": "Altitude limits"
+    },
+    {
+     "x": 63.0,
+     "y": 35.3,
+     "label": "Controlling agency"
+    },
+    {
+     "x": 63.0,
+     "y": 55.3,
+     "label": "No air-to-ground communication"
+    },
+    {
+     "x": 8.4,
+     "y": 75.9,
+     "label": "MOA name"
+    },
+    {
+     "x": 40.4,
+     "y": 86.7,
+     "label": "Sunrise to sunset, other times by NOTAM"
+    }
+   ],
+   "key": "h8",
+   "after": 14
+  },
+  {
+   "type": "match",
+   "title": "Security and route symbols",
+   "intro": "Tap a chart sign, then what it means.",
+   "pairs": [
+    {
+     "l": "Broken magenta line",
+     "r": "National security area"
+    },
+    {
+     "l": "Broken blue line",
+     "r": "TFR relating to national security"
+    },
+    {
+     "l": "Dotted magenta pattern",
+     "r": "Air Defense Identification Zone"
+    },
+    {
+     "l": "Cross hatching",
+     "r": "National defense airspace TFR, 12+ months"
+    },
+    {
+     "l": "Screened black outline with sector altitudes",
+     "r": "Terminal Radar Service Area"
+    },
+    {
+     "l": "IR21 on a gray line",
+     "r": "IFR military training route"
+    }
+   ],
+   "key": "h9",
+   "after": 14
   }
  ],
  "final_quiz": [
@@ -1471,6 +1676,41 @@
    ],
    "answer": 2,
    "why": "No flight in an active restricted area without permission of the using or controlling agency [[60:456|14 CFR 91.133(a)]]. Managing external pressure means accepting delays [[1:49|PHAK 2-10]]."
+  },
+  {
+   "q": "A-220 is charted next to a Class D airport. Does the alert area reach into the Class D airspace?",
+   "options": [
+    "Yes, to the surface",
+    "Yes, but only at night",
+    "Yes, above 4,000 ft AGL",
+    "No, alert areas do not extend into Class A, B, C or D airspace or Class E surface areas"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "The note under the alert area table says alert areas do not extend into those airspace areas [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "A military training route is numbered VR1007. What does the number tell you?",
+   "options": [
+    "It has a segment above 1,500 ft AGL and is flown mainly IFR",
+    "No segment is above 1,500 ft AGL, and it is generally flown under VFR",
+    "The route is 1,007 NM long",
+    "It is a route for helicopters only"
+   ],
+   "answer": 1,
+   "figure": "f9",
+   "why": "Four-digit routes have no segment above 1,500 ft and are generally flown VFR. Routes with a segment above 1,500 ft AGL have three or fewer digits, such as IR21, and are flown IFR when possible [[2:18|Chart Users' Guide p 18]]."
+  },
+  {
+   "q": "You fly at 11,000 ft MSL over terrain at 3,000 ft MSL, outside Class B and C airspace. Your airplane has an engine-driven electrical system. What equipment is required?",
+   "options": [
+    "A transponder with Mode C altitude reporting",
+    "Only a two-way radio",
+    "A VOR receiver",
+    "Nothing, since you are in Class E"
+   ],
+   "answer": 0,
+   "why": "At and above 10,000 ft MSL in the 48 states, excluding airspace at and below 2,500 ft AGL, you need a transponder with altitude reporting [[60:494|14 CFR 91.215(b)(5)(i)]]. Here you are 8,000 ft AGL."
   }
  ]
 }

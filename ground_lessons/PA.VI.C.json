@@ -564,6 +564,41 @@
     "q": "What's the first thing you do once the decision to divert is made in an emergency?",
     "a": "Turn promptly toward the alternate, then work out the details [[1:422|PHAK 16-35]]."
    }
+  },
+  {
+   "title": "Reading the chart: which divert field can you trust?",
+   "kind": "knowledge",
+   "codes": [
+    "PA.VI.C.K1",
+    "PA.VI.C.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "When you must divert, the chart helps you rank the choices at a glance. Look at the symbol first, then confirm the details in the Chart Supplement before you rely on them."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "Some symbols are warnings. A circled R is a restricted or private field with landmark value, not a public airport. A circled U is unverified. It is available but needs more than ordinary care because current field information is missing or the field has odd operating limits. A circled X is an abandoned field, charted for landmark value or to avoid confusion with a usable field nearby [[2:23|Chart Users' Guide p 23]]."
+    },
+    {
+     "p": "The word OBJECTIONABLE beside an airport means an airspace review found a problem, such as conflicting traffic patterns, hazardous runway conditions, or obstacles near the landing area [[2:23|Chart Users' Guide p 23]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "Tick marks around an airport symbol show fuel, but the chart does not promise it is for sale right now. Check the Chart Supplement. A circled F is an ultralight flight park, and an H in a circle is a heliport [[2:14|Chart Users' Guide p 14]] [[2:23|Chart Users' Guide p 23]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "A charted airport is not always a usable airport. Before you choose a divert field, check its symbol, then NOTAMs and the Chart Supplement when you can."
+     }
+    }
+   ]
   }
  ],
  "figures": {
@@ -606,6 +641,22 @@
    "caption": "Figure 1-11. Proper scanning techniques can mitigate midair collisions. Pilots should be aware of potential blind spots and attempt to clear the entire area in which they are maneuvering.",
    "alt": "A high-wing airplane flying directly above another high-wing airplane, with a shaded band between them labeled Blind spots where neither pilot can see the other.",
    "source": "AFH, PDF p. 32"
+  },
+  "f6": {
+   "file": "PA.VI.C-6.jpg",
+   "res": "2",
+   "page": 14,
+   "caption": "Chart Users' Guide: military and foreign airports, fuel tick marks and landmark-value letters.",
+   "alt": "Legend text and symbols. Military airports are shown as double rings, magenta and blue, for other than hard-surfaced runways. A foreign airport is a plain gray ring. U.S. military airports have names with abbreviations such as AAF, AFB, MCAS, NAS, NAV and NAAS. A magenta airport symbol with tick marks shows fuel available. A row at the bottom shows circled letters H, F, U, R and a circle with an X.",
+   "source": "Chart Guide, PDF p. 14"
+  },
+  "f7": {
+   "file": "PA.VI.C-7.jpg",
+   "res": "2",
+   "page": 23,
+   "caption": "Chart Users' Guide: landmark-value airports, including private, unverified and abandoned.",
+   "alt": "Right column of the airport legend. An ultralight flight park is a circled F. Under landmark value are a plain circle for public use with a soft surface or a hard surface under 1,500 feet and no fuel, a circled R for restricted or private, a circle labeled OBJECTIONABLE, a circled U for unverified, and a circled X for abandoned.",
+   "source": "Chart Guide, PDF p. 23"
   }
  },
  "scenario": {
@@ -769,6 +820,77 @@
    ],
    "answer": 2,
    "why": "If you fail to report or cancel within 1/2 hour after your ETA, search and rescue procedures start [[33:339|AIM 5-1-14]]."
+  },
+  {
+   "q": "A circled R marks an airport on the sectional. What is it?",
+   "options": [
+    "A military airport",
+    "A restricted or private airport with landmark value",
+    "An airport with a control tower",
+    "An airport with a rotating beacon"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "A circled R is the restricted or private symbol: non-public use having landmark value [[2:23|Chart Users' Guide p 23]]."
+  },
+  {
+   "q": "A circled U marks an airport on the sectional. What does it tell you?",
+   "options": [
+    "It has an unlimited runway",
+    "It is an ultralight park",
+    "It is available but needs extra care, because field information is missing or limited",
+    "It is a U.S. Air Force base"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "Unverified means a landing area that is available but warrants more than ordinary precaution, due to a lack of current field information or peculiar operating limits [[2:23|Chart Users' Guide p 23]]."
+  },
+  {
+   "q": "A circle with an X through it appears on the chart. What is it?",
+   "options": [
+    "An abandoned airport, shown for landmark value or to avoid confusion with a usable field",
+    "A busy airport with extra runways",
+    "An airport with fuel",
+    "A new airport opening soon"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "The X in a circle is the abandoned symbol [[2:23|Chart Users' Guide p 23]]."
+  },
+  {
+   "q": "What do tick marks around an airport symbol mean?",
+   "options": [
+    "The airport is private",
+    "The airport is lighted all night",
+    "A tower is on the field",
+    "Fuel is available. Check the Chart Supplement for details"
+   ],
+   "answer": 3,
+   "figure": "f6",
+   "why": "Fuel availability is shown by tick marks. Consult the Chart Supplement for details [[2:14|Chart Users' Guide p 14]]."
+  },
+  {
+   "q": "Which symbol on the legend marks an ultralight flight park?",
+   "options": [
+    "A circled F",
+    "A circled H",
+    "A circled U",
+    "A circled R"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "An ultralight flight park is a circled F. H is a heliport [[2:23|Chart Users' Guide p 23]] [[2:14|Chart Users' Guide p 14]]."
+  },
+  {
+   "q": "Your engine quits and the only place to land is a closed road below the usual minimum altitudes. May you deviate from those rules under 14 CFR 91.3(b)?",
+   "options": [
+    "No. Rules cannot be broken for any reason",
+    "Yes, only as far as needed to meet the emergency",
+    "Yes, but only with an ATC clearance",
+    "Yes, and you may ignore every other rule too"
+   ],
+   "answer": 1,
+   "why": "In an in-flight emergency requiring immediate action, the pilot in command may deviate from any rule of Part 91 to the extent required to meet that emergency. This is 14 CFR 91.3(b)."
   }
  ],
  "takeaways": [
@@ -929,6 +1051,46 @@
     "Use the nearest winds aloft to figure heading and groundspeed",
     "Work out the new arrival time and fuel burn"
    ]
+  },
+  {
+   "type": "label",
+   "figure": "f7",
+   "title": "Read the landmark-value legend",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 75.1,
+     "y": 5.7,
+     "label": "Ultralight flight park (F)"
+    },
+    {
+     "x": 41.1,
+     "y": 19.2,
+     "label": "Public use, soft or short hard runway, no fuel (plain circle)"
+    },
+    {
+     "x": 40.4,
+     "y": 33.2,
+     "label": "Restricted or private airport (R)"
+    },
+    {
+     "x": 41.9,
+     "y": 43.5,
+     "label": "Objectionable airport"
+    },
+    {
+     "x": 40.6,
+     "y": 66.0,
+     "label": "Unverified landing area (U)"
+    },
+    {
+     "x": 41.1,
+     "y": 91.2,
+     "label": "Abandoned airport (X)"
+    }
+   ],
+   "key": "h5",
+   "after": 10
   }
  ],
  "final_quiz": [
@@ -1077,6 +1239,41 @@
    ],
    "answer": 0,
    "why": "Scan in short, regular eye movements of no more than 10 degrees, and look at each area for at least 1 second [[16:12|AC 90-48E, para 12]]. Traffic displays don't replace see and avoid [[16:14|AC 90-48E, para 15]]."
+  },
+  {
+   "q": "What does a plain gray ring on the legend show?",
+   "options": [
+    "A military airport with no tower",
+    "An abandoned airport",
+    "A foreign airport",
+    "A heliport"
+   ],
+   "answer": 2,
+   "figure": "f6",
+   "why": "Foreign airports are shown with a plain gray ring [[2:14|Chart Users' Guide p 14]]. Military airports are double rings."
+  },
+  {
+   "q": "Which abbreviation in an airport name tells you it is a U.S. military airport?",
+   "options": [
+    "NAS, for Naval Air Station",
+    "FSS",
+    "AWOS",
+    "CTAF"
+   ],
+   "answer": 0,
+   "figure": "f6",
+   "why": "U.S. military airports use abbreviations such as AAF, AFB, MCAS, NAS, NAV and NAAS [[2:14|Chart Users' Guide p 14]]."
+  },
+  {
+   "q": "You used 14 CFR 91.3(b) to deviate from a rule in an emergency. What does 14 CFR 91.3(c) say you must do?",
+   "options": [
+    "File a report with the tower the same hour",
+    "Send a written report of the deviation if the Administrator asks for one",
+    "Send a report only if someone was hurt",
+    "Nothing, because emergencies cancel all reports"
+   ],
+   "answer": 1,
+   "why": "A pilot in command who deviates from a rule in an emergency must send a written report to the Administrator on request. This is 14 CFR 91.3(c)."
   }
  ]
 }
