@@ -1051,10 +1051,10 @@
   {
    "q": "The TO flag is showing on your VOR. What does that tell you?",
    "options": [
-    "The selected course, if flown, takes you to the station",
-    "Your nose is pointed at the station",
+    "The selected course would take you to the station",
+    "The airplane's heading is pointed directly at the station",
     "You are flying inbound on the radial set in the OBS",
-    "You have already passed the station"
+    "You have passed the station and are now flying away from it"
    ],
    "answer": 0,
    "why": "TO/FROM shows where the selected course takes you, not where you are heading [[23:254|IFH 9-11]]."
@@ -1139,10 +1139,10 @@
   {
    "q": "Your autopilot shows NAV in white and HDG in green. What is the autopilot doing?",
    "options": [
-    "Flying the heading bug, with nav armed but not engaged",
-    "Tracking the nav course",
-    "Flying wings level with no mode",
-    "Both modes are failed"
+    "Flying the heading bug, with NAV armed, not engaged",
+    "Tracking the nav course, with heading mode only armed",
+    "Flying wings level in roll mode, with neither mode engaged",
+    "Both modes are failed, so the autopilot has disconnected"
    ],
    "answer": 0,
    "why": "Green annunciators are engaged; white ones are armed but not engaged [[30:52|RMH 7-3]]."
@@ -1366,10 +1366,10 @@
     {
      "s": "Before departure you see the last VOR check was 33 days ago. Your airport has a VOT.",
      "options": [
-      "Depart; the GPS will cover you",
-      "Check that both VOR needles move, then depart",
-      "Depart and do an airborne check later in the clouds",
-      "Do a VOT check, confirm ±4°, and log date, place, error and signature"
+      "Depart on the GPS and skip the VOR check, since the GPS will cover you",
+      "Check that both VOR needles move and the flags clear, then depart",
+      "Depart now and do an airborne check later, once you are in the clouds",
+      "Do a VOT check within ±4° and log date, place, error and signature"
      ],
      "answer": 3,
      "why": "The check must be within 30 days to use VORs under IFR. A VOT check allows ±4°, and you must log date, place, bearing error and signature [[60:470|14 CFR 91.171]] [[60:471|14 CFR 91.171(d)]]."
@@ -1399,10 +1399,10 @@
     {
      "s": "On the arc, the bearing pointer is on the wingtip and the DME reads 10.8 and rising. The wind is pushing you away from the station.",
      "options": [
-      "Turn about 20° away from the station",
-      "Hold heading and wait",
-      "Turn about 20° toward the station and keep the pointer ahead of the wingtip",
-      "Turn 90° toward the station"
+      "Turn about 20° away from the station and keep the pointer behind the wingtip",
+      "Hold heading and wait for the wind to carry you back to the arc",
+      "Turn about 20° toward the station, pointer ahead of the wingtip",
+      "Turn 90° toward the station and hold it until the DME reads 10.0"
      ],
      "answer": 2,
      "why": "½ to 1 mile outside with the pointer on the wingtip: turn 20° toward the facility. With wind pushing you away, keep the pointer ahead of the wingtip [[23:261|IFH 9-18]]. Stay within ±1 NM (ACS IR.V.A.S6)."
@@ -1410,10 +1410,10 @@
     {
      "s": "Later, coupled to GPS on the arc, the map position jumps two miles and a position-error message appears.",
      "options": [
-      "Keep the autopilot on GPS and wait for it to recover",
-      "Climb 1,000 ft without a clearance for better reception",
-      "Reset the GPS while the autopilot keeps flying",
-      "Select heading mode, fly the arc on VOR and DME raw data, and tell ATC"
+      "Keep the autopilot coupled to GPS and wait for the position to recover",
+      "Climb 1,000 ft without a clearance to get better satellite reception",
+      "Reset the GPS while the autopilot keeps flying the last heading",
+      "Use heading mode, fly the arc on raw VOR/DME data, and tell ATC"
      ],
      "answer": 3,
      "why": "A large position shift and position-error warnings can mean jamming or spoofing. Verify with conventional NAVAIDs, be ready to revert, and tell ATC promptly [[33:119|AIM 1-2-4]] [[33:120|AIM 1-2-4]]. Step down the automation level to keep control [[30:51|RMH 7-2]]."
@@ -1421,10 +1421,10 @@
     {
      "s": "Then the VOR flag drops into view and stays. You still have DME but no course guidance.",
      "options": [
-      "Report it: aircraft ID, equipment affected, how IFR capability is impaired, and help wanted",
-      "Keep flying the arc by DME alone and say nothing",
-      "Squawk 7600",
-      "Switch the GPS back on and continue the approach"
+      "Report it with aircraft ID, equipment, degree of impairment and help wanted",
+      "Keep flying the arc by DME alone, and say nothing to ATC until you are on the ground",
+      "Squawk 7600 and continue as if you had lost two-way radio communications",
+      "Switch the GPS back on and continue the approach without telling ATC about the VOR"
      ],
      "answer": 0,
      "why": "Under IFR in controlled airspace, report nav malfunctions to ATC as soon as practical with those four items [[60:483|14 CFR 91.187]]. A flag means the signal is not usable [[23:254|IFH 9-11]]."
@@ -1508,10 +1508,10 @@
   {
    "q": "Your VOR check was 35 days ago and the VOR is not on an approved maintenance procedure. Can you use VOR navigation under IFR today?",
    "options": [
-    "Yes; the check is good for 90 days",
-    "Yes, as long as the station's ident is heard",
-    "Yes, if a second VOR agrees within 6°",
-    "Not until you do a new check within limits and log it"
+    "Yes; a VOR check stays good for 90 days from the date it was done",
+    "Yes, as long as the station's ident is heard and the needle is steady",
+    "Yes, if a second VOR on the same station agrees within 6°",
+    "No; do a new check within limits and log it first"
    ],
    "answer": 3,
    "why": "The check must be within the preceding 30 days [[60:470|14 CFR 91.171(a)]], logged with date, place, bearing error and signature [[60:471|14 CFR 91.171(d)]]. Dual VORs must agree within 4°, not 6°."
@@ -1552,10 +1552,10 @@
   {
    "q": "Your IFR GPS is TSO-C129 (no WAAS). Which equipment must also be installed and working for an en route IFR flight?",
    "options": [
-    "Nothing else; RAIM covers it",
-    "A hand-held GPS as backup",
-    "Avionics to receive the ground-based NAVAIDs for the route and any required alternate",
-    "An ADF only"
+    "Nothing else, because RAIM monitoring covers any outage of the ground-based NAVAIDs",
+    "A second hand-held GPS receiver as a backup for the panel-mounted unit, and nothing more",
+    "Avionics for the ground-based NAVAIDs on the route and any required alternate",
+    "An ADF receiver only, since the GPS replaces the VOR and DME"
    ],
    "answer": 2,
    "why": "With TSO-C129() or C196() receivers, the avionics for all ground-based facilities on the route to the destination and alternate must be installed and operational [[33:94|AIM 1-1-17]]."
@@ -1563,10 +1563,10 @@
   {
    "q": "Near a NOTAMed area, your GPS position jumps and the clock shows the wrong time. What is the best action?",
    "options": [
-    "Keep the autopilot on GPS; RAIM will catch it",
-    "Crosscheck with VOR/DME, revert to conventional navigation and tell ATC",
-    "Reset the GPS and continue on the magenta line",
-    "Climb to get better satellite reception and keep going"
+    "Keep the autopilot coupled to GPS, since RAIM will flag any bad position data",
+    "Crosscheck with VOR/DME, revert to conventional navigation, tell ATC",
+    "Reset the GPS receiver and continue on the magenta line once it recovers",
+    "Climb to get better satellite reception and keep going on the GPS course"
    ],
    "answer": 1,
    "why": "Position jumps and clock errors are signs of jamming or spoofing. Verify with conventional NAVAIDs, be ready to revert, and notify ATC promptly [[33:119|AIM 1-2-4]] [[33:120|AIM 1-2-4]]. Inside a known NOTAMed test area, you need to report it to ATC only if you need help [[33:120|AIM 1-2-4]]."
@@ -1607,10 +1607,10 @@
   {
    "q": "You are hand-flying an intercept while ATC gives you a new clearance and you must load a new approach. What does the RMH suggest?",
    "options": [
-    "Turn the autopilot off so you can feel the airplane",
-    "Load the approach first, then fix the heading",
-    "Ignore the clearance until established",
-    "Use the autopilot to fly the intercept so you can do the other tasks"
+    "Turn the autopilot off so you can feel the airplane and stay in the loop",
+    "Load the approach first, then fix the heading once the box is done",
+    "Ignore the clearance until you are established on the intercept",
+    "Let the autopilot fly the intercept while you do the other tasks"
    ],
    "answer": 3,
    "why": "The autopilot can make the control inputs while you complete other tasks, reducing workload [[30:51|RMH 7-2]]."
