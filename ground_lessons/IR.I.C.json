@@ -1247,8 +1247,8 @@
    "q": "After you reach the alternate, how much more fuel does 14 CFR 91.167 require in an airplane?",
    "options": [
     "45 minutes at best economy power",
-    "30 minutes at normal cruising speed",
-    "1 hour at normal cruising speed",
+    "30 minutes at normal cruising speed, the same as the day VFR rule",
+    "1 hour at normal cruising speed, because the flight is under IFR",
     "45 minutes at normal cruising speed"
    ],
    "answer": 3,
@@ -1279,10 +1279,10 @@
   {
    "q": "You fly IFR to an airport with no operating control tower. Who closes the IFR flight plan?",
    "options": [
-    "You do, after landing or in the air while in VFR conditions",
-    "The nearest tower, automatically",
-    "Center, when you leave its radar",
-    "Nobody; it closes 30 minutes after your ETA"
+    "You do, after landing or in the air once in VFR conditions",
+    "The nearest control tower, automatically, when you touch down",
+    "Center, automatically, when you leave its radar coverage on descent",
+    "Nobody; the flight plan closes itself 30 minutes after your ETA passes"
    ],
    "answer": 0,
    "why": "At an airport without a tower, the pilot must cancel, after landing or in the air if VFR [[33:340|AIM 5-1-15f]]. Only a towered landing closes it automatically [[33:340|AIM 5-1-15e]]."
@@ -1301,10 +1301,10 @@
   {
    "q": "On preflight you find a light layer of frost on top of the wing. What does AC 91-74B say?",
    "options": [
-    "Remove it only if you will enter clouds",
-    "Light frost is fine because it blows off on the takeoff roll",
-    "Add 10 knots to rotation speed instead",
-    "Remove all of it; even small amounts can hurt the wing's aerodynamics"
+    "Remove it only if you will be flying into clouds or visible moisture",
+    "Light frost is fine because it blows off during the takeoff roll",
+    "Add 10 knots to your rotation speed instead of removing the frost",
+    "Remove all of it; even a small amount can hurt the wing"
    ],
    "answer": 3,
    "why": "Remove all frost, snow and ice; even very small amounts may hurt the wing [[38:46|AC 91-74B 5-4a(9)]]. Do not assume anything blows off [[38:47|AC 91-74B 5-4b(4)]]."
@@ -1513,10 +1513,10 @@
     {
      "s": "The airways on that route have an MEA of 6,000 ft and no MOCA. The freezing level is forecast at 8,000 ft, with cloud tops near 11,000 ft. What altitude do you plan?",
      "options": [
-      "5,000 ft, to stay farther below the freezing level",
+      "5,000 ft, to stay even farther below the freezing level than 6,000 ft",
       "6,000 ft: legal, and 2,000 ft below the freezing level",
-      "8,000 ft, for more glide distance",
-      "12,000 ft, on top of the clouds"
+      "8,000 ft, right at the forecast freezing level, for more glide distance",
+      "12,000 ft, on top of the clouds, above the 11,000 ft tops"
      ],
      "answer": 1,
      "why": "No one may fly IFR below the minimum altitudes of part 95, such as the MEA; going lower is allowed only down to a charted MOCA, and this route has none [[60:480|14 CFR 91.177(a)(1)]]. The MEA is the lowest published altitude between fixes that assures navigation signal coverage and obstacle clearance [[2:69|Chart Users' Guide p 69]], so 5,000 ft is out. 6,000 ft is the lowest legal altitude and keeps you 2,000 ft below the forecast freezing level; an airplane without ice protection must avoid icing [[38:32|AC 91-74B 3-13b]]."
@@ -1535,10 +1535,10 @@
     {
      "s": "Your briefing includes a NOTAM: Airport A's ILS localizer is out of service. Its VOR approach still works, and the forecast there is still 900 ft and 3 SM. What now?",
      "options": [
-      "Keep A and plan the ILS anyway; NOTAMs are only advice",
-      "Switch to Airport B, since it has a VOR approach too",
+      "Keep A and plan the ILS anyway; NOTAMs are only advice and may be ignored",
+      "Switch to Airport B, since it has a VOR approach too and A has lost its ILS",
       "Keep A: its VOR approach needs 800-2, and 900-3 meets it",
-      "Cancel the trip; no alternate can work now"
+      "Cancel the trip; with the ILS out of service no alternate can work now"
      ],
      "answer": 2,
      "why": "NOTAMs tell you the status of NAVAIDs [[33:324|AIM 5-1-3b]]. Without the ILS, A counts as a nonprecision alternate: 800 ft and 2 SM [[60:470|14 CFR 91.169(c)(1)]]. 900-3 still meets that. B's 700 ft forecast still fails."
@@ -1557,10 +1557,10 @@
     {
      "s": "Halfway there, a stronger headwind and an ATC reroute leave you with 22 gallons and 1+15 still to go to the destination. Airport A is still 0+25 beyond it, at 10 GPH. What do you do?",
      "options": [
-      "Keep going; the fuel rule only counts at takeoff",
+      "Keep going; the fuel rule only counts at takeoff, not once you are en route",
       "Tell ATC and land at an airport along the route for fuel",
-      "Drop the alternate from your plan and continue",
-      "Slow down and continue, hoping the wind eases"
+      "Drop the alternate from your plan and continue to the destination as planned",
+      "Slow down and continue to the destination, hoping the headwind eases soon"
      ],
      "answer": 1,
      "why": "You now need 1:15 + 0:25 + 0:45 = 2:25, about 24.2 gallons, but have 22 [[60:468|14 CFR 91.167(a)]]. The go/no-go decision is reevaluated during the flight and may mean landing at an intermediate spot [[23:321|IFH 10-30]]."
@@ -1650,9 +1650,9 @@
    "q": "Your planned alternate has an ILS and a VOR approach, both with standard alternate minimums. The forecast there at your ETA is ceiling 700 ft, visibility 3 SM. Which is true?",
    "options": [
     "It qualifies based on the ILS (600-2), but the VOR approach alone would not",
-    "It cannot be listed, because every alternate needs 800-2",
-    "It qualifies only if the destination forecast is better than 2,000-3",
-    "It qualifies only with published alternate minimums of 700-3"
+    "It cannot be listed, because every alternate needs at least 800-2 whatever the approach",
+    "It qualifies only if the destination forecast is better than 2,000-3 at your ETA",
+    "It qualifies only if the approach plate publishes alternate minimums of 700-3 for it"
    ],
    "answer": 0,
    "why": "Standard minimums are 600-2 for a precision approach and 800-2 for a nonprecision approach [[60:470|14 CFR 91.169(c)(1)]]. 700-3 meets the ILS standard but not the VOR one."
@@ -1661,9 +1661,9 @@
    "q": "You want to list an airport with no instrument approach as your alternate. What weather must be forecast there at your ETA?",
    "options": [
     "Weather that allows descent from the MEA, approach and landing under basic VFR",
-    "Ceiling 800 ft and visibility 2 SM",
-    "Ceiling 2,000 ft and visibility 3 SM",
-    "Nothing; it can never be an alternate"
+    "Ceiling 800 ft and visibility 2 SM, the same as for a nonprecision approach alternate",
+    "Ceiling 2,000 ft and visibility 3 SM, the same as the 1-2-3 rule at the destination",
+    "Nothing; an airport with no instrument approach can never be listed as an alternate"
    ],
    "answer": 0,
    "why": "With no published approach, the minimums are those that allow descent from the MEA, approach and landing under basic VFR [[60:470|14 CFR 91.169(c)(2)]]."
@@ -1671,10 +1671,10 @@
   {
    "q": "Your GPS is non-WAAS (TSO-C129) with FDE (fault detection and exclusion), and you will do a RAIM prediction. The destination and your planned alternate both have only RNAV (GPS) approaches. What does the AIM allow?",
    "options": [
-    "GPS approaches at both, since RAIM is predicted",
-    "A GPS approach at one of them, not both, so the alternate needs a non-GPS approach",
-    "Filing only if the alternate has LPV minimums",
-    "No GPS approaches at all for IFR planning"
+    "GPS approaches at both airports, since the RAIM prediction covers the whole flight",
+    "A GPS approach at one of them, not both; the other needs a non-GPS approach",
+    "Filing only if the alternate's RNAV (GPS) approach has LPV minimums published",
+    "No GPS approaches at all when planning IFR, so both need ground-based approaches"
    ],
    "answer": 1,
    "why": "These users may plan a GPS approach at the destination or the alternate, but not both [[33:118|AIM 1-2-3d1]]. Otherwise the alternate needs a non-GPS approach [[33:118|AIM 1-2-3d2]]."
@@ -1705,9 +1705,9 @@
    "q": "You plan to cruise at a cabin pressure altitude of 13,500 ft for 50 minutes. What does 14 CFR 91.211 require of the required crew?",
    "options": [
     "Oxygen for the 20 minutes beyond the first 30",
-    "Oxygen for the entire 50 minutes",
-    "Oxygen provided to every passenger",
-    "Nothing; oxygen starts above 14,000 ft"
+    "Oxygen for the entire 50 minutes at that cabin altitude",
+    "Oxygen provided to every passenger for the whole 50 minutes",
+    "Nothing yet; the oxygen requirement only starts above 14,000 ft"
    ],
    "answer": 0,
    "why": "Above 12,500 up to 14,000 ft, the crew uses oxygen for the part of the flight there that is more than 30 minutes [[60:491|14 CFR 91.211(a)(1)]]. 50 - 30 = 20 minutes."
@@ -1726,10 +1726,10 @@
   {
    "q": "At an airport without a tower your clearance is void if not off by 1430Z. At 1428 you are still holding short with a rough magneto. What should you do?",
    "options": [
-    "Depart VFR squawking your IFR code and call Center in the air",
-    "Take off now; the void time has a few minutes of grace",
+    "Depart VFR, keep squawking your IFR code, and call Center once airborne",
+    "Take off now; a void time has a few minutes of grace built into it",
     "Stay on the ground and tell ATC your intentions as soon as possible",
-    "Nothing; the IFR flight plan cancels itself"
+    "Nothing; the clearance and flight plan cancel themselves at the void time"
    ],
    "answer": 2,
    "why": "If you do not depart before the void time, advise ATC as soon as possible, within the time ATC gives (30 minutes at most) [[33:347|AIM 5-2-7a1]]. Do not depart VFR on the old IFR code [[33:348|AIM 5-2-7a1]]."
@@ -1737,10 +1737,10 @@
   {
    "q": "Your airplane has VHF radios, a VOR, an ILS receiver, a WAAS GPS and a Mode C transponder, but no ADS-B. How do you code it?",
    "options": [
-    "Item 10a: G only; Item 10b: S",
+    "Item 10a: G only; Item 10b: S; Item 18: NAV/SBAS",
     "Item 10a: S and G; Item 10b: C; Item 18: NAV/SBAS",
-    "Item 10a: S, G and L; Item 10b: B1",
-    "Item 10a: N; Item 10b: C"
+    "Item 10a: S, G and L; Item 10b: B1; Item 18: NAV/SBAS",
+    "Item 10a: N; Item 10b: C; Item 18: no entry needed for GPS"
    ],
    "answer": 1,
    "why": "S covers VHF radio, VOR and ILS; G is GNSS, with NAV/SBAS in Item 18 for WAAS; C is a Mode C transponder [[34:277|AIM App 4]] [[34:278|AIM App 4]]. B1 would claim ADS-B you do not have."
@@ -1748,10 +1748,10 @@
   {
    "q": "Your departure airport is not listed in the Chart Supplement's preferred IFR routes, but a nearby listed airport has one to your destination. What does the IPH say?",
    "options": [
-    "Preferred routes cannot be used from unlisted airports",
-    "You must file direct to avoid conflicts",
+    "Preferred routes cannot be used at all from airports that are not listed there",
+    "You must file direct, because an unlisted airport has no preferred route to use",
     "You may use the part of the preferred route that fits your departure point",
-    "Ask FSS to create a new preferred route"
+    "Ask FSS to create a new preferred route between your unlisted airport and the destination"
    ],
    "answer": 2,
    "why": "If the departure or arrival point is not listed, you may use the part of a preferred IFR route that is appropriate for it [[29:67|IPH 2-7]]."
@@ -1759,10 +1759,10 @@
   {
    "q": "On approach after picking up some ice in cruise, the airplane behaves oddly as you lower the first notch of flaps. What does AC 91-74B advise?",
    "options": [
-    "Always retract all flaps at once; that cures it",
-    "Add full flaps so you can land slower",
-    "Engage the autopilot in vertical speed mode to hold the path",
-    "Do not add more flap, and change configuration only as the manufacturer advises"
+    "Always retract all flaps at once, since that cures any anomaly caused by ice",
+    "Add full flaps so you can land slower and reduce the approach speed over ice",
+    "Engage the autopilot in vertical speed mode to hold the glidepath steady in ice",
+    "Do not add more flap; change configuration only as the manufacturer advises"
    ],
    "answer": 3,
    "why": "If anomalies occur it may be best not to add flaps; for some airplanes retracting could cause a stall, so follow the manufacturer's guidance [[38:51|AC 91-74B 5-10a(2)]]. Vertical speed mode should not be used in icing [[38:49|AC 91-74B 5-7f]]."
@@ -1770,10 +1770,10 @@
   {
    "q": "You plan to use a tablet app for charts and the route instead of paper. Under AC 91-78A, what must be true of the information it shows?",
    "options": [
-    "The app has an FAA approval number",
+    "The app must carry an FAA approval number before you may rely on it",
     "It is current, up to date and valid, as verified by you",
-    "A mechanic installed the tablet",
-    "You also carry a full paper chart set"
+    "A mechanic installed the tablet and logged it in the aircraft records",
+    "You also carry a full paper chart set as a backup on every flight"
    ],
    "answer": 1,
    "why": "Information used for navigation or performance planning must be current, up to date and valid, as verified by the pilot [[42:3|AC 91-78A 9.1]]."
