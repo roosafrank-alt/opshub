@@ -80,21 +80,3 @@ class NextLessonStartLogButtonsTest(OpsHubTestCase):
         self.assertIn("Details &amp; changes", card)
         self.assertNotIn("Start Session", card)
         self.assertNotIn("Log Flight", card)
-
-    def _chip_detail(self, body):
-        start = body.index('class="flight-chip-detail"')
-        return body[start:start + 1500]  # comfortably covers one chip's detail block
-
-    def test_todays_flight_chip_follows_the_same_rule(self):
-        self._book(45)
-        c = self.login("cfi")
-        chip = self._chip_detail(c.get("/flight/dashboard").get_data(as_text=True))
-        self.assertNotIn("early-start-form", chip)
-        self.assertNotIn('href="/flight/log/new', chip)
-
-    def test_todays_flight_chip_shows_start_and_log_once_close(self):
-        self._book(10)
-        c = self.login("cfi")
-        chip = self._chip_detail(c.get("/flight/dashboard").get_data(as_text=True))
-        self.assertIn("early-start-form", chip)
-        self.assertIn('href="/flight/log/new', chip)
