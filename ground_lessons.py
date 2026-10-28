@@ -153,7 +153,7 @@ def play_plan(lesson, group=3):
             by_chunk.setdefault(after, []).append({"kind": "act", "a": a})
         else:
             free.append({"kind": "act", "a": a})
-    qs = list(enumerate(lesson.get("quiz") or [], 1))
+    qs = with_figures(list(enumerate(lesson.get("quiz") or [], 1)), (lesson.get("figures") or {}).get)  # chart questions show their figure
     groups = [qs[i:i + group] for i in range(0, len(qs), group)]
     quizzes = [{"kind": "quiz", "label": "Quick check %d of %d" % (i + 1, len(groups)), "qs": g}
                for i, g in enumerate(groups)]
