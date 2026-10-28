@@ -1100,10 +1100,10 @@
   {
    "q": "Checking VOR sensitivity, how far should you have to turn the OBS to move the needle from center to the last dot on one side?",
    "options": [
-    "No more than 2 degrees",
+    "No more than 2 degrees either side of the selected course",
     "No more than 10 or 12 degrees",
-    "No more than 4 to 6 degrees",
-    "At least 20 degrees"
+    "No more than 4 to 6 degrees either side, matching the accuracy limit",
+    "At least 20 degrees from center to the last dot on each side"
    ],
    "answer": 1,
    "why": "The course selected should not exceed 10 or 12 degrees either side [[23:259|IFH 9-16]]. 4 and 6 degrees are accuracy limits, not sensitivity [[60:470|14 CFR 91.171]]."
@@ -1133,10 +1133,10 @@
   {
    "q": "Besides corrections, what does the WAAS geostationary satellite add for your receiver?",
    "options": [
-    "A backup VOR signal",
-    "A second frequency for DME",
+    "A backup VOR signal that the receiver uses when ground stations are out of range",
+    "A second frequency for DME that lets the receiver compute slant range more accurately",
     "An extra ranging signal, in effect one more GPS satellite in view",
-    "Radar traffic"
+    "Radar traffic information that is shown on the moving map along with your position"
    ],
    "answer": 2,
    "why": "The GEO gives an additional pseudorange measurement, which improves availability like an extra satellite [[33:102|AIM 1-1-18]]."
@@ -1144,9 +1144,9 @@
   {
    "q": "You are VFR on radar services, landing at a towered airport where basic radar service is provided. When does radar service end?",
    "options": [
-    "When you report the airport in sight",
-    "When you squawk 1200",
-    "Only when the controller says radar service terminated",
+    "When you report the airport in sight and the controller acknowledges the report",
+    "When you are told to squawk 1200 as the controller hands you off to the tower",
+    "Only when the controller says radar service terminated, which you must hear before changing frequency",
     "Automatically when you have landed, without being told"
    ],
    "answer": 3,
@@ -1155,10 +1155,10 @@
   {
    "q": "An airplane with no transponder is flying nearby. Will it appear on your ADS-B In display as TIS-B traffic?",
    "options": [
-    "Yes, TIS-B shows all aircraft radar sees",
-    "Only within 15 NM",
+    "Yes, TIS-B shows every aircraft that the ground radar sees, whether or not it carries a transponder",
+    "Only within 15 NM of your position, where the ground station can see it with its own radar",
     "No, TIS-B only uplinks transponder-equipped aircraft",
-    "Only if it has a UAT receiver"
+    "Only if it has a UAT receiver installed, because TIS-B links go through the 978 MHz UAT"
    ],
    "answer": 2,
    "why": "TIS-B only uplinks data on transponder-equipped aircraft; aircraft without a transponder are not shown [[33:306|AIM 4-5-8]]."
@@ -1166,10 +1166,10 @@
   {
    "q": "While vectored around weather, your GPS keeps jumping to the next waypoint on the route. What prevents this?",
    "options": [
-    "Selecting the approach mode",
-    "Turning off RAIM",
+    "Selecting the approach mode before the receiver reaches the next waypoint",
+    "Turning off RAIM so the receiver stops checking each waypoint it passes near",
     "Placing the receiver in its non-sequencing mode",
-    "Switching the CDI to VOR"
+    "Switching the CDI to VOR so the receiver stops sequencing through the flight plan"
    ],
    "answer": 2,
    "why": "Receivers may sequence when you are off the active route because you pass near a waypoint; the non-sequencing mode stops this [[33:99|AIM 1-1-17]]."
@@ -1201,10 +1201,10 @@
   {
    "q": "VFR with a panel GPS that has no RAIM alerting, your GPS position disagrees with your VOR cross radials by 4 NM. What should you do?",
    "options": [
-    "Trust the GPS; it is more accurate than VOR",
+    "Trust the GPS because it is more accurate than VOR, and continue on its position without a cross-check",
     "Be suspicious of the GPS and cross-check with pilotage and other navigation",
-    "Reset the GPS and continue on its guidance",
-    "Ignore both and fly the heading"
+    "Reset the GPS and continue on its guidance once the position agrees with your original flight plan",
+    "Ignore both and fly the heading until you see a landmark, without using any other navigation"
    ],
    "answer": 1,
    "why": "VFR panel and hand-held units have no RAIM alerting, so use a systematic cross-check and be suspicious of the GPS position if they disagree [[33:90|AIM 1-1-17]]."
@@ -1213,9 +1213,9 @@
    "q": "Your GPS shows a RAIM alert that an error exceeding the limit for this phase of flight was detected. This means:",
    "options": [
     "The receiver detected a potential error and an inconsistency in the solution",
-    "Not enough satellites, but the position is fine",
-    "The database has expired",
-    "WAAS has replaced RAIM"
+    "Not enough satellites are in view to monitor integrity, but the position shown is still fine to use",
+    "The navigation database has expired and the receiver can no longer be used for any navigation at all",
+    "WAAS has replaced RAIM and the receiver is now using the augmentation signal for integrity checks"
    ],
    "answer": 0,
    "why": "There are two RAIM message types; this one means the integrity monitor found a potential error for the phase of flight. The other means not enough satellites to monitor integrity [[33:90|AIM 1-1-17]]."
@@ -1223,10 +1223,10 @@
   {
    "q": "En route, far from any NOTAMed test area, your clock jumps 40 minutes and your map shifts. What is the best action?",
    "options": [
-    "Keep following GPS; clocks often glitch",
-    "Turn off the transponder to reset ADS-B",
+    "Keep following GPS because clocks often glitch, and report it only after you land at your destination",
+    "Turn off the transponder to reset ADS-B, then keep navigating by GPS and wait for it to recover",
     "Verify position with conventional navaids, revert if needed, and promptly tell ATC",
-    "Descend to improve satellite reception"
+    "Descend to improve satellite reception, then continue on GPS guidance until the clock error clears itself"
    ],
    "answer": 2,
    "why": "Clock changes and large position shifts are signs of jamming or spoofing. Verify with conventional navaids and notify ATC promptly [[33:119|AIM 1-2-4]] [[33:120|AIM 1-2-4]]. Outside a NOTAMed area, in-flight reports are wanted [[33:88|AIM 1-1-13]]."
@@ -1245,10 +1245,10 @@
   {
    "q": "On flight following you hear \"low altitude alert, check your altitude immediately.\" What is this, and who decides what to do?",
    "options": [
-    "A clearance you must obey",
-    "A traffic advisory that requires no action",
+    "A clearance you must obey immediately, as a controller's instruction to change altitude or heading",
+    "A traffic advisory that requires no action, since it only describes aircraft near your position",
     "A safety alert; it is solely the pilot's decision what action, if any, to take",
-    "A request to squawk 7700"
+    "A request to squawk 7700 so the controller can identify an aircraft that is in distress"
    ],
    "answer": 2,
    "why": "A safety alert is issued when the controller judges you are in unsafe proximity to terrain, obstructions or aircraft; the action is solely the pilot's prerogative [[33:216|AIM 4-1-16]] [[33:217|AIM 4-1-16]]."
@@ -1256,10 +1256,10 @@
   {
    "q": "Your UAT is in anonymous mode for a local sightseeing flight. You decide to call approach for flight following. What must you do?",
    "options": [
-    "Nothing; ATC sees anonymous targets normally",
+    "Nothing; ATC sees anonymous targets normally, and the feature only hides your tail number from other pilots",
     "Disable the anonymous feature before contacting ATC and make sure the FLT ID matches",
-    "Squawk 1202",
-    "Switch the transponder to standby"
+    "Squawk 1202 and keep the anonymous feature on so ATC can track your target without the FLT ID",
+    "Switch the transponder to standby so only ADS-B Out is seen, then call approach for flight following"
    ],
    "answer": 1,
    "why": "Anonymous mode is only for VFR with 1200 and no ATC services; you must disable it before contacting ATC and ensure your FLT ID matches your aircraft identification [[33:303|AIM 4-5-7]]."
@@ -1268,9 +1268,9 @@
    "q": "You fly VFR at 1,000 ft AGL in Class G airspace, far from any Class B or C, with a working transponder and ADS-B Out. Which is true?",
    "options": [
     "ADS-B Out must keep transmitting; the transponder should stay on if practicable",
-    "Both may be switched off, since Class G is uncontrolled",
-    "The transponder must stay on, but ADS-B Out may be switched off",
-    "Both must be off unless ATC asks for them"
+    "Both may be switched off, since Class G is uncontrolled and no rule requires either one to be on there",
+    "The transponder must stay on, but ADS-B Out may be switched off since the airspace is uncontrolled",
+    "Both must be off in Class G unless ATC asks for them, to avoid cluttering the radar display"
    ],
    "answer": 0,
    "why": "If installed, ADS-B Out must transmit at all times unless ATC directs otherwise [[60:499|14 CFR 91.225]] [[60:500|14 CFR 91.225]]. The transponder rule requires operation in controlled airspace [[60:494|14 CFR 91.215]]; in uncontrolled airspace the AIM says to keep it on if practicable [[33:221|AIM 4-1-20]]. So switching the ADS-B Out off is the wrong half."
@@ -1278,10 +1278,10 @@
   {
    "q": "Your autopilot has flown flawlessly for 200 hours. According to the PHAK, how does that reliability affect your monitoring?",
    "options": [
-    "It lets you monitor less, safely",
+    "It lets you safely monitor the system less, because a proven system rarely makes a mistake",
     "The more reliable the system, the poorer human monitoring tends to be",
-    "It removes the need to know which modes are armed",
-    "It makes hand-flying practice unnecessary"
+    "It removes the need to know which modes are armed, since a reliable autopilot selects them for you",
+    "It makes hand-flying practice unnecessary, since the autopilot will always be there to fly the airplane"
    ],
    "answer": 1,
    "why": "Humans are poor monitors of automated systems, and the more reliable the system, the poorer the human performance [[1:70|PHAK 2-31]]. Pilots should still occasionally hand-fly to keep their skills [[1:66|PHAK 2-27]]."
@@ -1289,9 +1289,9 @@
   {
    "q": "You want an installed tablet mount that takes GPS position from the panel navigator. Under AC 91-78A, what is the condition for that input?",
    "options": [
-    "None; any connection is allowed",
-    "It requires the EFB to be the primary navigator",
-    "Only a portable EFB may take position input",
+    "None; any connection to the panel navigator is allowed as long as the tablet mount is installed",
+    "It requires the EFB to be the primary navigator for the flight, with the panel unit used as a backup",
+    "Only a portable EFB may take position input, because installed units must stay isolated from aircraft systems",
     "It must be designed so it does not adversely affect the navigation source's output"
    ],
    "answer": 3,
@@ -1301,9 +1301,9 @@
    "q": "Approach vectors you VFR toward a cloud layer to sequence you. Which is true?",
    "options": [
     "The vector is advisory; keep ATC told about the weather and do not violate VFR minimums",
-    "You must follow the vector and let ATC handle weather",
-    "The vector authorizes you to enter the cloud",
-    "You must cancel radar service"
+    "You must follow the vector exactly and let ATC handle weather, since ATC is responsible for cloud clearance",
+    "The vector authorizes you to enter the cloud, because ATC would not give it if conditions were unsafe",
+    "You must cancel radar service at once, because VFR flight toward a cloud layer cannot be vectored by ATC"
    ],
    "answer": 0,
    "why": "Radar navigation assistance does not authorize violating the CFRs, and controllers may not know if a vector leads into IFR conditions, so keep them advised [[33:217|AIM 4-1-17]]; terminal services do not relieve you of VFR weather minimums [[33:220|AIM 4-1-18]]."
@@ -1592,9 +1592,9 @@
      "s": "Before departure you noted the NOTAM. What should your plan already include?",
      "options": [
       "VORs to use through the area, extra fuel, and a conventional plan at the destination",
-      "Nothing; WAAS is immune to GPS tests",
-      "A plan to turn off ADS-B in the area",
-      "Climbing above 18,000 ft to avoid the test"
+      "Nothing; WAAS is immune to GPS tests, so no conventional backup or extra fuel is needed in the area",
+      "A plan to turn off ADS-B in the area, so the test does not disturb your transmitted position",
+      "Climbing above 18,000 ft to avoid the test, since the interference only affects lower altitudes"
      ],
      "answer": 0,
      "why": "The FAA recommends knowing risk areas, checking NOTAMs, planning fuel contingencies and planning to use conventional navaids [[33:119|AIM 1-2-4]]. WAAS depends on GPS [[33:119|AIM 1-2-4]]."
@@ -1602,10 +1602,10 @@
     {
      "s": "Inside the NOTAMed area, the map freezes and the GPS shows a loss of integrity. You need no help from ATC.",
      "options": [
-      "Report the outage to ATC in detail right away",
-      "Squawk 7600",
+      "Report the outage to ATC in detail right away, even though you need no help from them",
+      "Squawk 7600 and tell ATC that your navigation display has failed and you need vectors",
       "Do not report it in detail; navigate by VOR and pilotage",
-      "Reboot the GPS repeatedly until it works"
+      "Reboot the GPS repeatedly until it works, since a restart will clear the loss of integrity"
      ],
      "answer": 2,
      "why": "GPS problems inside a known test area should not be reported in detail in flight unless you need help or see unexpected effects [[33:88|AIM 1-1-13]] [[33:120|AIM 1-2-4]]. Revert to conventional navigation [[33:87|AIM 1-1-13]]."
@@ -1613,9 +1613,9 @@
     {
      "s": "You tune the nearest VOR. The needle centers, but you hear no identifier at all.",
      "options": [
-      "Use it; the needle looks normal",
-      "Use it only with FROM showing",
-      "Use it if the flag is out of view",
+      "Use it; the needle looks normal and the facility must be working if the flag is hidden",
+      "Use it only with FROM showing, since a removed identifier affects only the TO indication",
+      "Use it if the flag is out of view, because the missing identifier only means the audio is off",
       "Do not use it; a removed identifier means it may be unreliable"
      ],
      "answer": 3,
@@ -1635,10 +1635,10 @@
     {
      "s": "After landing, the GPS was also wrong for a few minutes outside the NOTAMed area. What now?",
      "options": [
-      "Nothing; it was a test",
+      "Nothing; it was a test, and tests in or near the area are not worth documenting",
       "Write it in the maintenance log and file an FAA GPS anomaly report",
-      "Only tell the next pilot",
-      "Replace the antenna yourself"
+      "Only tell the next pilot who flies the airplane, since no formal report is needed for a short outage",
+      "Replace the antenna yourself before the next flight, since the problem was most likely a bad antenna"
      ],
      "answer": 1,
      "why": "Post flight, document jamming or spoofing in the maintenance log and file a report [[33:120|AIM 1-2-4]]. Degradation outside the NOTAMed area is worth reporting [[33:88|AIM 1-1-13]]."
