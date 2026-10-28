@@ -36,7 +36,7 @@ class GsContinueLessonTest(OpsHubTestCase):
         c, r = self._login("flight_student")
         self.assertEqual(r.status_code, 302)
         self.assertIn("/flight/dashboard", r.headers["Location"])
-        self.assertIn("Choose a program", c.get("/").get_data(as_text=True))
+        self.assertIn("Choose a program", c.get("/?all=1").get_data(as_text=True))
 
     def test_dashboard_continue_row_points_at_next_unfinished_task(self):
         self.exec("INSERT INTO acs_element_completion (student_id, element_id, self_completed_at) VALUES (?,?,?)",
