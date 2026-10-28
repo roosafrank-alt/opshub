@@ -32,9 +32,9 @@
    "q": "Your only approach navigator is a WAAS GPS (TSO-C146). The planned alternate has one approach, an RNAV (GPS) with LPV and LNAV lines, no A or A NA symbol and no negative W. The forecast there at your ETA is 700 ft overcast and 3 SM. Does it qualify as your alternate?",
    "options": [
     "No: you must plan on the LNAV line with Part 91 nonprecision weather, 800 ft and 2 SM, and 700 ft is below it",
-    "Yes: LPV has vertical guidance, so the 600 ft and 2 SM precision value applies",
-    "Yes: with WAAS, any forecast at or above the LPV DA and visibility qualifies",
-    "No: an airport whose only approach is GPS can never be listed as an alternate"
+    "Yes: LPV has vertical guidance, so the 600 ft and 2 SM precision value applies at the alternate",
+    "Yes: with WAAS, any forecast at or above the LPV DA and visibility qualifies the airport as an alternate",
+    "No: an airport whose only approach is GPS can never be listed as an alternate, even with WAAS equipment"
    ],
    "answer": 0,
    "why": "With WAAS at an alternate, planning must use the LNAV or circling line, with Part 91 nonprecision weather [[33:105|AIM 1-1-18c]]. With no nonstandard minimums listed, that is 800 ft and 2 SM [[60:470|14 CFR 91.169(c)(1)]], so 700 ft fails. LPV may be used only once you arrive and the receiver shows it available [[33:105|AIM 1-1-18c]]. The rule against a GPS-only alternate does not apply to WAAS equipment [[33:118|AIM 1-2-3d]], so the last choice is wrong."
@@ -43,9 +43,9 @@
    "task": "RF.V.A",
    "q": "Your ETA is 1615Z at a destination with an ILS. The forecast: until 1700Z, overcast 3,000 ft above the airport and 5 SM; from 1700Z, overcast 1,500 ft and 3 SM. Do you need an alternate?",
    "options": [
-    "No: at the 1615Z ETA the ceiling is 3,000 ft",
-    "No: 1,500 ft is still above the 600 ft standard alternate minimum for an ILS",
-    "Only if the visibility also drops below 3 SM after 1700Z",
+    "No: at the 1615Z ETA the ceiling is 3,000 ft, which is well above the 2,000 ft needed",
+    "No: 1,500 ft is still above the 600 ft standard alternate minimum for an ILS, so none is needed",
+    "Only if the visibility also drops below 3 SM after 1700Z, because both values must fail together",
     "Yes: the test runs from 1515Z to 1715Z, and from 1700Z the ceiling is below 2,000 ft"
    ],
    "answer": 3,
@@ -55,10 +55,10 @@
    "task": "RF.V.A",
    "q": "In IMC at a nontowered field you get: \"Cleared to Lakeport as filed, climb and maintain 6,000, clearance void if not off by 1420.\" Your runway has a textual ODP. The clearance names no ODP, SID or headings. You fly Part 91. What is right?",
    "options": [
-    "The ODP is mandatory for any IFR departure from that runway because it is published",
-    "Once departure says \"radar contact\", ATC is responsible for your obstacle clearance",
+    "The ODP is mandatory for any IFR departure from that runway, because it is published and applies to every operator",
+    "Once departure control says radar contact, ATC takes over responsibility for your obstacle clearance from the ground up",
     "Obstacle clearance is yours; flying the ODP is your choice and is encouraged in IMC, and you should tell ATC if you use it; be airborne by 1420",
-    "You may not fly the ODP, because it is not in your clearance"
+    "You may not fly the ODP, because it is not named in your clearance and ATC has not assigned it to you"
    ],
    "answer": 2,
    "why": "A void time lets you depart only within that period [[23:298|IFH 10-7]]. The 91.175(f) duty to use a published ODP binds Parts 121, 125, 129 and 135, not Part 91 [[60:473|14 CFR 91.175(f)]]. Departing Part 91 without an ODP, SID or DVA headings in the clearance, obstacle clearance is the pilot's job, and \"radar contact\" does not change that [[33:354|AIM 5-2-9f]]. An ODP may be flown without a clearance unless ATC assigned a SID or vectors, and Part 91 pilots are strongly encouraged to fly one in IMC [[33:349|AIM 5-2-9a, c]]. If you use it, inform ATC [[29:39|IPH 1-23]]."
@@ -67,10 +67,10 @@
    "task": "RF.V.A",
    "q": "After a missed approach at the destination you divert to your alternate. You listed it using the standard 600 ft and 2 SM for its ILS. The ILS line shows a DA 200 ft above touchdown and 1/2 SM. Which numbers govern the approach you now fly there?",
    "options": [
-    "600 ft and 2 SM, the minimums you planned with",
-    "800 ft and 2 SM, because it is an alternate",
+    "600 ft and 2 SM, the alternate minimums you planned with when you listed the airport on the flight plan",
+    "800 ft and 2 SM, the nonprecision alternate values, because it is now being used as an alternate",
     "The ILS DA and visibility on the chart, raised only if a 91.175(b) item such as your equipment needs a higher one",
-    "The forecast you used at your ETA there"
+    "The forecast you used at your ETA there, since that is what 91.169 compares with the minimums"
    ],
    "answer": 2,
    "why": "Alternate minimums decide only whether you may list an airport as an alternate, by comparing them with the forecast at your ETA [[60:469|14 CFR 91.169(c)]] [[60:470|14 CFR 91.169(c)(1)]]. The approach you fly follows 91.175, where the authorized DA is the highest of the procedure, the pilot's and the equipment's [[60:471|14 CFR 91.175(a), (b)]]. The AIM shows the same split for WAAS: plan on LNAV, but on arrival use LPV if it is available [[33:105|AIM 1-1-18c]]. Report the missed approach and ask for a clearance to the alternate [[33:377|AIM 5-3-3a1(d)]]."
@@ -79,9 +79,9 @@
    "task": "RF.V.B",
    "q": "Your ILS chart shows an ALSF-2. At the DA you see the approach lights, but no red bars beside or at the end of them, and nothing else yet. The flight visibility meets the chart value and a normal descent works. What may you do?",
    "options": [
-    "Continue to touchdown: the approach light system is one of the listed references",
-    "Continue below 100 ft above the TDZE, since the flight visibility meets the chart value",
-    "Go missed at the DA: approach lights alone never let you go below a DA",
+    "Continue to touchdown: the approach light system is one of the listed references, so you may land with it",
+    "Continue below 100 ft above the TDZE, since the flight visibility meets the chart value for the approach",
+    "Go missed at the DA: approach lights alone never let you leave a DA, so there is nothing else to wait for",
     "Continue, but not below 100 ft above TDZE unless red terminating or side row bars, or another listed reference, come into view"
    ],
    "answer": 3,
@@ -92,9 +92,9 @@
    "q": "On vectors for an ILS in IMC, in controlled airspace, the glideslope flag appears and stays. The localizer works. The chart has ILS and LOC lines of minimums. What do the rules require?",
    "options": [
     "Tell ATC the glideslope has failed, how that limits you and what you want, and use the LOC minimums",
-    "Fly the ILS DA on the localizer alone, since the procedure lists that DA",
-    "No report: 91.187 covers only a complete loss of the ILS receiver",
-    "Report it, but keep the ILS minimums, because the failure is in the airplane, not on the ground"
+    "Fly the ILS DA on the localizer alone, since the procedure lists that DA and the localizer still works",
+    "No report is needed: 91.187 covers only a complete loss of the ILS receiver and not a glideslope failure",
+    "Report it, but keep flying to the ILS minimums, because the failure is in the airplane, not on the ground"
    ],
    "answer": 0,
    "why": "The authorized DA or MDA is the highest of the procedure's, the pilot's and the one for the equipment available and used [[60:471|14 CFR 91.175(b)]]. With the glideslope out, the localizer minimums apply [[23:313|IFH 10-22]]; for a failed receiver in the airplane, that follows from the equipment item of 91.175(b). 91.187 requires a report of any nav or approach equipment malfunction, with identification, equipment, degree of impairment and assistance wanted [[60:483|14 CFR 91.187]]. The AIM lists partial loss of ILS receiver capability as reportable [[33:377|AIM 5-3-3a1(h)]]."
@@ -103,10 +103,10 @@
    "task": "RF.V.B",
    "q": "Your IFR route in Class E airspace has one airway segment with an MEA of 10,500 and no MOCA. The airplane's altimeter and encoder test entry reads \"tested to 10,000 ft.\" What can you do?",
    "options": [
-    "Fly that segment at 10,000: the MEA gives way when the altimeter test limits you",
-    "Re-plan on a route whose minimum IFR altitudes let you stay at or below 10,000, or have the system tested higher",
-    "Fly it at 11,000: the tested altitude limits only the encoder's reports",
-    "Ask for a VFR-on-top clearance at 10,500, which is not limited by these rules"
+    "Fly that segment at 10,000: the MEA gives way when the altimeter test limits you to a lower altitude",
+    "Re-plan on a route whose minimum IFR altitudes keep you at or below 10,000 ft, or have the system tested higher",
+    "Fly it at 11,000 anyway: the tested altitude limits only what the encoder reports to the transponder",
+    "Ask for a VFR-on-top clearance at 10,500, which is not limited by these rules and avoids the MEA"
    ],
    "answer": 1,
    "why": "Below the MEA is not allowed except for takeoff or landing, or where a MOCA lets you descend [[60:480|14 CFR 91.177(a)]]. Above 10,000 is not allowed either: no IFR in controlled airspace above the highest altitude to which all altimeters and the encoder were tested [[60:525|14 CFR 91.411(d)]]. The minimum altitude rules apply to every IFR flight, VFR-on-top included [[29:95|IPH 2-35]]. So that segment cannot be flown legally, and the fix is a new route or a new test."
@@ -115,10 +115,10 @@
    "task": "RF.V.B",
    "q": "Your LOC approach requires RVR 4000. RVR is not reported for your runway, and the tower reports 1 SM. Level at the MDA past the VDP, you see the runway lights, but you judge the flight visibility to be about 1/2 SM. What applies?",
    "options": [
-    "Land: the reported 1 SM is above the required value",
-    "Land: RVR 4000 converts to 1/2 SM",
+    "Land: the tower reports 1 SM, which is above the required value, and the tower report decides the matter",
+    "Land: RVR 4000 converts to 1/2 SM, and that matches the flight visibility you judge to be about 1/2 SM",
     "You may not land: RVR 4000 converts to 3/4 SM, and the flight visibility you judge is below it",
-    "You may not even fly the approach: with RVR unreported, an RVR minimum cannot be used"
+    "You may not even fly the approach: with RVR unreported, an RVR minimum cannot be used for any landing"
    ],
    "answer": 2,
    "why": "When RVR is prescribed but not reported, you convert it with the 91.175(h) table [[60:473|14 CFR 91.175(h)(1)]], and RVR 4000 equals 3/4 SM [[60:474|14 CFR 91.175(h)(2)]]. You may not go below the MDA, or land, when the flight visibility is less than the visibility the approach prescribes [[60:472|14 CFR 91.175(c), (d)]]. The report does not decide it: only the pilot can judge flight visibility [[23:313|IFH 10-22]]. Go missed [[60:472|14 CFR 91.175(e)]]."
@@ -140,9 +140,9 @@
    "q": "Circling at the MDA to land on runway 27 after an approach to runway 9, a rain shower hides the airport on downwind. It is not just your bank. What do you do?",
    "options": [
     "Go missed now: start a climbing turn toward the landing runway and join the missed approach for the approach you flew",
-    "Hold the MDA and keep circling until the airport shows again",
-    "Descend below the MDA to get under the shower",
-    "Turn back to the final course and fly to the MAP before you climb"
+    "Hold the MDA and keep circling until the airport shows again, then continue the circle to land",
+    "Descend below the MDA to get under the shower and regain sight of the airport on downwind",
+    "Turn back to the final course and fly to the MAP before you climb, then start the missed approach"
    ],
    "answer": 0,
    "why": "When an identifiable part of the airport is not distinctly visible while circling, for any reason other than a normal bank, you must go missed immediately [[60:473|14 CFR 91.175(e)]]. Fly the missed approach for that procedure, with an initial climbing turn toward the landing runway to get onto the missed course [[33:450|AIM 5-4-21c]] [[33:451|AIM 5-4-21c]]. Waiting or going back to the MAP delays a required missed approach. A missed started while circling may not keep you clear of obstacles, so climb without delay [[33:451|AIM 5-4-21h]]."
@@ -151,10 +151,10 @@
    "task": "RF.V.C",
    "q": "Center says: \"Fly heading 120, radar vectors to the HOTEL VOR, maintain 4,000.\" Your radios then fail in IMC. The direct line from your position to HOTEL is off airways and outside any mountainous area, and no minimum altitude is published for it. The highest obstacle within 4 NM of that line is a tower whose top is 3,620 ft MSL. No altitude was given to expect. What do you fly?",
    "options": [
-    "Hold heading 120 at 4,000 until ATC finds you on radar",
+    "Hold heading 120 at 4,000 until ATC finds you on radar, then continue as they later instruct you",
     "Direct to HOTEL at no lower than 4,620 ft, the higher of 4,000 and the 91.177 minimum for that leg",
-    "Direct to HOTEL at 4,000: ATC assigned it, and it is at or above the MVA",
-    "Back to your filed route at its MEA, since vectors are not a route"
+    "Direct to HOTEL at 4,000: ATC assigned it, and it is at or above the MVA for that area, so it is legal",
+    "Back to your filed route at its MEA, since vectors are not a route and the failure ends them"
    ],
    "answer": 1,
    "why": "Being vectored, the 91.185 route is direct from the point of failure to the fix named in the vector clearance [[60:482|14 CFR 91.185(c)(1)(ii)]]. The altitude is the highest of the assigned altitude, the minimum altitude for IFR operations and any expected altitude [[60:483|14 CFR 91.185(c)(2)]]. With no minimum published in Parts 95 and 97, 91.177 sets it at 1,000 ft above the highest obstacle within 4 NM of the course: 3,620 + 1,000 = 4,620 ft, which is higher than 4,000 [[60:480|14 CFR 91.177(a)]]. 91.177 does not list an MVA. MVAs are set for ATC to use when vectoring, and some are lower than the charted minimum altitudes [[33:411|AIM 5-4-5e]], so the 4,000 ft vector altitude does not settle this leg."
@@ -163,10 +163,10 @@
    "task": "RF.V.C",
    "q": "You fly IFR in IMC in controlled airspace. Your navigator is a WAAS GPS (TSO-C146). You also have one VOR receiver, which you are not using. It fails. What does the rule require?",
    "options": [
-    "Nothing: a Part 91 WAAS user needs no VOR, so nothing that matters has failed",
-    "Report it only if ATC later asks you to fly a VOR approach",
-    "Report it to ATC as soon as practical: identification, the VOR receiver, how much it limits you, and any help you want",
-    "Squawk 7600 and follow 91.185"
+    "Nothing: a Part 91 WAAS user needs no VOR, and you were not using it, so nothing that matters has failed",
+    "Report it only if ATC later asks you to fly a VOR approach, or a route that needs that receiver to be used",
+    "Report it to ATC as soon as practical: identification, the equipment, how it limits you, and any help wanted",
+    "Squawk 7600 and follow 91.185, since any failed radio receiver is treated as a loss of two-way communications"
    ],
    "answer": 2,
    "why": "91.187 requires a report of any malfunction of navigation, approach or communication equipment in flight, with four items in order, and it is not limited to equipment the flight needs [[60:483|14 CFR 91.187]]. The AIM lists loss of VOR receiver capability [[33:377|AIM 5-3-3a1(h)]]. Part 91 WAAS users need not carry VOR avionics [[33:70|AIM 1-1-3f]]. That changes item 3, how much you are impaired, not whether you report. Code 7600 is for two-way radio failure [[34:54|AIM 6-4-2a]]."
@@ -175,10 +175,10 @@
    "task": "RF.V.C",
    "q": "Your clearance: \"Cleared to the BRAVO VOR via V22, maintain 7,000. Expect further clearance via V44 to Kent at 1530.\" BRAVO is not a fix where an approach begins. The radios fail in IMC before BRAVO, and you reach BRAVO at 1512. What does 91.185 say?",
    "options": [
-    "Leave BRAVO on arrival at 1512 and fly your filed route to Kent",
+    "Leave BRAVO on arrival at 1512 and fly your filed route to Kent, since it is the route you filed",
     "Hold at BRAVO until 1530, then fly V44 to a fix where a Kent approach begins, and start the approach as close as possible to your ETA",
-    "Hold at BRAVO until 1530, then begin an approach from BRAVO",
-    "Leave BRAVO on arrival and fly V44, since the EFC no longer counts once the radios fail"
+    "Hold at BRAVO until 1530, then begin an approach from BRAVO, since BRAVO is on the way to Kent",
+    "Leave BRAVO on arrival and fly V44, since the EFC no longer counts once the radios have failed"
    ],
    "answer": 1,
    "why": "Fly the assigned route, V22, to BRAVO [[60:482|14 CFR 91.185(c)(1)(i)]]. Beyond BRAVO you have no assigned route, so you fly the route ATC said to expect, V44. The filed route is used only when there is neither [[60:482|14 CFR 91.185(c)(1)(iii), (iv)]]. A clearance limit that is not an approach fix is left at the EFC, here 1530. You then go to a fix where an approach begins and start down as close as possible to the ETA from your filed or amended ETE [[60:483|14 CFR 91.185(c)(3)(ii)]]. Waiting at BRAVO until 1530 means holding there; that part is application."
@@ -187,9 +187,9 @@
    "task": "RF.V.C",
    "q": "Ten miles before CEDAR, Center says: \"Bonanza 345KT, contact Approach 124.3 at CEDAR.\" What does the AIM expect?",
    "options": [
-    "Switch to Approach now and check in, to be early on the new frequency",
-    "Acknowledge, then listen on 124.3 and wait for Approach to call you",
-    "Switch at CEDAR without acknowledging, to keep the frequency clear",
+    "Switch to Approach now and check in, to be early on the new frequency and avoid missing their first call",
+    "Acknowledge, then listen on 124.3 and wait for Approach to call you instead of calling in yourself",
+    "Switch at CEDAR without acknowledging, to keep the frequency clear for other aircraft and controllers",
     "Acknowledge, keep a listening watch on Center until CEDAR, then switch and check in with your altitude"
    ],
    "answer": 3,
@@ -199,9 +199,9 @@
    "task": "RF.V.C",
    "q": "Level at your assigned 6,000 ft with the current altimeter setting, Center says: \"Verify at 6,000. Your Mode C shows 6,300.\" What do you do?",
    "options": [
-    "Descend 300 ft so the readout shows 6,000",
-    "Turn the transponder off on your own to stop the wrong readout",
-    "Say nothing and stay at 6,000, since the controller has not changed your altitude",
+    "Descend 300 ft so the readout shows 6,000, since the controller needs to see the correct altitude",
+    "Turn the transponder off on your own to stop the wrong readout, then tell Center what you did",
+    "Say nothing and stay at 6,000, since the controller has not changed your altitude or given an instruction",
     "Tell Center you are level at 6,000, your assigned altitude, and keep it unless the controller authorizes a change"
    ],
    "answer": 3,
@@ -223,9 +223,9 @@
    "task": "RF.V.D",
    "q": "Your GPS database expired October 1, 2026, and you cannot update it today. The destination RNAV (GPS) chart reads \"Amdt 4 01OCT26\". The ILS there has its glideslope out by NOTAM. What is the plan?",
    "options": [
-    "Fly the RNAV (GPS) from the database after checking that its waypoints look logical",
-    "Fly the RNAV (GPS) on the LNAV line, since only LPV needs a current database",
-    "Fly the ILS to its normal DA, since a ground glideslope outage does not change the minimums",
+    "Fly the RNAV (GPS) from the expired database after checking that its waypoints look logical on the map",
+    "Fly the RNAV (GPS) on the LNAV line, since only LPV minimums need a current database to be used",
+    "Fly the ILS to its normal DA, since a ground glideslope outage does not change the published minimums at all",
     "Do not fly the RNAV (GPS) from this database; plan the localizer approach with localizer minimums"
    ],
    "answer": 3,
@@ -235,10 +235,10 @@
    "task": "RF.V.D",
    "q": "On September 20 you checked your two independent VOR receivers against each other on the same station: 3 degrees apart. You logged the date, place, \"3 degrees\" and signed. Today, October 24, you plan IFR on Victor airways. What is true?",
    "options": [
-    "Good: a VOR check lasts through the end of the next calendar month",
+    "Good: a VOR check lasts through the end of the next calendar month after the month it was made",
     "Not good today: the check is 34 days old, and 91.171 needs one within the preceding 30 days",
-    "Not good: 3 degrees is over the dual check limit",
-    "Not good: a dual check counts only if it was made in flight"
+    "Not good: 3 degrees is over the 91.171 dual check limit, so the two receivers must be repaired",
+    "Not good: a dual system check counts only if it was made in flight, not on the airport surface"
    ],
    "answer": 1,
    "why": "A dual system check is allowed in place of the other methods, with up to 4 degrees between the two, so 3 degrees passed [[60:471|14 CFR 91.171(c)]]. The record was complete: date, place, bearing error and signature [[60:471|14 CFR 91.171(d)]]. But the rule counts days, not calendar months: within the preceding 30 days [[60:470|14 CFR 91.171(a)]]. From September 20 to October 24 is 34 days. Nothing in 91.171(c) requires the dual check to be made in flight."
@@ -247,10 +247,10 @@
    "task": "RF.V.D",
    "q": "Descending on the LNAV line 1 NM past the final approach waypoint, your non-WAAS GPS shows a RAIM flag. The runway is not yet in sight. What do you do?",
    "options": [
-    "Continue to the MDA and VDP, since the position was good at the waypoint",
-    "Stay level, fly to the missed approach waypoint, then go missed",
+    "Continue to the MDA and VDP, since the position was good at the waypoint when you crossed it",
+    "Stay level, fly to the missed approach waypoint, then go missed, as for a flag before the FAWP",
     "Start a climb and fly the missed approach, treating the GPS guidance as advisory only",
-    "Keep descending on the displayed course, since the receiver still shows guidance"
+    "Keep descending on the displayed course, since the receiver still shows guidance on the screen"
    ],
    "answer": 2,
    "why": "If the RAIM flag appears after the FAWP, start a climb and fly the missed approach; the GPS information may keep showing but is advisory only [[33:98|AIM 1-1-17b5(g)]]. Flying on to the MAWP before going missed is the AIM's procedure for a flag before the FAWP [[33:98|AIM 1-1-17b5(g)]]. Continuing down on guidance the AIM calls advisory only has no integrity behind it. Then report the missed approach and ask for what you want next [[33:377|AIM 5-3-3a1(d)]]."
@@ -260,9 +260,9 @@
    "q": "Your non-turbine single has no MEL. Its gyroscopic rate-of-turn indicator has failed, and there is no third attitude system. Tomorrow's flight is IFR in IMC. What is true?",
    "options": [
     "No IFR until it is fixed; for a VFR flight it may be deferred if every 91.213(d) condition is met",
-    "You may fly IFR once it is placarded inoperative under 91.213(d)",
-    "You may fly IFR, because the attitude indicator shows the same bank information",
-    "You may fly IFR by day only, because it is a night item"
+    "You may fly IFR once the indicator is placarded inoperative under 91.213(d), since the airplane has no MEL",
+    "You may fly IFR, because the attitude indicator shows the same bank information as the failed indicator",
+    "You may fly IFR by day only, because the rate-of-turn indicator is a night item and not a day item"
    ],
    "answer": 0,
    "why": "91.205(d) requires a gyroscopic rate-of-turn indicator for IFR, unless the airplane has an approved third attitude system usable through 360 degrees of pitch and roll [[60:488|14 CFR 91.205(d)]]. Required items must be operable [[60:486|14 CFR 91.205(a)]]. 91.213(d) cannot defer an item that 91.205 requires for the kind of flight you are making [[60:493|14 CFR 91.213(d)]]. So it grounds the airplane for IFR. For VFR it is not on the 91.205 list, so deferral may be possible if the other conditions are met."
@@ -271,10 +271,10 @@
    "task": "RF.V.D",
    "q": "The airplane's 91.411 test is 8 months old. Last week a shop replaced a cracked static line fitting, which meant opening the static system, and did not test it again. Today you plan IFR in Class E airspace. What is true?",
    "options": [
-    "Legal: the 24 calendar month test is still current",
-    "Legal: only the use of a drain valve calls for a new test",
+    "Legal: the 24 calendar month test is still current, so no new test is needed after this repair",
+    "Legal: only the use of a drain valve calls for a new test of the static system before IFR",
     "Not legal for IFR in controlled airspace until the static system is tested again",
-    "Legal if you fly on the alternate static source"
+    "Legal if you fly on the alternate static source, which avoids the opened fitting entirely"
    ],
    "answer": 2,
    "why": "After any opening and closing of the static system, it must be tested again before IFR in controlled airspace. The only exceptions are using the drain and alternate static valves [[60:524|14 CFR 91.411(a)]]. A current 24-month entry does not cover later work, and using the alternate static source does not cure the opening. A certificated mechanic with an airframe rating may do the static system test [[60:524|14 CFR 91.411(b)]]."
