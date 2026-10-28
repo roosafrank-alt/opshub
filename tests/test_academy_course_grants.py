@@ -90,7 +90,8 @@ class AcademyCourseGrantsTest(OpsHubTestCase):
         r = c.get("/academy")
         self.assertEqual(r.status_code, 302)
         self.assertIn(GS, r.headers["Location"])
-        body = c.get("/").get_data(as_text=True)
+        # A plain student's "/" goes straight to the Fly dashboard; ?all=1 opens the real picker.
+        body = c.get("/?all=1").get_data(as_text=True)
         self.assertIn("Flight Academy", body)
 
     def test_student_without_grant_has_no_academy(self):

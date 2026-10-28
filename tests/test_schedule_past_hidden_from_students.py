@@ -53,7 +53,7 @@ class SchedulePastHiddenFromStudentsTest(OpsHubTestCase):
     def _student_never_sees_the_other_students_past_flight(self, html):
         self.assertNotIn('data-plane="N999"', html)
         self.assertNotIn(f'data-student-id="{self.other_student}"', html)
-        self.assertNotIn("11:00 AM", html)
+        # (the day grid's own "11:00 AM" slot header is on the page for everyone, so it is not checked)
 
     def _cfi_still_sees_both(self, html):
         self.assertIn('data-plane="N123"', html)
