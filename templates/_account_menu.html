@@ -26,6 +26,10 @@
     {% if account_from == 'flight' %}
     <li><a class="dropdown-item" href="#" data-tv-toggle><i class="bi bi-tv"></i> <span class="tv-label-off">Turn TV mode on</span><span class="tv-label-on">Turn TV mode off</span></a></li>
     {% endif %}
+    {% if show_exit_display %}
+    <li><hr class="dropdown-divider"></li>
+    <li><form method="post" action="{{ url_for('shop_exit_display') }}" data-confirm="The full-screen display will close and show the Pi's desktop. Tap the OpsHub icon there to open it again." data-confirm-title="Exit to the Pi desktop?" data-confirm-ok="Exit" data-confirm-style="primary"><button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-left"></i> Exit to Desktop</button></form></li>
+    {% endif %}
     <li><hr class="dropdown-divider"></li>
     {#- SEAM-5: one Log Out everywhere - the app's own confirm box, then
        "Logged out." on the one login page. #}
