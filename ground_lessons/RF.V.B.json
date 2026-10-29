@@ -635,6 +635,41 @@
     "q": "Which single word in 91.175(c)(1) catches pilots who see the runway at the MDA and then get low and slow on the way in?",
     "a": "\"Continuously\": the aircraft must stay in a position for a normal descent with normal maneuvers the whole way, or the missed is required [[60:472|14 CFR 91.175(c), (e)]]."
    }
+  },
+  {
+   "title": "Reading the chart: minima numbers and missed approach icons (awareness)",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.B.K2",
+    "RF.V.B.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Two parts of an approach chart tell you the most about the go or no-go decision: the landing minima box and the missed approach box. You should be able to read them even if you never fly the approach."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "A minima line has an altitude and a visibility. The altitude is a DA for approaches with vertical guidance, or an MDA for those without, in feet MSL. The number after a slash is the runway visual range in hundreds of feet, so 1440/50 means RVR 5,000 ft. A dash after the altitude, as in 1540-1, gives the visibility in statute miles [[2:120|Chart Users' Guide p 120]]."
+    },
+    {
+     "p": "The smaller number under the altitude is the height above the touchdown zone for straight-in approaches (HAT) or above the airport for circling (HAA). Figures in parentheses are for military pilots and do not apply to civil pilots [[2:120|Chart Users' Guide p 120]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "The missed approach is a plan made before you start. The chart writes it out and also draws it as a row of icons: a first box with the climb altitude and course, then boxes for each fix or turn. An underlined number at a fix, such as 6700 at JETRY, is an altitude you must be at or above when you cross it [[2:115|Chart Users' Guide p 115]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Reading the box is not permission to go below it. Below DA or MDA you need the visibility and the visual references of 91.175(c). If they are missing, the missed approach is not optional [[60:472|14 CFR 91.175(c)]]."
+     }
+    }
+   ]
   }
  ],
  "figures": {
@@ -685,6 +720,22 @@
    "caption": "AIM FIG 5-4-11. Minimum Vectoring Altitude Charts (AIM 5-4-5e).",
    "alt": "A circular sector chart around an airport with range rings at 5 to 30 NM, divided by bearing lines into sectors labeled with altitudes from 1500 to 5500, and two small circled buffer areas around obstructions.",
    "source": "AIM, PDF p. 411"
+  },
+  "f7": {
+   "file": "RF.V.B-7.jpg",
+   "res": "2",
+   "page": 120,
+   "caption": "Chart Users' Guide: the landing minima box and what each number means.",
+   "alt": "A landing minima table with columns for aircraft categories A to D. The S-ILS 27 row shows 1352/24 with 200 under it. The S-LOC 27 row shows 1440/24 and 1440/50 with 288. The circling row shows 1540-1 with 361, 1640-1 with 461, 1640-1 and a half with 461, and 1740-2 with 561. Callouts label DA, visibility in hundreds of feet of RVR, HAT, MDA, HAA and visibility in statute miles. A copter row is below.",
+   "source": "Chart Users' Guide, PDF p. 120"
+  },
+  "f8": {
+   "file": "RF.V.B-8.jpg",
+   "res": "2",
+   "page": 115,
+   "caption": "Chart Users' Guide: missed approach icons and the matching text.",
+   "alt": "A table with two columns. The left shows rows of small icon boxes with altitudes, arrows, fix names and courses. The right shows the matching missed approach text, such as Climb to 13000 on RIL VOR/DME R-250 to TEKGU INT, and Climb to 9000 on track 112 to JETRY, cross JETRY at or above 6700, then to PAKPE, right turn to WULKU and on track 289 to JNC VOR/DME and hold.",
+   "source": "Chart Users' Guide, PDF p. 115"
   }
  },
  "scenario": {
@@ -830,6 +881,77 @@
    ],
    "answer": 2,
    "why": "In any case other than a designated mountainous area: 1,000 ft above the highest obstacle within 4 NM of the course [[60:480|14 CFR 91.177(a)]]."
+  },
+  {
+   "q": "On the sample minima box, the S-ILS 27 line shows 1352/24 with 200 below it. What is the 200?",
+   "options": [
+    "The runway visual range in feet",
+    "The ceiling in feet AGL",
+    "The HAT: how far the DA is above the touchdown zone elevation",
+    "The airport elevation"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The straight-in minimum is also given as height above touchdown (HAT). Here the DA of 1352 is 200 ft above the TDZE of 1152 [[2:120|Chart Users' Guide p 120]]."
+  },
+  {
+   "q": "The circling line reads 1540-1. What does the 1 mean?",
+   "options": [
+    "A runway visual range of 100 ft",
+    "A visibility of 1 statute mile",
+    "The first approach category",
+    "One minute at the MDA"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "On the box, the figure after the dash is the visibility in statute miles. RVR is shown after a slash [[2:120|Chart Users' Guide p 120]]."
+  },
+  {
+   "q": "The S-LOC line for Category D shows 1440/50. What visibility is that?",
+   "options": [
+    "RVR 5,000 ft",
+    "RVR 50 ft",
+    "50 SM",
+    "5 SM"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "RVR is shown in hundreds of feet after a slash, so 50 means 5,000 ft [[2:120|Chart Users' Guide p 120]]."
+  },
+  {
+   "q": "The minima box shows figures in parentheses, such as (200-1/2). Who are they for?",
+   "options": [
+    "Civil pilots only",
+    "Helicopter pilots only",
+    "Night operations only",
+    "Military pilots. They are not used by civil pilots"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "The legend says weather minimums in parentheses are not applicable to civil pilots [[2:120|Chart Users' Guide p 120]]."
+  },
+  {
+   "q": "In the missed approach example Climb to 9000 on track 112 to JETRY, cross JETRY at or above 6700 ..., which fix carries an altitude restriction on the icon row?",
+   "options": [
+    "PAKPE",
+    "JETRY, with 6700 underlined",
+    "WULKU",
+    "JNC"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "The icon for JETRY shows 6700 underlined, matching the text cross JETRY at or above 6700 [[2:115|Chart Users' Guide p 115]]."
+  },
+  {
+   "q": "You reach the missed approach point on an approach and none of the required visual references for the runway is in sight. What does 14 CFR 91.175(e) require?",
+   "options": [
+    "Execute the missed approach immediately",
+    "Continue below minimums to look for the runway",
+    "Circle once and try again at the same altitude",
+    "Ask ATC if you may keep going"
+   ],
+   "answer": 0,
+   "why": "When the requirements of 91.175(c) are not met at the missed approach point, the pilot must immediately execute an appropriate missed approach [[60:472|14 CFR 91.175(e)]]."
   }
  ],
  "final_quiz": [
@@ -975,6 +1097,41 @@
    ],
    "answer": 1,
    "why": "Civil aircraft into or out of a military airport comply with the procedures and minimums of the military authority [[60:473|14 CFR 91.175(g)]], and normally need prior permission [[33:397|AIM 5-4-5a]]."
+  },
+  {
+   "q": "In the minima box, what do the letters MDA and DA stand for, according to the callouts?",
+   "options": [
+    "MDA is the missed distance approach, and DA is the descent angle",
+    "Both are the airport elevation",
+    "MDA is for night and DA is for day",
+    "MDA is the minimum descent altitude for circling or non-vertical approaches, and DA is the decision altitude"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "The callouts label DA on the ILS line and MDA on the circling line. Precision approaches use DA and nonprecision approaches use MDA [[2:120|Chart Users' Guide p 120]]."
+  },
+  {
+   "q": "A missed approach row says: Climbing left turn to 8000 via SVC R-128, then reverse course to SVC VOR/DME and hold. What does the first icon box show?",
+   "options": [
+    "The climb to 8000 with a left turn on the SVC R-128",
+    "A climb to 128 ft",
+    "A right turn to 8000",
+    "A descent to SVC"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "The first box on that row shows 8000 with a left-turning arrow and SVC R-128 [[2:115|Chart Users' Guide p 115]]."
+  },
+  {
+   "q": "You are flying an approach and the flight visibility is below what the procedure prescribes. Under 14 CFR 91.175(d), may you land?",
+   "options": [
+    "Yes, if you see the runway lights",
+    "Yes, if you are below 500 ft AGL",
+    "No. You may not land when the flight visibility is less than the visibility prescribed in the approach",
+    "Yes, if the tower clears you to land"
+   ],
+   "answer": 2,
+   "why": "A pilot may not land when the flight visibility is less than the visibility prescribed in the standard instrument approach being used [[60:472|14 CFR 91.175(d)]]."
   }
  ],
  "takeaways": [
@@ -1296,6 +1453,31 @@
      "why": "After a missed approach, request clearance for what you want next, such as another approach or an alternate [[33:451|AIM 5-4-21f]]. Dropping below minimums for a peek is the duck-under syndrome [[9:15|AC 60-22 4d]], and from below the MDA the published missed may not clear obstacles, so finish the climb [[33:451|AIM 5-4-21h]]."
     }
    ]
+  },
+  {
+   "type": "match",
+   "title": "Read the minima box",
+   "intro": "Tap a minima item, then what it tells you.",
+   "pairs": [
+    {
+     "l": "1352/24 on an ILS line",
+     "r": "DA 1,352 ft MSL with RVR 2,400 ft"
+    },
+    {
+     "l": "1540-1 on a circling line",
+     "r": "MDA 1,540 ft MSL with 1 SM visibility"
+    },
+    {
+     "l": "HAT",
+     "r": "Height above the touchdown zone for straight-in"
+    },
+    {
+     "l": "HAA",
+     "r": "Height above the airport for circling"
+    }
+   ],
+   "key": "h8",
+   "after": 12
   }
  ]
 }

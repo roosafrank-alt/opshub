@@ -817,6 +817,41 @@
     "q": "You check NOTAMs for your departure and destination airports only. What did you likely miss?",
     "a": "Route items: TFRs, SUA and other airspace NOTAMs in the ARTCC NOTAMs for each center you cross [[33:324|AIM 5-1-3c]]."
    }
+  },
+  {
+   "title": "Reading the chart: the SUA table, MTRs and special military activity",
+   "kind": "knowledge",
+   "codes": [
+    "RF.III.C.K1",
+    "RF.III.C.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "The sectional shows the shape of special use airspace, but the details are in a table on the chart border. Find the name or number from the chart, then read across its row: altitude, time of use, controlling agency and frequency [[2:21|Chart Users' Guide p 21]]."
+    },
+    {
+     "figure": "f9"
+    },
+    {
+     "p": "Altitudes are in feet MSL unless noted, and times are local. TO means up to and including. For MOAs the altitude is the floor, and every MOA reaches up to but not including FL 180 unless the table says otherwise. Alert areas do not extend into Class A, B, C or D airspace or Class E airport surface areas [[2:21|Chart Users' Guide p 21]]."
+    },
+    {
+     "p": "A time of use of BY NOTAM means you must check NOTAMs to learn when the area is active. The controlling agency is the one to call for status, and that is also who can give permission when the area is restricted or prohibited. Use the listed frequency [[2:21|Chart Users' Guide p 21]] [[60:456|14 CFR 91.133(a)]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "A military training route shows its limits as two numbers in hundreds of feet. The top is the ceiling in MSL and the bottom is the floor in AGL, so 90 over 20 AGL is 2,000 ft AGL up to 9,000 ft MSL. A boxed Special Military Activity note names the routes and a radio facility and frequency to call for activity status [[2:19|Chart Users' Guide p 19]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Route width varies and can reach several miles on either side of the charted centerline. The chart does not show route widths or altitudes for most MTRs, so get the details before you fly near one [[2:19|Chart Users' Guide p 19]] [[2:18|Chart Users' Guide p 18]]."
+     }
+    }
+   ]
   }
  ],
  "figures": {
@@ -875,6 +910,22 @@
    "caption": "Chart Users' Guide: Sporting Event Temporary Flight Restriction (TFR) Sites, National Defense Airspace Temporary Flight Restriction (TFR) Areas, and Space Operations Area (FAR Part 91.143) symbols.",
    "alt": "Symbol legend: a small purple diamond labeled STADIUM for sporting event TFR sites; a magenta cross-hatched rectangle with a note reading Dallas National Defense Airspace TFR, Check NOTAMs; and a light blue tinted wedge noting that the darker tint is the FAR 91.143 area.",
    "source": "Chart Guide, PDF p. 31"
+  },
+  "f8": {
+   "file": "RF.III.C-8.jpg",
+   "res": "2",
+   "page": 19,
+   "caption": "Chart Users' Guide: Special Military Activity notes and how an MTR shows its altitudes.",
+   "alt": "Text and two boxed notes. The first box reads SPECIAL MILITARY ACTIVITY FOR IR850, IR851, IR852 CTC BANGOR RADIO ON 122.4 255.4 FOR ACTIVITY STATUS. The second box explains unmanned aircraft activity near IFR military training routes. Below, a gray route symbol labeled IR30 shows 90 over 20 AGL, and a key says 90 is the MTR ceiling in hundreds of feet MSL and 20 AGL is the MTR floor in hundreds of feet AGL.",
+   "source": "Chart Users' Guide, PDF p. 19"
+  },
+  "f9": {
+   "file": "RF.III.C-9.jpg",
+   "res": "2",
+   "page": 21,
+   "caption": "Chart Users' Guide: the special use airspace tabulation on a sectional.",
+   "alt": "Special use airspace tables with notes at the top. Restricted area rows R-6602 A, B and C list altitudes, time of use, controlling agency Washington CNTR and frequencies 118.75 and 377.1. An alert area row A-220 lists to 4000 AGL, 0800-2200, NO A/G. A MOA table lists Brush Creek, Buckeye and Evers with altitudes, times, controlling agency and frequencies, and notes that MOA altitudes are floors.",
+   "source": "Chart Users' Guide, PDF p. 21"
   }
  },
  "scenario": {
@@ -1014,6 +1065,77 @@
    ],
    "answer": 3,
    "why": "ATC may authorize operations in a TFR under its own authority only for 91.137(a)(2) and (a)(3) restrictions, and it will not authorize local IFR flights into the area [[33:196|AIM 3-5-3h]]."
+  },
+  {
+   "q": "On the SUA table, what altitudes does R-6602 B list?",
+   "options": [
+    "4,000 ft up to and including 11,000 ft AGL",
+    "11,000 ft up to 18,000 ft MSL",
+    "4,000 ft up to, but not including, 11,000 ft MSL",
+    "The surface up to 4,000 ft MSL"
+   ],
+   "answer": 2,
+   "figure": "f9",
+   "why": "The R-6602 B row reads 4000 to but not including 11,000. Altitudes are MSL unless noted [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "Which agency and frequency would you use to ask about R-6602 A?",
+   "options": [
+    "Indianapolis Center on 134.0",
+    "Bangor Radio on 122.4",
+    "Any tower on 121.5",
+    "Washington Center on 118.75 or 377.1"
+   ],
+   "answer": 3,
+   "figure": "f9",
+   "why": "The controlling agency listed for R-6602 is Washington CNTR with 118.75 and 377.1 [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "The MOA table lists Evers with an altitude of 1000 AGL. What does that number show?",
+   "options": [
+    "The floor of the MOA",
+    "The ceiling of the MOA",
+    "The altitude at which ATC must clear you",
+    "The maximum speed in the MOA"
+   ],
+   "answer": 0,
+   "figure": "f9",
+   "why": "The table note says altitudes indicate the floor of the MOA. All MOAs extend up to but not including FL 180 unless noted [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "An MTR on the chart is labeled 90 over 20 AGL. What are its limits?",
+   "options": [
+    "20 ft AGL up to 90 ft MSL",
+    "2,000 ft AGL up to 9,000 ft MSL",
+    "9,000 ft AGL up to 20,000 ft MSL",
+    "2,000 ft MSL up to 9,000 ft AGL"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "The top number is the MTR ceiling in hundreds of feet MSL, and the bottom is the floor in hundreds of feet AGL [[2:19|Chart Users' Guide p 19]]."
+  },
+  {
+   "q": "A boxed note reads SPECIAL MILITARY ACTIVITY FOR IR850, IR851, IR852 CTC BANGOR RADIO ON 122.4. What should you do?",
+   "options": [
+    "Fly the route centerline",
+    "Avoid all radio calls",
+    "Contact Bangor Radio on 122.4 to learn the activity status",
+    "Squawk 7700"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The note gives a radio facility and frequency to use for obtaining area activity status [[2:19|Chart Users' Guide p 19]]."
+  },
+  {
+   "q": "R-6602 is restricted airspace and is active. You did not ask anyone. Does 14 CFR 91.133(a) let you cross it?",
+   "options": [
+    "Yes, if you are above 3,000 ft AGL",
+    "No. You need the permission of the using or controlling agency",
+    "Yes, if you squawk 1200",
+    "Yes, because restricted areas are only advisory"
+   ],
+   "answer": 1,
+   "why": "[[60:456|14 CFR 91.133(a)]] says no person may operate within a restricted area contrary to its restrictions unless that person has the permission of the using or controlling agency."
   }
  ],
  "takeaways": [
@@ -1300,6 +1422,41 @@
      "why": "Cockpit TFR data are advisory, not for tactical navigation. Stay clear of any area shown as a TFR and verify with FSS or ATC [[34:81|AIM 7-1-9d]]."
     }
    ]
+  },
+  {
+   "type": "label",
+   "figure": "f9",
+   "title": "Read the SUA table",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 26.5,
+     "y": 36.7,
+     "label": "Altitudes of R-6602 B"
+    },
+    {
+     "x": 41.8,
+     "y": 42.5,
+     "label": "Time of use for R-6602 C: by NOTAM, 24 hours in advance"
+    },
+    {
+     "x": 58.7,
+     "y": 31.6,
+     "label": "Controlling agency for R-6602 A: Washington Center"
+    },
+    {
+     "x": 56.0,
+     "y": 51.2,
+     "label": "Alert area A-220: no air-to-ground communications"
+    },
+    {
+     "x": 30.5,
+     "y": 86.6,
+     "label": "Note that MOA altitudes show the floor"
+    }
+   ],
+   "key": "h7",
+   "after": 12
   }
  ],
  "final_quiz": [
@@ -1456,6 +1613,41 @@
    ],
    "answer": 1,
    "why": "No U.S.-registered aircraft or FAA-certificated pilot may operate in a 91.143 space operations area except when authorized by ATC [[60:459|14 CFR 91.143]]."
+  },
+  {
+   "q": "An alert area A-220 lists an altitude of TO 4000 AGL. What is true about alert areas?",
+   "options": [
+    "They do not extend into Class A, B, C or D airspace or Class E airport surface areas",
+    "They are restricted areas with a pilot permit rule",
+    "They exist only at night",
+    "They always extend to FL 180"
+   ],
+   "answer": 0,
+   "figure": "f9",
+   "why": "The note under the alert area row says exactly this [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "What does BY NOTAM in the time-of-use column mean for you?",
+   "options": [
+    "The area is never active",
+    "You must check NOTAMs to learn when the area is active",
+    "The area is active only at night",
+    "The area is open to all traffic"
+   ],
+   "answer": 1,
+   "figure": "f9",
+   "why": "For areas with times by NOTAM, check NOTAMs for the hours of activity. Other times may be given by the DoD NOTAM system [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "A wildfire TFR has been issued under 14 CFR 91.137(a)(1). You want a close look from above. Does the rule allow it?",
+   "options": [
+    "Yes, if you stay above 1,000 ft AGL",
+    "Yes, if you are VFR",
+    "No. Only aircraft in hazard relief activities, under the direction of the on-scene official, may operate there",
+    "Yes, if you have a transponder"
+   ],
+   "answer": 2,
+   "why": "For a hazard under 91.137(a)(1), no person may operate within the area unless the aircraft is participating in the hazard relief and is under the direction of the official in charge [[60:457|14 CFR 91.137(b)]]."
   }
  ]
 }
