@@ -479,6 +479,8 @@ def inject_auth_context():
         "is_master_admin": session.get("is_master_admin"),
         "flight_admin": is_flight_admin(),
         "hide_students_tab": _hide_students_for_shop(),
+        # The shop TV's own login gets an "Exit to Desktop" item in its account menu.
+        "show_exit_display": _hide_students_for_shop(),
         "logged_in_user_name": session.get("user_name"),
         "open_squawk_count": open_squawk_count,
         "tour_seen_shop": session.get("tour_seen_shop"),
@@ -10813,6 +10815,18 @@ def _run_delayed_command(args, delay=2.0):
 def admin_system_restart_app():
     _run_delayed_command(["sudo", "systemctl", "restart", "opshub"])
     return redirect(url_for("admin_system_wait", what="restart"))
+
+
+@app.route("/shop/exit-display", methods=["POST"])
+@login_required
+def shop_exit_display():
+    """The same close-the-full-screen-browser action, for the shop's own shared
+    login (the one on the shop TV), from its account menu. Only that login."""
+    if not is_shared_shop_login():
+        flash("That's for the shop display login only.", "danger")
+        return redirect(url_for("home_launcher"))
+    _run_delayed_command(["pkill", "-x", "chromium"])
+    return ("Closing the full-screen display. Use the OpsHub icon on the Pi's desktop to open it again.", 200)
 
 
 @app.route("/admin/system/exit_display", methods=["POST"])

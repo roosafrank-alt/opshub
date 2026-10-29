@@ -901,6 +901,35 @@
     "q": "You hear a clearance and aren't sure it was for you; another plane has a similar call sign. What do you say?",
     "a": "\"Verify clearance for\" your full call sign [[33:229|AIM 4-2-4a2]]."
    }
+  },
+  {
+   "title": "Reading the chart: find the frequency you need",
+   "kind": "knowledge",
+   "codes": [
+    "PA.III.A.K1",
+    "PA.III.A.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Look up frequencies before you fly, not while you are busy in the cockpit. Airports with control towers are marked CT with the primary tower frequency. A table on the chart border gives more: the tower hours in local time, then tower, ground control and ATIS frequencies [[2:20|Chart Users' Guide p 20]] [[2:21|Chart Users' Guide p 21]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "Read across one row at a time. Some frequencies depend on the runway in use or on approach direction. The letters ASR or PAR mean a radar instrument approach is published. A second table lists approach control frequencies for Class B, Class C and TRSA, sometimes split by sector [[2:21|Chart Users' Guide p 21]]."
+    },
+    {
+     "p": "Next to the airport symbol you get a data block. CT is the tower frequency. ATIS is the recorded airport information. A number in italics, such as 122.95, is the UNICOM or advisory station. The long number before it, like 72, is the longest runway in hundreds of feet, and the usable length may be less [[2:24|Chart Users' Guide p 24]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "A circled C after the tower frequency means the airport follows the Common Traffic Advisory Frequency. RP means right traffic on the listed runways. A star means a part-time operation, so check the tower table for hours [[2:24|Chart Users' Guide p 24]]."
+    }
+   ]
   }
  ],
  "figures": {
@@ -951,6 +980,22 @@
    "caption": "Figure 14-44. Traffic advisories. (PHAK 14-26) The AIM shows the same case (AIM FIG 4-1-1) and says pilot A would actually see the traffic at 2 o'clock, not 1 o'clock. Use the AIM; the lesson is the same: ATC calls traffic by your track.",
    "alt": "Two airplanes flying toward each other on opposite tracks, both crabbing into a wind from the top of the picture; ATC calls each other's traffic at 12 o'clock, but pilot A sees it to the right (PHAK: 1 o'clock; AIM: 2 o'clock) and pilot B at 10 o'clock.",
    "source": "PHAK, PDF p. 360"
+  },
+  "f7": {
+   "file": "PA.III.A-7.jpg",
+   "res": "2",
+   "page": 21,
+   "caption": "Chart Users' Guide: the chart tabulation of tower and approach control frequencies.",
+   "alt": "Two tables. The first lists control towers by airport name with columns for hours of operation, tower, ground control and ATIS frequencies and a radar approach column, for airports such as Airborne, Blue Grass, Bolton, Charlottesville-Albemarle, Cincinnati/Northern Kentucky Intl, Cox Dayton Intl and Eastern WV Rgnl. Notes mark runway-dependent and approach-direction-dependent frequencies. The second lists Class B, Class C and TRSA approach control frequencies with sectors and service availability.",
+   "source": "Chart Guide, PDF p. 21"
+  },
+  "f8": {
+   "file": "PA.III.A-8.jpg",
+   "res": "2",
+   "page": 24,
+   "caption": "Chart Users' Guide: the airport data block and what each item means.",
+   "alt": "Two sample airport data blocks, one magenta and one blue, with callouts for the rotating beacon and UNICOM, above a two-column list of items: FSS on field, NO SVFR, FAR 93 box, identifiers, CT 118.3, a star for part-time operation, a circled C for CTAF, ATIS 123.8, AFIS 135.2, ASOS or AWOS 135.42, elevation 285, lighting L, longest runway 72, UNICOM 122.95, RP 23,34, VFR Advsy 125.0, weather camera and airport of entry.",
+   "source": "Chart Guide, PDF p. 24"
   }
  },
  "scenario": {
@@ -1021,22 +1066,22 @@
    "q": "In flight, the tower shows a flashing red light. What does it mean?",
    "options": [
     "Give way and continue circling",
-    "Return for landing",
     "Airport unsafe, do not land",
+    "Return for landing",
     "Exercise extreme caution"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "Flashing red in flight means airport unsafe, do not land [[60:451|14 CFR 91.125]]."
   },
   {
    "q": "Which transponder code shows a loss of two-way radio?",
    "options": [
-    "7500",
     "7600",
+    "7500",
     "7700",
     "1200"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "Squawk 7600 for loss of two-way radio [[34:54|AIM 6-4-2]]."
   },
   {
@@ -1044,10 +1089,10 @@
    "options": [
     "Key the mike 3 times in 5 seconds",
     "Key the mike 5 times in 5 seconds",
-    "Key the mike 7 times in 5 seconds",
-    "Call UNICOM to turn on the lights"
+    "Call UNICOM to turn on the lights",
+    "Key the mike 7 times in 5 seconds"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "Always key 7 times first for full brightness, then adjust down. Lights stay on 15 minutes [[33:132|AIM 2-1-8b-c]]."
   },
   {
@@ -1075,24 +1120,95 @@
   {
    "q": "A 4-light PAPI shows two white and two red. You are:",
    "options": [
-    "Well above the glide path",
-    "Slightly above",
     "On the glide path",
+    "Slightly above",
+    "Well above the glide path",
     "Slightly below"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "Two white, two red = on glide path (3 degrees) [[33:124|AIM FIG 2-1-5]]."
   },
   {
    "q": "You become unsure of your position and fuel. According to the AIM, you are in:",
    "options": [
     "A normal condition until the engine quits",
-    "At least an urgency condition",
     "A distress condition only if ATC agrees",
+    "At least an urgency condition",
     "No emergency unless you are IFR"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "You are in at least an urgency condition the moment you are doubtful about position or fuel; ask for help then [[34:28|AIM 6-1-2a]]."
+  },
+  {
+   "q": "On the tower table, what is the ATIS frequency for Cox Dayton Intl?",
+   "options": [
+    "125.8",
+    "121.9",
+    "119.9",
+    "257.8"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "In the Cox Dayton Intl row the ATIS column shows 125.8. 119.9 is the tower frequency and 121.9 is ground [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "The tower table marks Cincinnati/Northern Kentucky Intl's tower frequencies as \"Runway dependent.\" What does that mean for you?",
+   "options": [
+    "You must call ground control before every call",
+    "The tower talks only to IFR traffic in the area",
+    "The tower works only on some days of the week",
+    "The frequency you call depends on the runway in use"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "The note beside the Cincinnati tower frequencies says runway dependent, so you choose the frequency for the runway in use [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "The tower table lists hours of operation for each airport. In what time are they given?",
+   "options": [
+    "UTC",
+    "The time of the last ATIS",
+    "Eastern time at every airport",
+    "Local time"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "The chart notes say that operational hours are local time [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "On the airport data legend, which frequency does the figure label UNICOM?",
+   "options": [
+    "122.95",
+    "123.8",
+    "125.0",
+    "118.3"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "The arrow labeled UNICOM points to the italic number 122.95. 123.8 is ATIS, 118.3 is the tower and 125.0 is VFR advisory [[2:24|Chart Users' Guide p 24]]."
+  },
+  {
+   "q": "The legend shows a small circled C after CT - 118.3. What does it mean?",
+   "options": [
+    "It is also the Common Traffic Advisory Frequency",
+    "A weather camera is mounted on the airport",
+    "The tower is closed during the night hours",
+    "The airport is also an airport of entry"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "The circled C follows the Common Traffic Advisory Frequency [[2:24|Chart Users' Guide p 24]]."
+  },
+  {
+   "q": "A tower controller tells you to enter a right base. You would like a straight-in instead. Under 14 CFR 91.123(b), what is the rule?",
+   "options": [
+    "Except in an emergency, you may not go against an ATC instruction",
+    "You may ignore it once you have the airport in sight",
+    "You may ignore it if you are flying VFR in good weather",
+    "You may ignore it if following it adds time and fuel"
+   ],
+   "answer": 0,
+   "why": "[[60:450|14 CFR 91.123(b)]] says that except in an emergency, no person may operate an aircraft contrary to an ATC instruction in an area where ATC is exercised. Ask for what you want and follow the answer."
   }
  ],
  "takeaways": [
@@ -1250,6 +1366,31 @@
      "why": "No. Lights going out is not a clearance. RWSL only confirms a clearance from ATC; it never replaces one [[33:129|AIM 2-1-6d4]]."
     }
    ]
+  },
+  {
+   "type": "label",
+   "figure": "f8",
+   "title": "Read the airport data legend",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 40.8,
+     "y": 62.4,
+     "label": "Control tower, primary frequency"
+    },
+    {
+     "x": 41.1,
+     "y": 80.7,
+     "label": "ATIS frequency"
+    },
+    {
+     "x": 89.0,
+     "y": 59.6,
+     "label": "Runways with right traffic patterns"
+    }
+   ],
+   "key": "h5",
+   "after": 10
   }
  ],
  "final_quiz": [
@@ -1258,44 +1399,44 @@
    "options": [
     "122.95, the UNICOM",
     "123.8, the ATIS",
-    "118.3, the tower frequency",
-    "122.9, MULTICOM"
+    "122.9, MULTICOM",
+    "118.3, the tower frequency"
    ],
-   "answer": 2,
+   "answer": 3,
    "figure": "f3",
    "why": "The star means the tower is part-time, and the circled C after 118.3 marks it as the CTAF [[2:15|Chart Users' Guide p. 15]]. When the tower is closed, self-announce on the CTAF [[33:209|AIM 4-1-9g2]]."
   },
   {
    "q": "You fly a Piper Cherokee, registration N7284R. How do you say your call sign on first contact with the tower?",
    "options": [
-    "Cherokee Seven Two Eight Four Romeo",
+    "Cherokee November Seven Two Eight Four Romeo",
     "Eight Four Romeo",
     "Cherokee Seventy-Two Eighty-Four Romeo",
-    "Cherokee November Seven Two Eight Four Romeo"
+    "Cherokee Seven Two Eight Four Romeo"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "Say the type or maker, then the registration digit by digit, and drop the N [[33:230|AIM 4-2-4a3]]. Never shorten your call sign on first contact [[33:229|AIM 4-2-4a1]]."
   },
   {
    "q": "You are VFR on flight following. Approach tells you to climb to 5,500 feet, but a cloud layer at 5,000 feet is in the way. What do you say?",
    "options": [
-    "\"Wilco\" and climb as best you can",
-    "\"Roger\" and stay where you are",
-    "\"Affirmative\" and climb",
-    "\"Unable\" and tell them about the clouds"
+    "\"Unable\" and tell them about the clouds",
+    "\"Roger\" and hold altitude without mentioning the clouds",
+    "\"Affirmative\" and climb into the clouds as directed",
+    "\"Wilco\" and climb while trying to stay out of clouds"
    ],
-   "answer": 3,
+   "answer": 0,
    "why": "\"Unable\" means you can't comply with an instruction [[34:436|AIM P/C Glossary]]. ATC help never lets you break a rule, and you should keep ATC told about the weather ahead [[33:217|AIM 4-1-17b-c]]. \"Wilco\" would promise to comply [[34:445|AIM P/C Glossary]]."
   },
   {
    "q": "Ground says, \"Cessna Five Two Kilo, Runway 24, taxi via Alpha.\" You reach the end of Alpha at Runway 24. What now?",
    "options": [
-    "Taxi onto Runway 24; the taxi instruction covers it",
-    "Stop short and get a clearance from Tower before entering the runway",
-    "Line up on Runway 24 if no one is on final",
-    "Say \"taking the active\" and line up"
+    "Taxi onto Runway 24; the taxi instruction covers it since it names the runway",
+    "Say \"taking the active\" and line up when you see the runway is clear",
+    "Line up on Runway 24 if no one is on final and you have looked both ways",
+    "Stop short and get a clearance from Tower before entering the runway"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "A taxi route to your departure runway does not let you enter or cross it [[33:260|AIM 4-3-18a6]]. You need a clearance to taxi onto a runway or take off while the tower is open [[33:260|AIM 4-3-18a4]]."
   },
   {
@@ -1313,9 +1454,9 @@
    "q": "You plan to fly VFR at 3,500 feet MSL, 25 miles from the primary airport of a Class B area, staying outside the Class B. What equipment do you need?",
    "options": [
     "An operating Mode C transponder and ADS-B Out",
-    "Nothing extra, since you stay outside Class B",
-    "Only a working two-way radio",
-    "A Class B clearance from ATC"
+    "Nothing extra, since you stay outside the Class B airspace",
+    "Only a working two-way radio and a current sectional chart",
+    "A Class B clearance from ATC before you fly near the area"
    ],
    "answer": 0,
    "why": "Within 30 miles of a Class B primary airport, below 10,000 feet MSL (the \"Mode C veil\"), you need Mode C and ADS-B Out [[33:223|AIM 4-1-20f2]]."
@@ -1323,21 +1464,21 @@
   {
    "q": "It is night. You are taxiing with a dead radio and the tower shines a flashing white light at you. What does it mean, and how do you answer?",
    "options": [
-    "Cleared to taxi; blink your landing or nav lights",
-    "Exercise extreme caution; rock your wings",
-    "Return to your starting point; move the ailerons",
-    "Return to your starting point; blink your landing or nav lights"
+    "Cleared to taxi; blink your landing or nav lights, since it is night",
+    "Return to your starting point; blink your landing or nav lights",
+    "Return to your starting point; move the ailerons to acknowledge",
+    "Exercise extreme caution; rock your wings to show that you understand"
    ],
-   "answer": 3,
+   "answer": 1,
    "why": "Flashing white on the ground means return to starting point on the airport [[60:451|14 CFR 91.125]]. At night you acknowledge by blinking the landing or navigation lights; moving the ailerons is for daytime [[33:257|AIM 4-3-13e]]."
   },
   {
    "q": "At the ramp of a towered airport, you find your only radio is dead. What should you do?",
    "options": [
-    "Take off and squawk 7600 right away",
+    "Take off and squawk 7600 right away, since a dead radio is a comm failure",
     "Get it fixed; if you can't, phone the tower and ask to depart without a radio",
-    "Taxi to the runway and wait for a steady green",
-    "Depart and call the tower on 121.5"
+    "Taxi to the runway and wait for a steady green light before you depart",
+    "Depart and call the tower on 121.5 once you are airborne and clear"
    ],
    "answer": 1,
    "why": "Make every effort to get the radio fixed. If you can't, call the tower by phone and ask for approval to depart without two-way radio [[33:235|AIM 4-2-13b]]."
@@ -1345,57 +1486,92 @@
   {
    "q": "You are VFR on flight following and not instrument rated. Clouds close in ahead and around you, and you can't find any way to stay in VFR conditions. What should you do?",
    "options": [
-    "Tell ATC you are not instrument rated and declare a distress condition",
+    "Squawk 7600 and turn toward home, staying low to keep the ground in sight",
     "Ask for vectors through the clouds without mentioning your rating",
-    "Squawk 7600 and turn toward home",
-    "Wait until you are in the clouds before saying anything"
+    "Tell ATC you are not instrument rated and declare a distress condition",
+    "Wait until you are in the clouds before saying anything to ATC"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "If you can't continue in VFR conditions, tell the controller you are not instrument rated and declare a distress condition [[34:29|AIM 6-2-1b2]]. Asking early is the key [[34:28|AIM 6-1-2a]]."
   },
   {
    "q": "While taxiing for takeoff with a passenger, your wingtip hits a parked fuel truck. No one is hurt. Your airplane has only a bent wingtip, but the truck repair is estimated at $40,000. What do you do?",
    "options": [
     "Nothing; a bent wingtip is not substantial damage",
-    "Notify the NTSB immediately",
+    "Tell the airport manager only",
     "File an NTSB report within 10 days, with no call needed",
-    "Tell the airport manager only"
+    "Notify the NTSB immediately"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "Damage to property other than the aircraft, estimated at more than $25,000 to repair, is a listed serious incident that needs immediate NTSB notification [[60:882|49 CFR 830.5(a)(6)]]. A bent wingtip is not substantial damage, so this is not an accident [[60:882|49 CFR 830.2]], but the truck damage alone makes the call required."
   },
   {
    "q": "You are landing at night on a long instrument runway. Near the far end, the runway edge lights change from white to yellow. What does that tell you?",
    "options": [
-    "You are near a taxiway exit",
-    "The runway is closed ahead",
     "You are in the last 2,000 feet, or the last half if that is less",
+    "The runway is closed ahead",
+    "You are near a taxiway exit",
     "You are past the touchdown zone and must go around"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "On instrument runways, yellow edge lights replace white on the last 2,000 feet or half the runway, whichever is less. They form a caution zone for landings [[33:126|AIM 2-1-4b]]."
   },
   {
    "q": "You fly into an airport that has Runway Status Lights. When should your transponder and ADS-B Out be on?",
    "options": [
-    "Only once you are airborne",
-    "Only while you are on a runway",
-    "Only when ATC asks for it",
-    "From leaving parking until you shut down at parking"
+    "Only once you are airborne and have been cleared for takeoff by the tower",
+    "Only while you are on a runway or crossing a hold-short line",
+    "From leaving parking until you shut down at parking",
+    "Only when ATC asks for it on the frequency before you taxi"
    ],
-   "answer": 3,
+   "answer": 2,
    "why": "At RWSL airports, keep the transponder and ADS-B on from the moment you leave the parking area until you shut down there, so the system can see you [[33:129|AIM 2-1-6d1]]."
   },
   {
    "q": "A pilot calls the tower and says, \"have numbers.\" What does that tell the controller?",
    "options": [
+    "The pilot has the field in sight and can follow traffic",
+    "The pilot has the current ATIS and needs no other information",
     "The pilot has wind, runway and altimeter only",
-    "The pilot has the current ATIS",
-    "The pilot has the field in sight",
-    "The pilot knows the traffic pattern altitude"
+    "The pilot knows the traffic pattern altitude and entry point"
+   ],
+   "answer": 2,
+   "why": "\"Have numbers\" means only wind, runway and altimeter. It does not mean you have the ATIS; say \"information (letter)\" for that [[33:213|AIM 4-1-13h]]."
+  },
+  {
+   "q": "On the airport data legend, what does RP 23,34 mean?",
+   "options": [
+    "Radar approach on runways 23 and 34",
+    "Right traffic patterns on runways 23 and 34",
+    "Restricted parking on runways 23 and 34",
+    "Runways 23 and 34 are rough"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "RP means runways with right traffic patterns. An asterisk before it means see the Chart Supplement [[2:24|Chart Users' Guide p 24]]."
+  },
+  {
+   "q": "In the sample block 285 L 72 122.95, what does 72 tell you?",
+   "options": [
+    "The tower closes at 7:20 local time each night of the week",
+    "The airport elevation is only 72 ft above sea level here",
+    "The magnetic heading of the main runway is 072 degrees",
+    "The longest runway is about 7,200 ft; usable length may be less"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "The number is the length of the longest runway in hundreds of feet. Usable length may be less [[2:24|Chart Users' Guide p 24]]."
+  },
+  {
+   "q": "You deviated from an ATC clearance during an emergency. What does 14 CFR 91.123(c) require next?",
+   "options": [
+    "Notify ATC of the deviation as soon as possible",
+    "Call ATC only if the FAA asks you to",
+    "File a report within 90 days",
+    "Nothing, because an emergency removes all duties"
    ],
    "answer": 0,
-   "why": "\"Have numbers\" means only wind, runway and altimeter. It does not mean you have the ATIS; say \"information (letter)\" for that [[33:213|AIM 4-1-13h]]."
+   "why": "A pilot in command who deviates from an ATC clearance or instruction in an emergency must notify ATC of that deviation as soon as possible [[60:450|14 CFR 91.123(c)]]."
   }
  ]
 }

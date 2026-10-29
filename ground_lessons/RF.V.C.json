@@ -681,6 +681,41 @@
     "q": "Assigned 10,000, MEA 8,000, no expected altitude, radios fail in cloud. Why not descend to 8,000 to get below the ice?",
     "a": "91.185 requires the highest of assigned, minimum and expected, which is 10,000 [[60:483|14 CFR 91.185(c)(2)]]. If the ice becomes an emergency, 91.3(b) lets you deviate as needed [[60:435|14 CFR 91.3(b)]] [[34:53|AIM 6-4-1a]]."
    }
+  },
+  {
+   "title": "Reading the chart: MEA and navaid clues for radio failure (awareness)",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.C.K3",
+    "RF.V.C.R1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "If the radio fails in IFR conditions, the altitude rule uses a number you can read on an en route chart: the highest of the last assigned altitude, the minimum IFR altitude, and the altitude ATC said to expect [[60:483|14 CFR 91.185(c)(2)]]. The minimum altitude for the leg is on the chart."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "Airway data sits along the airway in the same color. The MEA is the lowest published altitude between radio fixes that gives navigation signal coverage and obstacle clearance. The MRA is the lowest altitude at which a fix can be received. The MAA is the highest altitude with good reception. The MOCA gives obstacle clearance and signal coverage only within 22 NM of a VOR [[2:69|Chart Users' Guide p 69]]."
+    },
+    {
+     "p": "Small marks matter. A MOCA is preceded by an asterisk and shows only on low altitude charts, and only when it is lower than the MEA. A blue number with a G, like 11700G, is a GNSS MEA for aircraft navigating by GPS. An MCA is an altitude you must reach by a certain fix before a higher MEA starts [[2:69|Chart Users' Guide p 69]]."
+    },
+    {
+     "p": "Silence on the radio can also come from the navaid or station, not your radio. An underlined frequency has no voice. A star means part-time or on request. Hatching means the navaid is shut down [[2:78|Chart Users' Guide p 78]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "This is awareness, not a procedure. If you lose communications, the first question is VFR or IFR conditions. In VFR conditions you continue VFR and land as soon as practicable [[60:482|14 CFR 91.185(b)]]."
+     }
+    }
+   ]
   }
  ],
  "figures": {
@@ -731,6 +766,22 @@
    "caption": "IPH Figure 2-69. Two-way radio communications failure transponder code (IPH 2-47).",
    "alt": "A dark radar screen with a yellow-green data block reading 7600 over RDOF next to a target and its trail. A green box below explains that when an aircraft squawks 7600 during a two-way radio communication failure, the data block flashes RDOF, radio failure, to alert the controller.",
    "source": "IPH, PDF p. 107"
+  },
+  "f7": {
+   "file": "RF.V.C-7.jpg",
+   "res": "2",
+   "page": 69,
+   "caption": "Chart Users' Guide: airway and route data (MEA, MRA, MAA, MOCA, MTA, MCA).",
+   "alt": "A text page titled Airway/Route Data. It defines Minimum Enroute Altitude (MEA), Minimum Reception Altitude (MRA), Maximum Authorized Altitude (MAA), Minimum Obstruction Clearance Altitude (MOCA), Minimum Turning Altitude (MTA) and Minimum Crossing Altitude (MCA). At the bottom is a sample Victor route label V4 with 16000, 11700G in blue, an asterisk 11700, a distance of 29 and a boxed 158.",
+   "source": "Chart Users' Guide, PDF p. 69"
+  },
+  "f8": {
+   "file": "RF.V.C-8.jpg",
+   "res": "2",
+   "page": 78,
+   "caption": "Chart Users' Guide: voice or no voice on a navaid, shutdown status and part-time service.",
+   "alt": "Legend rows. Distance measuring equipment with a Y mode. Voice communications via navaid: 112.6 means voice is transmitted and an underlined 111.0 means no voice. Navaid shutdown status is a hatched pattern for VHF/UHF and LF/MF. Part time or on-request is a star. Automated weather broadcast services are a circled A for VHF/UHF and LF/MF.",
+   "source": "Chart Users' Guide, PDF p. 78"
   }
  },
  "scenario": {
@@ -781,45 +832,45 @@
   {
    "q": "The 91.183 continuous-watch and reporting duty applies to:",
    "options": [
-    "Every IFR flight, in any airspace",
-    "IFR flights in controlled airspace, unless ATC authorizes otherwise",
-    "Only IFR flights above 18,000 ft MSL",
-    "Any flight receiving radar services"
+    "Every IFR flight in any airspace, controlled or uncontrolled, without exception",
+    "Any flight receiving radar services, whether it is operating IFR or VFR",
+    "Only IFR flights above 18,000 ft MSL, where all traffic is under positive control",
+    "IFR flights in controlled airspace, unless ATC authorizes otherwise"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "91.183 covers aircraft operated under IFR in controlled airspace, unless otherwise authorized by ATC [[60:482|14 CFR 91.183]]."
   },
   {
    "q": "Under radar control, which reporting points must you report passing?",
    "options": [
-    "All compulsory points",
-    "All points on your route",
-    "None, ever",
-    "Only the ones ATC specifically requests"
+    "Only the ones ATC specifically requests",
+    "Every point on the route, compulsory or not",
+    "None, ever; radar replaces all reports",
+    "All compulsory points, even under radar"
    ],
-   "answer": 3,
+   "answer": 0,
    "why": "While under radar control, only the reporting points ATC specifically requests need be reported [[60:482|14 CFR 91.183(a)]]."
   },
   {
    "q": "On an IFR en route chart, a solid triangle at a fix means:",
    "options": [
-    "Compulsory position reporting point",
-    "Holding fix",
     "On request reporting point",
+    "Holding fix",
+    "Compulsory position reporting point",
     "Minimum crossing altitude"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "The solid triangle is the compulsory reporting point symbol; the open triangle is on request [[33:376|AIM 5-3-2b]] [[2:82|CUG 82]]."
   },
   {
    "q": "Which report should you make even while in radar contact?",
    "options": [
-    "Leaving the FAF inbound",
-    "Passing each compulsory reporting point",
+    "Leaving the FAF inbound on the final approach segment of the approach",
     "Time and altitude on reaching a holding fix or clearance limit",
-    "An estimate that changes by 90 seconds"
+    "Passing each compulsory reporting point along your route of flight",
+    "A revised estimate whenever your old estimate is off by 90 seconds"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "Reaching a holding fix or point you were cleared to is an \"at all times\" report [[33:377|AIM 5-3-3a1(f)]] [[33:382|AIM 5-3-8f]]. Leaving the FAF is a non-radar report, and estimates are revised when off by more than 2 minutes [[33:377|AIM 5-3-3a2]]."
   },
   {
@@ -836,32 +887,32 @@
   {
    "q": "Under IFR in controlled airspace, your glideslope fails but the localizer still works. Do you report it?",
    "options": [
-    "No, the localizer still works",
-    "Only if you plan an ILS",
-    "Only after landing",
-    "Yes, partial loss of ILS receiver capability is reportable"
+    "Yes, partial loss of ILS receiver capability is reportable",
+    "Only if you were planning to fly the ILS approach at your destination",
+    "Only after landing, once you can write up the failure for the FAA",
+    "No, because the localizer still works, the ILS is not considered lost"
    ],
-   "answer": 3,
+   "answer": 0,
    "why": "Report complete or partial loss of ILS receiver capability [[33:377|AIM 5-3-3a1(h)]]; 91.187 covers approach equipment [[60:483|14 CFR 91.187]]."
   },
   {
    "q": "After you squawk 7600, what should you keep in mind?",
    "options": [
     "ATC will always see your RDOF alert",
-    "You may not be in radar coverage",
+    "You must turn the transponder off after 1 minute",
     "You must also squawk 7700",
-    "You must turn the transponder off after 1 minute"
+    "You may not be in radar coverage"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "The AIM says to understand that the aircraft may not be in radar coverage [[34:54|AIM 6-4-2b]]."
   },
   {
    "q": "Your STAR shows \"expect 11,000\" at a fix. ATC never mentioned it. Your radios fail. Does that altitude count under 91.185?",
    "options": [
-    "Yes, every printed altitude counts",
+    "Yes, every altitude printed on the chart counts",
     "Only if it is higher than your assigned altitude",
     "No, only if ATC specifically told you to expect it",
-    "Only below 10,000 ft"
+    "Only when the fix is below 10,000 ft MSL"
    ],
    "answer": 2,
    "why": "STAR \"expect\" altitudes must not be used in lost communications unless ATC specifically advised you to expect them [[33:393|AIM 5-4-1a1 NOTE]]."
@@ -869,25 +920,96 @@
   {
    "q": "With a failed radio you enter a TAA sector whose minimum altitude is below your 91.185 altitude. When may you descend to the sector altitude?",
    "options": [
-    "On entering the TAA",
+    "After you arrive at the appropriate IAF",
     "At 10 NM from the IAF",
     "Never; fly the whole approach at your 91.185 altitude",
-    "After you arrive at the appropriate IAF"
+    "On entering the TAA"
+   ],
+   "answer": 0,
+   "why": "Hold the 91.185(c)(2) altitude until arriving at the appropriate IAF [[33:405|AIM 5-4-5d5(a)]] [[29:200|IPH 4-60]]."
+  },
+  {
+   "q": "What is the MEA on an en route chart?",
+   "options": [
+    "Highest altitude between fixes with good signal reception on route",
+    "Lowest altitude between fixes that gives signal and obstacle clearance",
+    "Lowest altitude at which a fix can first be received by radio",
+    "Altitude ATC must give you after a total radio failure"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "That is the MEA definition [[2:69|Chart Users' Guide p 69]]. The highest usable altitude is the MAA and the lowest altitude for a fix is the MRA."
+  },
+  {
+   "q": "Within what distance of a VOR does a MOCA assure acceptable navigation signal coverage?",
+   "options": [
+    "Within 50 nautical miles of the VOR",
+    "The entire length of the airway",
+    "Within 5 nautical miles of the VOR",
+    "25 statute miles (22 nautical miles)"
    ],
    "answer": 3,
-   "why": "Hold the 91.185(c)(2) altitude until arriving at the appropriate IAF [[33:405|AIM 5-4-5d5(a)]] [[29:200|IPH 4-60]]."
+   "figure": "f7",
+   "why": "A MOCA assures signal coverage only within 25 statute (22 nautical) miles of a VOR [[2:69|Chart Users' Guide p 69]]."
+  },
+  {
+   "q": "A blue number such as 11700G appears above an airway. What is it?",
+   "options": [
+    "A maximum authorized altitude for IFR",
+    "A GNSS MEA for aircraft using GPS",
+    "A minimum crossing altitude at a fix",
+    "A MOCA for aircraft using a VOR"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "GNSS MEAs have a G suffix and are charted in blue [[2:69|Chart Users' Guide p 69]]."
+  },
+  {
+   "q": "What does a MAA tell you?",
+   "options": [
+    "The lowest altitude for obstacle clearance",
+    "The highest altitude with good signal reception",
+    "The altitude to cross a fix when climbing",
+    "The lowest altitude for turning at a fix"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "MAA is the maximum authorized altitude, the highest usable altitude on a route segment [[2:69|Chart Users' Guide p 69]]."
+  },
+  {
+   "q": "In the legend, a star appears beside a navaid frequency. What does it mean?",
+   "options": [
+    "The navaid is located on an airport",
+    "The navaid is part time or on request",
+    "The navaid is shut down for service",
+    "The navaid has no voice transmitted"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "A star marks part time or on-request service [[2:78|Chart Users' Guide p 78]]."
+  },
+  {
+   "q": "Your radio fails while you are flying under IFR, but you are in VFR conditions. What does 14 CFR 91.185(b) tell you to do?",
+   "options": [
+    "Land only at an airport with an approach",
+    "Turn around and return to the departure airport",
+    "Continue under VFR and land as soon as practicable",
+    "Climb to the highest altitude and hold"
+   ],
+   "answer": 2,
+   "why": "If the failure occurs in VFR conditions, or VFR is met after the failure, the pilot shall continue under VFR and land as soon as practicable [[60:482|14 CFR 91.185(b)]]."
   }
  ],
  "final_quiz": [
   {
    "q": "Off airways on a GPS direct route defined by three fixes in your flight plan, Center says \"radar contact lost.\" What position reports are expected?",
    "options": [
-    "Only at airway intersections",
     "Over each fix used in the flight plan to define the route",
-    "None, since you are off airways",
-    "Only at open triangle fixes"
+    "Only at airway intersections you pass, since you are off the airways",
+    "None until radar contact is reestablished, since you are off airways",
+    "Only at open triangle fixes, since those are the on request points"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "On a direct route, report over each reporting point used in the flight plan to define the route [[33:376|AIM 5-3-2c2]]; the IPH says these become compulsory [[29:106|IPH 2-46]]."
   },
   {
@@ -904,123 +1026,158 @@
   {
    "q": "You miss the approach while in radar contact. What do you report?",
    "options": [
+    "Nothing; radar already shows the controller that you are flying the missed approach",
     "The missed approach, with a request for a clearance for what you want next",
-    "Nothing; radar shows it",
-    "Only your altitude",
-    "Squawk 7700 and wait"
+    "Only your altitude and heading, because radar shows the controller everything else",
+    "Squawk 7700 and wait for the controller to call you with instructions"
    ],
-   "answer": 0,
+   "answer": 1,
    "why": "Report a missed approach at all times and request clearance for specific action, such as another approach or the alternate [[33:377|AIM 5-3-3a1(d)]]."
   },
   {
    "q": "Not in radar contact, you are giving a report over a VOR. What time do you report?",
    "options": [
-    "When the DME reads zero",
-    "When the station identifier stops",
+    "When the TO/FROM indicator first completely reverses",
+    "When the station identifier stops overhead",
     "One minute after the needle starts to swing",
-    "When the TO/FROM indicator first completely reverses"
+    "When the DME reads zero over the station"
    ],
-   "answer": 3,
+   "answer": 0,
    "why": "Report the time of the first complete reversal of the TO/FROM indicator [[33:376|AIM 5-3-2a1]]."
   },
   {
    "q": "Your weather radar fails in an area of convective weather. It is not nav, approach or comm equipment. Should you report it?",
    "options": [
-    "No, 91.187 does not mention radar",
+    "No, 91.187 lists only nav, approach and comm gear",
+    "Only after landing, when you tell maintenance",
     "Yes, if in your judgment it affects safety or IFR capability",
-    "Only after landing",
-    "Only if ATC asks"
+    "Only if ATC asks about the radar or the weather"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "If equipment such as airborne weather radar fails and, in your judgment, safety or IFR capability is affected, report it the same way [[33:377|AIM 5-3-3a1(h) NOTE 1]]."
   },
   {
    "q": "Your IFR GPS shows an integrity alert that clears after a few minutes. What should your report include?",
    "options": [
-    "Only that GPS failed",
-    "The receiver's serial number",
     "The location and altitude of the anomaly, and its duration if needed",
+    "The receiver's serial number",
+    "Only that GPS failed",
     "Nothing; GPS anomalies are not reported"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "When reporting GPS anomalies, include the location and altitude, and the duration if necessary [[33:377|AIM 5-3-3a1(h) NOTE 2]]."
   },
   {
    "q": "During a Center frequency outage you can reach both an FSS and your company's radio. Which relay does the AIM recommend?",
    "options": [
-    "The FSS, because it has direct interphone lines to the Center sector",
-    "Company radio, because it knows your flight",
-    "Neither; use 121.5 only",
-    "Whichever answers first, no preference"
+    "Whichever answers first, since the AIM states no preference between the two",
+    "The company radio, because the dispatcher already knows your flight and plan",
+    "Neither; call only on 121.5 until the Center frequency is working again",
+    "The FSS, because it has direct interphone lines to the Center sector"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "Relay via FSS is recommended because it is quicker: the FSS has direct interphone lines to the responsible ARTCC sector [[33:375|AIM 5-3-1c NOTE]]."
   },
   {
    "q": "IFR to a towered Class D airport, your radios fail below the clouds in VFR conditions a few miles out. Which rule tells you what to do?",
    "options": [
     "91.129(d)(2): land only with basic VFR, visual contact with the tower and a clearance to land",
-    "Neither 91.129 nor 91.185; Class D has its own lost comm procedure",
     "91.185, because 91.129(d)(1) sends an IFR flight there; in VFR conditions that means continue VFR and land as soon as practicable",
+    "Neither 91.129 nor 91.185; Class D has its own lost comm procedure",
     "You must leave the Class D and land at a nontowered airport"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "In Class D, a radio failure under IFR is handled by 91.185 [[60:453|14 CFR 91.129(d)(1)]], and in VFR conditions 91.185(b) says continue under VFR and land as soon as practicable [[60:482|14 CFR 91.185(b)]]. Paragraph (d)(2) is for a flight under VFR [[60:453|14 CFR 91.129(d)(2)]]."
   },
   {
    "q": "In radar contact, Center has you at 11,000 westbound on V298 approaching QUIRT (the Chart Users' Guide example airway). The radios fail in cloud; you were given no expected altitude. What do you fly from LAMON to SABAT?",
    "options": [
     "15,000, the highest altitude you have reached",
-    "10,000, the westbound MEA",
+    "11,000, your last assigned altitude",
     "13,000, the MEA printed for that segment",
-    "11,000, your last assigned altitude"
+    "10,000, the westbound MEA"
    ],
-   "answer": 3,
+   "answer": 1,
    "why": "Westbound MEAs are 15,000 from QUIRT to LAMON, then 10,000, then 9,000; 13,000 is the eastbound MEA [[2:85|CUG 85]]. Take the highest of assigned and minimum for each segment: 15,000 to LAMON, then 11,000, since 11,000 is higher than 10,000 [[60:483|14 CFR 91.185(c)(2)]] [[34:54|AIM 6-4-1 NOTE]]."
   },
   {
    "q": "Assigned 9,000, told \"expect 7,000 at BRAVO.\" The radios fail before BRAVO. The MEA after BRAVO is 6,000. What do you fly after BRAVO?",
    "options": [
-    "9,000",
-    "7,000",
     "6,000",
+    "7,000",
+    "9,000",
     "8,000"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "Fly the highest of assigned (9,000), minimum (6,000) and expected (7,000) [[60:483|14 CFR 91.185(c)(2)]]. With a lower expected altitude, the AIM says keep the highest of assigned or minimum [[34:54|AIM 6-4-1 NOTE]]."
   },
   {
    "q": "You are talking to Center when its frequency goes dead. After a minute it is still dead. Your next frequency change on the route is to an approach control. Whom does the AIM say to try?",
    "options": [
-    "Only 121.5",
-    "That approach control, if feasible",
-    "Company radio",
-    "Nobody; squawk 7600 at once"
+    "Only 121.5, the emergency frequency, until Center comes back",
+    "Nobody; squawk 7600 at once and fly your last assigned route",
+    "Only your company radio, to relay your request to the Center",
+    "That approach control, if feasible, for instructions"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "When the next normal frequency change is known to involve another ATC facility, contact that facility, if feasible, for instructions; if that fails, ask the FSS for communications instructions [[33:375|AIM 5-3-1c2]]."
   },
   {
    "q": "Lost comm in IMC, a passenger becomes seriously ill. You decide to divert to a closer airport off your 91.185 route. What gives you that authority?",
    "options": [
-    "91.185(b)",
+    "91.185(b), because it lets you land at any suitable airport after a radio failure",
     "None; you must fly 91.185",
-    "An ATC clearance relayed later",
-    "91.3(b): the PIC may deviate as needed to meet an in-flight emergency"
+    "91.3(b): the PIC may deviate as needed to meet an in-flight emergency",
+    "An ATC clearance that you obtain later, relayed through an FSS or company radio"
    ],
-   "answer": 3,
+   "answer": 2,
    "why": "In an emergency requiring immediate action the PIC may deviate from any Part 91 rule as needed, with a written report if the FAA asks [[60:435|14 CFR 91.3(b), (c)]]. The AIM says not to be reluctant to use it [[34:53|AIM 6-4-1a]]."
   },
   {
    "q": "With no emergency, a pilot in IMC with failed radios decides a direct shortcut to the destination beats the assigned airway. What is the problem?",
    "options": [
-    "ATC serves the flight assuming it follows 91.185, so the shortcut leaves the airspace ATC is protecting",
+    "Only that the ETA changes",
     "None, any route is fine without radios",
     "Shortcuts are allowed if under 50 NM",
-    "Only that the ETA changes"
+    "ATC serves the flight assuming it follows 91.185, so the shortcut leaves the airspace ATC is protecting"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "ATC service is provided on the basis that the pilot follows 91.185 [[34:53|AIM 6-4-1c]], and in IFR conditions the CFR procedures are what ensure separation [[29:107|IPH 2-47]]. The route is the last assigned one [[60:482|14 CFR 91.185(c)(1)]]."
+  },
+  {
+   "q": "What does an MCA mean on an en route chart?",
+   "options": [
+    "The highest altitude with good navigation reception",
+    "The lowest altitude for radar service on route",
+    "The lowest altitude at a fix when climbing to a higher MEA",
+    "The altitude where a holding pattern must begin"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "An MCA is the lowest altitude at certain fixes at which the aircraft must cross when proceeding in the direction of a higher minimum enroute IFR altitude [[2:69|Chart Users' Guide p 69]]."
+  },
+  {
+   "q": "On the legend, a frequency is underlined: 111.0. What should you expect when you tune it?",
+   "options": [
+    "Radar vectors",
+    "A recorded weather report",
+    "No voice on that frequency",
+    "A tower controller"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The underline marks a frequency with no voice transmitted [[2:78|Chart Users' Guide p 78]]."
+  },
+  {
+   "q": "Your last clearance assigned 6,000 ft. The MEA on the next segment is 7,000 ft. ATC had said to expect 8,000 ft. You lose radios in IFR conditions. What altitude does 14 CFR 91.185(c)(2) require?",
+   "options": [
+    "6,000 ft, the last assigned altitude",
+    "8,000 ft, the highest of the three",
+    "7,000 ft, the minimum altitude",
+    "The lowest of the three"
+   ],
+   "answer": 1,
+   "why": "The rule is the highest of the last assigned altitude, the minimum altitude for IFR operations, and the altitude ATC said to expect [[60:483|14 CFR 91.185(c)(2)]]."
   }
  ],
  "takeaways": [
@@ -1287,7 +1444,7 @@
       "Give a full position report over the fix",
       "Nothing; in radar contact you report only points ATC requests",
       "Report only your time over the fix",
-      "Ask Center whether you are still in radar contact"
+      "Ask Center to confirm whether you are still in radar contact first"
      ],
      "answer": 1,
      "why": "Under radar control, only reporting points ATC specifically requests are reported [[60:482|14 CFR 91.183(a)]] [[33:376|AIM 5-3-2c3]]."
@@ -1295,48 +1452,73 @@
     {
      "s": "Your GPS shows a brief outage. A NOTAM lists a government GPS test in this area right now, and your VOR keeps you on the airway. What does the IPH say about reporting it?",
      "options": [
-      "Report a GPS anomaly with location, altitude and duration",
+      "Report a GPS anomaly to ATC, with its location, altitude and the duration",
+      "Squawk 7600 until the GPS returns, since your navigation capability was lost",
       "Do not report it as an anomaly; the NOTAMed test outage is already known",
-      "Squawk 7600 until the GPS returns",
-      "Declare an emergency"
+      "Declare an emergency, since you briefly lost your primary navigation"
      ],
-     "answer": 1,
+     "answer": 2,
      "why": "Outages from pre-approved government tests are published by NOTAM and should not be reported to ATC, as the condition is known and not an anomaly [[29:107|IPH 2-47]]. A real anomaly would be reported with location and altitude [[33:377|AIM 5-3-3a1(h) NOTE 2]]."
     },
     {
      "s": "Level at 9,000, your number 2 comm radio fails. Number 1 still works. What does the rule require?",
      "options": [
-      "A report: ID, comm 2 failed, how it limits you, what help you want",
-      "Nothing, you still have a working radio",
-      "Squawk 7600",
-      "Land at the nearest airport"
+      "Land at the nearest suitable airport, because a required radio has failed",
+      "Nothing, because you still have a working radio, so there is nothing to report",
+      "Squawk 7600 right away, since one of your communications radios has failed",
+      "A report: ID, comm 2 failed, how it limits you, what help you want"
      ],
-     "answer": 0,
+     "answer": 3,
      "why": "Any in-flight malfunction of communication equipment must be reported, with the four 91.187 items [[60:483|14 CFR 91.187]]. The AIM lists impairment of air/ground communications capability [[33:377|AIM 5-3-3a1(h)]]."
     },
     {
      "s": "Later number 1 fails too. No answer on any frequency, FSS or 121.5. You are in cloud on the assigned airway; the next segment's MEA is 10,000. What do you fly?",
      "options": [
       "Stay at 9,000 and descend for the approach at once",
-      "Turn direct to the destination at 9,000",
+      "Squawk 7600, stay on the airway, and climb to 10,000 after the fix where the MEA rises",
       "Squawk 7700 and descend to the MOCA",
-      "Squawk 7600, stay on the airway, and climb to 10,000 after the fix where the MEA rises"
+      "Turn direct to the destination at 9,000"
      ],
-     "answer": 3,
+     "answer": 1,
      "why": "Squawk 7600 [[34:54|AIM 6-4-2a]]; fly the last assigned route [[60:482|14 CFR 91.185(c)(1)]] at the highest of assigned and minimum, 10,000, starting the climb right after the fix [[60:483|14 CFR 91.185(c)(2)]] [[60:480|14 CFR 91.177(b)]]."
     },
     {
      "s": "Twenty minutes later you break out below the clouds into VFR conditions, with your destination still well ahead. What does the rule require?",
      "options": [
-      "Stay on the airway at 10,000 under 91.185(c), so ATC knows where you are",
       "Continue under VFR and land as soon as practicable",
+      "Stay on the airway at 10,000 under 91.185(c), so ATC knows where you are",
       "Hold where you broke out until your ETA, then descend",
       "Climb back into the clouds to finish 91.185(c)"
      ],
-     "answer": 1,
+     "answer": 0,
      "why": "If VFR conditions are encountered after the failure, continue the flight under VFR and land as soon as practicable [[60:482|14 CFR 91.185(b)]]. Paragraph (c) is only for IFR conditions or when (b) cannot be complied with [[60:482|14 CFR 91.185(c)]]. Practicable is not \"as soon as possible\": you need not use an unsuitable or unauthorized airport [[34:53|AIM 6-4-1c2 NOTE]]."
     }
    ]
+  },
+  {
+   "type": "match",
+   "title": "Read the airway altitudes",
+   "intro": "Tap an altitude term, then what it means.",
+   "pairs": [
+    {
+     "l": "MEA",
+     "r": "Lowest published altitude between fixes with signal coverage and obstacle clearance"
+    },
+    {
+     "l": "MOCA",
+     "r": "Obstacle clearance, with signal coverage only within 22 NM of a VOR"
+    },
+    {
+     "l": "MAA",
+     "r": "Highest usable altitude with adequate signal reception"
+    },
+    {
+     "l": "MCA",
+     "r": "Altitude to cross a fix when climbing to a higher MEA"
+    }
+   ],
+   "key": "h8",
+   "after": 11
   }
  ]
 }

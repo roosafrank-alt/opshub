@@ -611,6 +611,41 @@
     "q": "Name two things you lose if you don't write down checkpoint times.",
     "a": "A last known position with time to give ATC [[34:46|AIM 6-3-2]], and a dead-reckoning distance flown since that point [[1:400|PHAK 16-13]]."
    }
+  },
+  {
+   "title": "Reading the chart: landmarks and navaid boxes",
+   "kind": "knowledge",
+   "codes": [
+    "PA.VI.D.K1",
+    "PA.VI.D.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "To find yourself you need two kinds of clues from the chart: landmarks on the ground, and radio navaids you can tune. The legend shows how each one is drawn."
+    },
+    {
+     "p": "For landmarks, a small black square with a word beside it marks the exact location of something easy to see from the air, such as a substation, fort or cemetery. Dots labeled water, oil or gas are tanks. Two small towers joined by a line are a power transmission line [[2:36|Chart Users' Guide p 36]] [[2:10|Chart Users' Guide p 10]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "For navaids, read the box. The type of navaid sits on the top line of the box, with its frequency, identifier and Morse code. A star before the frequency means the navaid is part time or on request. An underlined frequency has no voice. Crosshatching means the navaid is shut down, so do not trust it [[2:25|Chart Users' Guide p 25]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "A compass rose drawn around a VOR is oriented to magnetic north. A small open circle means the navaid sits on an airport [[2:25|Chart Users' Guide p 25]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Tune the VOR, center the needle and note the radial. Then look for two landmarks that agree with it. One clue is a guess; two clues are a fix."
+     }
+    }
+   ]
   }
  ],
  "figures": {
@@ -653,6 +688,22 @@
    "caption": "Figure 2-20. The pilot has a certain capacity of doing work and handling tasks. When tasking exceeds the pilot's capability, tasks are not performed properly or not performed at all.",
    "alt": "3D graph of task load over time showing task requirements rising above pilot capabilities and erasing the margin of safety.",
    "source": "PHAK, PDF p. 64"
+  },
+  "f6": {
+   "file": "PA.VI.D-6.jpg",
+   "res": "2",
+   "page": 25,
+   "caption": "Chart Users' Guide: VOR, VORTAC, VOR-DME and DME boxes and the compass rose.",
+   "alt": "Navaid legend. A VOR hexagon and its box OAKDALE 116.8 OAK with a star for part-time or on-request service and an underline for no voice. A VORTAC box PONTIAC with an NDB frequency, a VOR frequency, channel, identifier and Morse code. A VOR-DME box SALEM with crosshatching for shutdown status. A DME square and boxes PROVO and SARGO. A compass rose around a VOR on an airport, oriented to magnetic north.",
+   "source": "Chart Guide, PDF p. 25"
+  },
+  "f7": {
+   "file": "PA.VI.D-7.jpg",
+   "res": "2",
+   "page": 36,
+   "caption": "Chart Users' Guide: landmark features such as power lines, tanks, towers and mines.",
+   "alt": "Legend of cultural landmarks. Left column: a pipeline line, an underground pipeline, black squares labeled substation, fort and cemetery, crossed picks for a mine or quarry, a small circle labeled oil for a well, and a lookout tower with a base elevation of 618. Right column: two small towers joined by a line for power transmission, three dots labeled water, oil and gas for tanks, an outdoor theater, a race track, a Coast Guard station, and a dashed landfill area.",
+   "source": "Chart Guide, PDF p. 36"
   }
  },
  "scenario": {
@@ -722,34 +773,34 @@
   {
    "q": "You miss an expected checkpoint. What does the PHAK advise first?",
    "options": [
-    "Turn back to the last checkpoint",
-    "Hold the heading and look for the next checkpoint",
-    "Descend to read road signs",
-    "Circle until you find the missed checkpoint"
+    "Turn back and fly toward the last checkpoint you positively identified",
+    "Circle over the area until you find the missed checkpoint",
+    "Descend low enough to read road signs and town names below",
+    "Hold the heading and look for the next checkpoint"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "If one checkpoint is missed, look for the next while keeping the heading; turning away makes it easy to get lost [[1:399|PHAK 16-12]]."
   },
   {
    "q": "Why does the PHAK tell a lost pilot to climb?",
    "options": [
-    "To save fuel",
-    "To get above traffic",
-    "To increase radio and navigation reception range and radar coverage",
-    "Because it is required by 14 CFR 91.3"
+    "To save fuel, since the engine burns less fuel at higher altitude",
+    "To increase radio and navigation reception and radar coverage",
+    "To get above the other traffic and obstacles so you can see them better",
+    "Because 14 CFR 91.3 requires a lost pilot to climb to a safe altitude"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "An increase in altitude increases radio and navigation reception range and radar coverage [[1:421|PHAK 16-34]]."
   },
   {
    "q": "When does the AIM say an aircraft is in at least an urgency condition?",
    "options": [
-    "Only after the engine runs rough",
-    "When fuel reaches the 30-minute reserve",
-    "When ATC declares it for you",
-    "The moment the pilot becomes doubtful about position, fuel, weather or anything affecting safety"
+    "Only after the engine starts to run rough or loses power and you are descending",
+    "When the fuel remaining falls to the legal 30-minute reserve for day VFR flight",
+    "The moment the pilot becomes doubtful about position, fuel, weather or safety",
+    "When ATC declares the urgency condition for you after you have reported a problem"
    ],
-   "answer": 3,
+   "answer": 2,
    "why": "AIM 6-1-2 says you are in at least an urgency condition the moment you become doubtful about position, fuel endurance, weather or other safety factors [[34:28|AIM 6-1-2]]."
   },
   {
@@ -766,46 +817,117 @@
   {
    "q": "What does a controller ask you to do for DF (direction finding) assistance?",
    "options": [
-    "Squawk IDENT every 30 seconds",
-    "Hold the transmit button a few seconds, then release, sometimes after heading changes",
-    "Read back your GPS coordinates",
-    "Switch to 243.0 MHz"
+    "Squawk IDENT every 30 seconds so the controller can pick you out on the scope",
+    "Switch to 243.0 MHz and make a continuous transmission until they answer you",
+    "Read back your GPS latitude and longitude every minute until they plot you",
+    "Hold the transmit button a few seconds, then release, perhaps after turns"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "The controller asks you to hold the transmit button a few seconds and release, and may ask for a few heading changes [[1:421|PHAK 16-34]]."
   },
   {
    "q": "In a lost-aircraft call, what position information does the AIM ask for if you are lost?",
    "options": [
-    "Nearest VOR only",
-    "GPS latitude and longitude",
-    "Last known position, time, and heading since that position",
-    "Departure airport and ETA"
+    "Only the nearest VOR and the distance you think you are from it",
+    "Your best guess at the nearest town and its distance from you",
+    "Departure airport, destination and your original estimated time of arrival",
+    "Last known position, time, and heading since that position"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "Give present position and heading, or if lost, last known position, time, and heading since that position [[34:46|AIM 6-3-2]]."
   },
   {
    "q": "A radar controller gives you vectors. Who is responsible for flying safely and following the regulations?",
    "options": [
-    "The controller",
-    "Flight Service",
-    "Both share it equally",
-    "You, the pilot; vectors are advisory"
+    "You, the pilot; vectors are advisory",
+    "Flight Service, since they handle lost aircraft",
+    "Both share it equally once radar contact is made",
+    "The controller, once radar contact is established"
    ],
-   "answer": 3,
+   "answer": 0,
    "why": "Radar navigation guidance is advisory; responsibility for flying safely remains with the pilot, and it does not authorize violating CFRs [[34:29|AIM 6-2-1]]."
   },
   {
    "q": "You are a non-instrument-rated pilot getting vectors, and VFR flight ahead is no longer possible. What does the AIM say to do?",
    "options": [
-    "Accept the vector into clouds",
-    "Tell the controller you are not instrument rated and declare a distress condition",
-    "Turn off the transponder",
-    "Request an IFR clearance"
+    "Accept the vector into the clouds and trust the controller to keep you safe",
+    "Tell the controller you are not instrument rated and declare distress",
+    "Turn off the transponder, and descend to stay below the clouds on your own",
+    "Request an IFR clearance and continue on into the clouds when it is issued"
    ],
    "answer": 1,
    "why": "If continued VFR is not possible, the non-instrument-rated pilot should advise the controller, state the lack of an instrument rating, and declare a distress condition [[34:29|AIM 6-2-1]]."
+  },
+  {
+   "q": "On the navaid legend, a star appears before the OAKDALE frequency. What does it mean?",
+   "options": [
+    "The navaid has no voice transmitted",
+    "The navaid is located on an airport",
+    "The navaid is shut down for service",
+    "It operates part time or on request"
+   ],
+   "answer": 3,
+   "figure": "f6",
+   "why": "The star marks a navaid that operates less than continuous or on request [[2:25|Chart Users' Guide p 25]]."
+  },
+  {
+   "q": "An underlined frequency inside a navaid box means:",
+   "options": [
+    "The frequency is kept for emergencies",
+    "The navaid is out of service now",
+    "Weather is broadcast on that frequency",
+    "No voice is sent on that frequency"
+   ],
+   "answer": 3,
+   "figure": "f6",
+   "why": "The legend says an underline indicates no voice on the frequency [[2:25|Chart Users' Guide p 25]]."
+  },
+  {
+   "q": "Crosshatching over the frequency in a VOR-DME box means:",
+   "options": [
+    "The navaid is brand new",
+    "The navaid is for military use only",
+    "The navaid is on an airport",
+    "The navaid is shut down"
+   ],
+   "answer": 3,
+   "figure": "f6",
+   "why": "The crosshatch indicates shutdown status [[2:25|Chart Users' Guide p 25]]."
+  },
+  {
+   "q": "On the landmark legend, two small towers joined by a line mark:",
+   "options": [
+    "A pipeline running above the ground",
+    "A railroad running through a pass",
+    "A power or telecommunication line",
+    "A state or county boundary line"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "That symbol is for power transmission and telecommunication lines [[2:36|Chart Users' Guide p 36]]."
+  },
+  {
+   "q": "Small black dots labeled water, oil or gas are used for:",
+   "options": [
+    "Lookout towers",
+    "Tanks",
+    "Wells",
+    "Mines"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "Tanks use a small dot with the type of tank beside it. Wells use an open circle [[2:36|Chart Users' Guide p 36]] [[2:10|Chart Users' Guide p 10]]."
+  },
+  {
+   "q": "You are lost and are studying the chart. What does 14 CFR 91.113(b) still require when weather permits?",
+   "options": [
+    "Look outside only when below 1,200 ft AGL",
+    "Look outside only when ATC calls out traffic",
+    "Look outside only when flying under IFR",
+    "Keep a lookout to see and avoid other aircraft"
+   ],
+   "answer": 3,
+   "why": "[[60:447|14 CFR 91.113(b)]] requires vigilance to see and avoid other aircraft, whether VFR or IFR, when weather conditions permit."
   }
  ],
  "takeaways": [
@@ -956,6 +1078,41 @@
      "b": 1
     }
    ]
+  },
+  {
+   "type": "label",
+   "figure": "f6",
+   "title": "Read the navaid boxes",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 65.4,
+     "y": 9.0,
+     "label": "Underlined frequency: no voice on it"
+    },
+    {
+     "x": 68.3,
+     "y": 23.1,
+     "label": "VORTAC box with an NDB frequency"
+    },
+    {
+     "x": 75.1,
+     "y": 40.2,
+     "label": "Crosshatching: navaid is shut down"
+    },
+    {
+     "x": 71.7,
+     "y": 56.6,
+     "label": "DME box with a channel number"
+    },
+    {
+     "x": 76.0,
+     "y": 73.5,
+     "label": "Compass rose, oriented to magnetic north"
+    }
+   ],
+   "key": "h5",
+   "after": 10
   }
  ],
  "final_quiz": [
@@ -963,11 +1120,11 @@
    "q": "You logged a highway bridge at 0950. You have held heading 180 at a groundspeed of about 120 knots. It is now 1005. About where are you?",
    "options": [
     "About 15 NM south of the bridge",
-    "About 30 NM south of the bridge",
+    "About 60 NM south of the bridge",
     "About 30 NM north of the bridge",
-    "About 60 NM south of the bridge"
+    "About 30 NM south of the bridge"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "15 minutes at 120 knots is 30 NM (distance = GS x time) [[1:398|PHAK 16-11]]. Heading 180 is south. Time, speed and direction from a known point is dead reckoning [[1:400|PHAK 16-13]]."
   },
   {
@@ -984,21 +1141,21 @@
   {
    "q": "Your course runs between an interstate highway about 5 miles north and a large river about 6 miles south. How do these features help you stay found?",
    "options": [
+    "They tell you your exact groundspeed once you fly past each of them",
+    "They replace the need for any other checkpoints or landmarks along the route",
     "As long as you don't cross either one, you can't drift far off course",
-    "They replace the need for checkpoints along the route",
-    "They tell you your exact groundspeed",
-    "They show you where the nearest airport is"
+    "They show you where the nearest airport is, since airports sit near them"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "Features on each side of the course work as brackets. By not crossing them, you keep from drifting too far off course [[1:399|PHAK 16-12]]. You still need plenty of checkpoints."
   },
   {
    "q": "Look at the figure. You are lost, flying low between VOR A and VOR B, and the NAV flag shows for both stations. What change would most likely let you get a fix from both?",
    "options": [
-    "Descend so the signals can reach you",
-    "Retune both nav radios to 121.5 MHz",
+    "Descend closer to the terrain so the VOR signals can reach your radios",
+    "Retune both nav radios to 121.5 MHz and call for help on the guard channel",
     "Climb, staying clear of clouds, until both signals come in",
-    "Turn away from both stations"
+    "Turn away from both stations and fly that heading until the flags clear"
    ],
    "answer": 2,
    "figure": "f1",
@@ -1008,9 +1165,9 @@
    "q": "Lost, you tune and identify a VOR. You turn the OBS until the needle centers with 270 at the top and a FROM flag. What do you draw on the chart?",
    "options": [
     "A line from the station out to the west, along its 270 radial",
-    "A line from the station out to the east, along its 090 radial",
-    "A line along your heading from where you think you are",
-    "A circle 27 miles around the station"
+    "A line from the station out to the east, along its 090 radial, toward you",
+    "A line along your current heading from the position where you think you are",
+    "A circle 27 miles around the station, since 270 shows the distance"
    ],
    "answer": 0,
    "why": "With the needle centered and FROM showing, the OBS shows the radial, the magnetic course from the station [[1:411|PHAK 16-24]]. The 270 radial runs west from the station. A radial from a second station crosses it at your position [[1:421|PHAK 16-34]]."
@@ -1018,21 +1175,21 @@
   {
    "q": "Your portable GPS has no RAIM. It shows you 8 miles east of where your VOR cross-fix and a town name on a water tower both put you. What should you do?",
    "options": [
-    "Trust the GPS; it is always more accurate",
-    "Split the difference between the two positions",
-    "Turn off the VOR so it stops confusing you",
-    "Be suspicious of the GPS and go with the position the other sources agree on"
+    "Trust the GPS, since it is always more accurate than a VOR or a landmark",
+    "Split the difference between the GPS position and the position the others show",
+    "Be suspicious of the GPS and go with what the other sources agree on",
+    "Turn off the VOR and follow the GPS so you stop getting mixed signals"
    ],
-   "answer": 3,
+   "answer": 2,
    "why": "Without RAIM, be suspicious of a GPS position that disagrees with radio navigation, pilotage or dead reckoning [[1:420|PHAK 16-33]]. GPS is just one tool; only the pilot can navigate."
   },
   {
    "q": "You call approach control for help finding your position. The controller says traffic is too heavy to give you vectors right now. What is true?",
    "options": [
-    "They must give vectors to any VFR pilot who asks",
-    "Controllers decide if they can give the service, so try another facility, such as Flight Service",
-    "You should squawk 7600 and leave the frequency",
-    "You should stop asking for help and keep searching on your own"
+    "They must give vectors to any VFR pilot who asks, whatever their workload",
+    "It is the controller's call, so try another facility, such as Flight Service",
+    "You should squawk 7600 and leave the frequency since you are not being helped",
+    "You should stop asking for help and keep searching on your own until traffic clears"
    ],
    "answer": 1,
    "why": "Traffic volume and workload can keep a controller from giving vectors, and that decision is up to the controller [[33:218|AIM 4-1-17e]]. Flight Service stations also help lost aircraft [[33:204|AIM 4-1-3]], so keep asking."
@@ -1042,52 +1199,52 @@
    "options": [
     "Radar vectors from approach control",
     "Squawking 7700 so radar sees you",
-    "Direction finding: you hold the mic button while they locate you",
-    "Traffic advisories from a radar facility"
+    "Traffic advisories from a radar facility",
+    "Direction finding: you hold the mic button while they locate you"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "For DF help, the controller has you hold the transmit button a few seconds, maybe after a few turns, then plots your position from the transmissions [[1:421|PHAK 16-34]]. Radar vectors need radar coverage and radar identification [[33:217|AIM 4-1-17]]."
   },
   {
    "q": "You are getting VFR flight following on code 4521 when you realize you are unsure of your position. What should your transponder show?",
    "options": [
+    "Change to 7600 since you are uncertain of your position and need help",
+    "Change to 7700 right away so the controller knows you are in trouble",
     "Keep 4521 with Mode C unless ATC tells you otherwise",
-    "Change to 7700 right away",
-    "Change to 7600",
-    "Change to 1200"
+    "Change to 1200 since you are no longer receiving the service"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "When you are already in radio contact with ATC, keep your assigned code and Mode C unless told otherwise. Squawk 7700 when you can't establish communications right away [[34:46|AIM 6-3-2]]."
   },
   {
    "q": "You are lost and not talking to anyone. You call the Center on 121.5 MHz and get no answer. What does the AIM suggest next?",
    "options": [
     "Wait 30 minutes and try again",
-    "Turn off the radio to save the battery",
+    "Call the nearest tower",
     "Squawk 7500",
-    "Call the nearest tower"
+    "Turn off the radio to save the battery"
    ],
-   "answer": 3,
+   "answer": 1,
    "why": "Center's emergency frequency coverage normally doesn't reach as far as its radar. If a center doesn't answer on 121.5 MHz, call the nearest tower [[34:45|AIM 6-3-1]]."
   },
   {
    "q": "You are hunting for a frequency on the chart, tuning a radio, and zooming the GPS. Your heading has drifted 30 degrees and you have lost 300 feet. What is happening, and what fixes it?",
    "options": [
-    "Normal workload; keep going and it will settle down",
-    "Hypoxia; descend right away",
-    "Task saturation; stop, think, slow down, and prioritize, flying the airplane first",
-    "A VOR failure; turn off all the radios"
+    "Task saturation; stop, think, slow down, and prioritize, flying first",
+    "Hypoxia from the altitude; descend right away and take a few deep breaths",
+    "Normal workload for a lost pilot; keep going and it will settle down soon",
+    "A VOR failure; turn off all the radios and navigate by pilotage alone now"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "As workload rises, a pilot focuses on one item and loses awareness of the rest. The fix is to stop, think, slow down, and prioritize [[1:63|PHAK 2-24]]. Flying the airplane always comes first."
   },
   {
    "q": "You are lost with about 20 minutes of fuel left. No airport is in sight, nobody answers your calls, and below you is a large, smooth field in good weather. What does the AFH point to?",
    "options": [
-    "Keep searching; something will turn up",
-    "Plan a precautionary landing in the field while you still have power and time",
-    "Climb as high as possible and glide when the fuel runs out",
-    "Wait until the engine quits, then pick a field"
+    "Keep searching for an airport until the fuel gets very low; something will turn up",
+    "Plan a precautionary landing in the field while you still have power",
+    "Climb as high as possible to look for an airport and glide when the fuel runs out",
+    "Wait until the engine quits on its own, then pick the best field you can"
    ],
    "answer": 1,
    "why": "Being lost and fuel shortage are both reasons for a precautionary landing, which is less hazardous than a forced landing because you have time and power [[24:350|AFH 18-1]]. Wishful thinking turns these into forced landings."
@@ -1095,13 +1252,48 @@
   {
    "q": "With help from ATC you find your position, and you decide to divert to an airport 12 miles away because fuel is getting low. What does the PHAK advise?",
    "options": [
-    "Plot the full course and work out heading, GS, and fuel before turning",
-    "Fly back to your last checkpoint first, then turn",
     "Turn toward the airport promptly, then note the time and work out heading, GS, arrival time, and fuel",
+    "Fly back to your last checkpoint first, then turn",
+    "Plot the full course and work out heading, GS, and fuel before turning",
     "Hold your old heading until you can get a weather briefing"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "In an emergency, divert promptly. Trying to finish all plotting and math first can make things worse. Once on course, note the time and figure heading, GS, arrival time, and fuel [[1:422|PHAK 16-35]]."
+  },
+  {
+   "q": "A compass rose around a VOR on the chart is oriented to which north?",
+   "options": [
+    "Grid north",
+    "True north",
+    "Magnetic north",
+    "The north of the nearest airport runway"
+   ],
+   "answer": 2,
+   "figure": "f6",
+   "why": "The legend says the compass rose is oriented to magnetic north [[2:25|Chart Users' Guide p 25]]."
+  },
+  {
+   "q": "A small black square with the word substation beside it tells you:",
+   "options": [
+    "A restricted area that you may not enter",
+    "A highway intersection used as a checkpoint",
+    "A radio navaid that transmits voice on VHF",
+    "The exact spot of a landmark seen from the air"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "A brief description next to a small black square marks the exact location of many landmarks easily recognized from the air [[2:10|Chart Users' Guide p 10]] [[2:36|Chart Users' Guide p 36]]."
+  },
+  {
+   "q": "You are lost in Class E below 10,000 ft MSL, and the flight visibility has dropped to 2 SM. Does 14 CFR 91.155(a) allow VFR there?",
+   "options": [
+    "No. It needs 5 SM at every altitude in Class E",
+    "Yes. VFR needs 2 SM in every class of airspace",
+    "Yes. 1 SM is enough in Class E airspace",
+    "No. Class E below 10,000 ft MSL needs at least 3 SM"
+   ],
+   "answer": 3,
+   "why": "Class E below 10,000 ft MSL needs 3 SM flight visibility with 500 ft below, 1,000 ft above and 2,000 ft horizontal from clouds [[60:465|14 CFR 91.155(a)]]. If it gets worse, ask for help early."
   }
  ]
 }

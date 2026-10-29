@@ -776,6 +776,29 @@
     "q": "After a compass turn, when should you read the compass to check your heading?",
     "a": "Only once you are back in straight-and-level, unaccelerated flight [[23:187|IFH 7-26]]."
    }
+  },
+  {
+   "title": "Reading the chart: which line fits the instruments you have",
+   "kind": "knowledge",
+   "codes": [
+    "IR.VII.D.K1",
+    "IR.VII.D.K2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "When an instrument or a receiver fails, go to the minimums box and pick the line that matches what still works. A precision line, such as S-ILS 18L, needs the glide slope. If the glide slope is gone, use the localizer-only line, S-LOC 18L [[29:214|IPH Figure 4-45]]. The authorized DA or MDA is the highest of the procedure's value, the one prescribed for the pilot and the one that fits the equipment you have and use [[60:471|14 CFR 91.175(b)]]."
+    },
+    {
+     "p": "Compare the numbers. Here the ILS line is 998/40. The localizer-only line for categories A and B is 1320/55 [[29:214|IPH Figure 4-45]]. A slash means the number after it is RVR in hundreds of feet [[2:120|Chart Users' Guide p 120]]. The profile marks the altitude that applies without the glide slope with an asterisk and the note LOC only."
+    },
+    {
+     "p": "Look for a line that needs more equipment but gives lower minimums. The ZIMOG fix minimums block says DME required. If your DME works, you may use 1140/55. If it does not, stay with the first line. When you are flying with fewer instruments, a lower line is worth little if you cannot fly it accurately."
+    },
+    {
+     "p": "Keep the FAF to MAP table in your briefing. If you cannot use DME to find the MAP, time from the FAF. At 6.9 NM and 120 knots the table gives 3:27 [[29:214|IPH Figure 4-45]] [[2:122|Chart Users' Guide p 122]]. Tell ATC what has failed so they can help."
+    }
+   ]
   }
  ],
  "figures": {
@@ -826,6 +849,14 @@
    "caption": "Figure 5-28. Single-engine instrument vacuum system using a steel-vane, wet-type vacuum pump.",
    "alt": "Diagram of a vane-type vacuum pump pulling air (red lines) from the heading indicator, attitude indicator, suction gauge and turn-and-slip indicator (through a needle valve), with filtered air (blue lines) entering from a central air filter, a suction-relief valve on the pump inlet and an oil separator on the outlet.",
    "source": "IFH, PDF p. 113"
+  },
+  "f7": {
+   "file": "IR.VII.D-7.jpg",
+   "res": "29",
+   "page": 214,
+   "caption": "Figure 4-45 (detail). Profile and minimums of the Charlotte Douglas ILS or LOC RWY 18L chart.",
+   "alt": "Lower part of the Charlotte ILS or LOC RWY 18L chart. The profile has 6000 at CAVVI, 5000, 4000 and 3000 along the 183 degree course, GS 3.00 degrees with TCH 56, and *1320 at the end marked LOC only. The minimums box lists S-ILS 18L 998/40, S-LOC 18L 1320/55 for A and B and 1320-1 5/8 for C and D, circling lines marked with a white C, and a second block of ZIMOG fix minimums (DME required) with S-LOC 1140/55 and 1140/60. The FAF to MAP table for 6.9 NM runs from 6:54 at 60 knots to 2:18 at 180 knots.",
+   "source": "IPH, PDF p. 214"
   }
  },
  "scenario": {
@@ -888,21 +919,21 @@
   {
    "q": "In a typical round-dial trainer, which instruments are lost when the vacuum pump fails?",
    "options": [
-    "Attitude and heading indicators",
+    "Magnetic compass and clock",
     "Airspeed indicator and altimeter",
     "Turn coordinator and VSI",
-    "Magnetic compass and clock"
+    "Attitude and heading indicators"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "A pump failure leaves the pilot with inoperative attitude and heading indicators [[23:332|IFH 11-7]]. The turn coordinator is usually electric, and the pitot-static instruments don't use vacuum [[23:168|IFH 7-7]]."
   },
   {
    "q": "Which quick comparison does the IFH suggest to find a failed instrument?",
    "options": [
-    "Altimeter against the clock",
+    "Altimeter against the clock and the outside air temperature gauge",
     "Attitude indicator against the turn coordinator and VSI",
-    "Heading indicator against the GPS track",
-    "Airspeed against the tachometer"
+    "Heading indicator against the clock and the GPS groundspeed",
+    "Airspeed indicator against the tachometer and the manifold gauge"
    ],
    "answer": 1,
    "why": "Comparing the attitude indicator with the rate-of-turn indicator and VSI checks the suction, electric and static systems against each other [[23:332|IFH 11-7]]."
@@ -910,79 +941,150 @@
   {
    "q": "After an AHRS failure in the IFH glass example, which autopilot modes remain?",
    "options": [
-    "All modes, using GPS data",
-    "Approach and vertical navigation only",
     "Roll and altitude hold only",
+    "Approach and vertical navigation only",
+    "All modes, using GPS data",
     "None at all"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "All autopilot modes except roll and altitude hold are lost [[23:217|IFH 7-56]]."
   },
   {
    "q": "On partial panel in level flight, which instrument is primary for pitch?",
    "options": [
     "Airspeed indicator",
-    "Turn coordinator",
+    "Altimeter",
     "VSI",
-    "Altimeter"
+    "Turn coordinator"
    ],
-   "answer": 3,
+   "answer": 1,
    "why": "The altimeter is the primary pitch reference in partial panel level flight [[23:197|IFH 7-36]]. The VSI becomes primary when returning to an altitude [[23:166|IFH 7-5]]."
   },
   {
    "q": "How long does a half-standard-rate turn of 45° take?",
    "options": [
     "15 seconds",
-    "30 seconds",
+    "60 seconds",
     "45 seconds",
-    "60 seconds"
+    "30 seconds"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "Half standard rate is 1.5° per second, so 45° takes 30 seconds; standard rate takes 15 [[23:182|IFH 7-21]]."
   },
   {
    "q": "At 30° latitude with 15° of bank, turning left from west to south by compass, when do you start the rollout?",
    "options": [
-    "When the compass reads 157°",
-    "When the compass reads 180°",
     "When the compass reads 203°",
+    "When the compass reads 180°",
+    "When the compass reads 157°",
     "When the compass reads 150°"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "Turning to south, let the compass pass south by the latitude minus half the bank: 180 - 30 + 7.5, about 157°. The IFH gives 157° for this turn from a westerly heading [[23:183|IFH 7-22]]. 150° forgets the normal rollout lead."
   },
   {
    "q": "On no-gyro vectors, how should you turn when ATC says \"turn left\"?",
    "options": [
-    "30° of bank until told the new heading",
-    "Half standard rate until on final",
     "Standard rate, starting right away, until \"stop turn\"",
-    "Wait until ATC gives a heading"
+    "Half standard rate, starting right away, until told to stop the turn",
+    "30° of bank, starting right away, until told the new heading",
+    "Wait until ATC gives a heading, then turn at standard rate"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "Make all turns at standard rate and start them as soon as you get the instruction. Half standard rate is used once on final for a radar approach [[33:431|AIM 5-4-11]]."
   },
   {
    "q": "Under 14 CFR 91.187, when must you report an in-flight malfunction of navigation, approach or communication equipment?",
    "options": [
     "Only if you declare an emergency",
-    "After landing, by phone",
+    "As soon as practical, to ATC",
     "Only in Class A airspace",
-    "As soon as practical, to ATC"
+    "After landing, by phone"
    ],
-   "answer": 3,
+   "answer": 1,
    "why": "The PIC under IFR in controlled airspace reports to ATC as soon as practical [[60:483|14 CFR 91.187(a)]]."
   },
   {
    "q": "Your vacuum gyros are failing and the autopilot is coupled to them. What is the risk?",
    "options": [
+    "The autopilot switches over to GPS steering without any warning",
+    "The autopilot will disconnect on its own and alert you right away",
     "The autopilot may follow the wandering gyro into a bank",
-    "The autopilot will disconnect and alert you",
-    "The autopilot switches to GPS steering",
-    "No risk; the autopilot has its own gyros"
+    "No risk, because the autopilot has its own separate gyros to use"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "Slowing vacuum gyros can wander and cause incorrect autopilot or flight director movement [[23:332|IFH 11-7]]."
+  },
+  {
+   "q": "The glide slope fails on the Charlotte ILS 18L. You are flying a Category A airplane. What are the basic localizer-only minimums?",
+   "options": [
+    "998 feet MSL, RVR 4000",
+    "1320 feet MSL, RVR 4000",
+    "1500 feet MSL, 2 1/4 miles",
+    "1320 feet MSL, RVR 5500"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "The S-LOC 18L line reads 1320/55 for A and B. 1140/55 is only for the ZIMOG fix block, which needs DME [[29:214|IPH Figure 4-45]]."
+  },
+  {
+   "q": "What extra equipment does the ZIMOG fix block require for its lower S-LOC minimums?",
+   "options": [
+    "A radio altimeter",
+    "A second NAV receiver",
+    "A coupled autopilot",
+    "A working DME receiver"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "The block is headed ZIMOG FIX MINIMUMS (DME REQUIRED) [[29:214|IPH Figure 4-45]]."
+  },
+  {
+   "q": "What does the asterisk in front of 1320 in the profile tell you?",
+   "options": [
+    "The altitude is for ILS glide slope use only",
+    "The altitude is for circling approaches only",
+    "The altitude is for localizer use only",
+    "The altitude needs working DME to be used"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The profile has the note '*LOC only' beside the asterisk [[29:214|IPH Figure 4-45]]. A reference mark in the profile has its footnote in the profile section [[2:116|Chart Users' Guide p 116]]."
+  },
+  {
+   "q": "On a timed approach, your groundspeed is 120 knots. How long from the FAF to the MAP?",
+   "options": [
+    "2:46",
+    "4:36",
+    "3:27",
+    "6:54"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The FAF to MAP table for 6.9 NM reads 3:27 at 120 knots [[29:214|IPH Figure 4-45]] [[2:122|Chart Users' Guide p 122]]."
+  },
+  {
+   "q": "A Category C airplane flies localizer-only without DME. What visibility goes with the 1320 MDA?",
+   "options": [
+    "1 1/8 miles",
+    "2 1/4 miles",
+    "3/4 mile",
+    "1 5/8 miles"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "Categories C and D share one cell on the S-LOC 18L line: 1320-1 5/8. The 1 1/8 belongs to the military numbers under A and B [[29:214|IPH Figure 4-45]]."
+  },
+  {
+   "q": "Your glide slope receiver fails during an ILS. Which minimums does 14 CFR 91.175(b) require?",
+   "options": [
+    "Any of the published values, whichever the PIC prefers",
+    "The circling minimums, since the glide slope is out",
+    "The minimums that fit your equipment, the highest value",
+    "The ILS DA, because you were cleared for the ILS approach"
+   ],
+   "answer": 2,
+   "why": "14 CFR 91.175(b) says the authorized DA or MDA is the highest of the procedure's value, the pilot's value and the value for the aircraft equipment available and used [[60:471|14 CFR 91.175(b)]]."
   }
  ],
  "takeaways": [
@@ -1221,68 +1323,108 @@
     {
      "s": "The attitude indicator shows a slow left bank, but the turn coordinator is level and the heading is creeping. What now?",
      "options": [
-      "Roll right to level the attitude indicator",
-      "Cross-check the turn coordinator, VSI and altimeter, and look for flags and the suction gauge",
-      "Engage the autopilot so it can sort it out",
-      "Call ATC before doing anything else"
+      "Cross-check the turn coordinator, VSI and altimeter, and check for flags and the suction gauge",
+      "Roll right at once to bring the attitude indicator back level, then fly the approach on it",
+      "Engage the autopilot at once so it can hold the wings level while you sort out the problem",
+      "Call ATC first and declare an emergency before you do anything else with the airplane"
      ],
-     "answer": 1,
+     "answer": 0,
      "why": "Compare the attitude indicator with the turn coordinator and VSI and speed up the cross-check to find the failure, while keeping control [[23:332|IFH 11-7]]."
     },
     {
      "s": "The suction gauge reads zero. The attitude and heading indicators are failing. Next?",
      "options": [
-      "Keep using them until they stop moving",
-      "Turn the master switch off and on to reset them",
+      "Keep using them as your main reference until they stop moving entirely",
       "Cover them and fly on turn coordinator, altimeter and airspeed",
-      "Tap the glass until they recover"
+      "Cycle the master switch off and back on to try to reset the instruments",
+      "Tap the glass and the instrument case firmly until the gyros recover"
      ],
-     "answer": 2,
+     "answer": 1,
      "why": "Cover the failed instruments and use the ones that still work [[23:332|IFH 11-7]]. Bank on the turn coordinator, pitch on the altimeter, power on the airspeed [[23:182|IFH 7-21]]."
     },
     {
      "s": "The airplane is under control. Approach control assigns heading 270. What do you say?",
      "options": [
-      "\"N123AB, vacuum failure, attitude and heading indicators out, timed turns only, request no-gyro vectors\"",
-      "\"Roger, 270\" and try a compass turn quietly",
-      "Nothing until you are on the ground",
-      "Squawk 7600 and stop talking"
+      "Squawk 7600 and then wait quietly for the controller to ask what is wrong with the airplane",
+      "\"Roger, 270,\" then make a compass turn to 270 and keep the instrument problem to yourself for now",
+      "Say nothing about the vacuum problem until you are on the ground, so you do not distract ATC",
+      "\"N123AB, vacuum failure, attitude and heading out, can fly timed turns, request no-gyro vectors\""
      ],
-     "answer": 0,
+     "answer": 3,
      "why": "Report ID, equipment, limitation and help wanted [[60:483|14 CFR 91.187]], and ask for no-gyro vectors [[33:431|AIM 5-4-11]]."
     },
     {
      "s": "The controller says, \"N123AB, turn left.\" How do you turn?",
      "options": [
-      "30° of bank to hurry",
+      "30° of bank, starting right away, until the controller says to stop the turn",
+      "Wait for the controller to give you a heading, then turn at standard rate",
       "Standard rate on the turn coordinator, starting now, until \"stop turn\"",
-      "Wait for a heading",
-      "Half standard rate, because you are partial panel"
+      "Half standard rate, because you are on partial panel and the turns need to be gentle"
      ],
-     "answer": 1,
+     "answer": 2,
      "why": "On no-gyro vectors make all turns at standard rate and start right away; half standard comes only once on final [[33:431|AIM 5-4-11]]."
     },
     {
      "s": "ATC asks for your fuel and souls on board while you see the altimeter 200 ft low and still unwinding.",
      "options": [
-      "Answer ATC first, then fix altitude",
-      "Pull back firmly to get the altitude back fast",
-      "Stop the descent with small pitch, return at about 400 fpm, then answer",
-      "Ignore the altimeter and let ATC watch it"
+      "Answer ATC first with your fuel and souls, then fix the altitude once you are done",
+      "Pull back firmly on the yoke to get the lost altitude back as fast as you can",
+      "Ignore the altimeter for now and let ATC watch your altitude on their radar",
+      "Stop the descent with small pitch, return at about 400 fpm, then answer"
      ],
-     "answer": 2,
+     "answer": 3,
      "why": "Fly first. Stop the needle, then return at about double the error [[23:165|IFH 7-4]] [[23:166|IFH 7-5]]. Abrupt inputs cause oscillation [[23:197|IFH 7-36]]."
     },
     {
      "s": "You reach the MAP at the MDA. There is no runway environment in sight.",
      "options": [
-      "Descend 100 ft more to look",
+      "Execute the missed approach now",
       "Keep going on timing for 30 more seconds",
       "Circle at the MDA to look for the runway",
-      "Execute the missed approach now"
+      "Descend 100 ft more to look"
      ],
-     "answer": 3,
+     "answer": 0,
      "why": "Without the required visual references at the MAP, execute the missed approach immediately [[60:472|14 CFR 91.175(e)]]."
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h8",
+   "after": 11,
+   "title": "Find it on the Charlotte minimums",
+   "figure": "f7",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 31.8,
+     "y": 52.8,
+     "label": "ILS line (DA and RVR)"
+    },
+    {
+     "x": 17.3,
+     "y": 57.8,
+     "label": "Localizer-only line"
+    },
+    {
+     "x": 33.6,
+     "y": 70.7,
+     "label": "Fix minimums that need DME"
+    },
+    {
+     "x": 4.5,
+     "y": 39.4,
+     "label": "Glide slope angle and TCH"
+    },
+    {
+     "x": 39.1,
+     "y": 39.7,
+     "label": "Altitude for LOC only"
+    },
+    {
+     "x": 72.7,
+     "y": 75.0,
+     "label": "FAF to MAP time table"
     }
    ]
   }
@@ -1293,40 +1435,40 @@
    "options": [
     "900 fpm",
     "767 fpm",
-    "600 fpm",
-    "500 fpm"
+    "500 fpm",
+    "600 fpm"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "(2,300 - 500) ÷ 3 = 600 fpm [[29:177|IPH 4-37]]. 767 fpm wrongly uses the FAF altitude alone."
   },
   {
    "q": "You fly a glass airplane and the alternator fails in IMC. How should you treat it?",
    "options": [
+    "As a minor abnormal; continue to your destination and watch the voltage",
     "As an emergency: shed load and land as soon as practical",
-    "As a minor abnormal; continue to your destination",
-    "Ignore it until the battery voltage warning",
-    "Turn off the standby battery to save it"
+    "Ignore it until the battery voltage warning shows up on the display",
+    "Turn off the standby battery to save it for the approach and landing"
    ],
-   "answer": 0,
+   "answer": 1,
    "why": "In technically advanced aircraft an alternator loss is an emergency. Reduce load and land as soon as practical; battery time may be minutes [[23:331|IFH 11-6]]."
   },
   {
    "q": "During your IFR run-up, what does a healthy vacuum system typically show (always check your POH)?",
    "options": [
-    "About 2 \"Hg at idle",
     "About 4.8 to 5.2 \"Hg at 2,000 rpm",
+    "About 2 \"Hg at idle",
     "About 10 \"Hg at full power",
     "Any reading above zero"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "An acceptable vacuum is typically 4.8 to 5.2 \"Hg at 2,000 rpm; use the AFM/POH values [[24:59|AFH 2-22]]. Low suction means the gyros may not be reliable in IMC."
   },
   {
    "q": "The AHRS and ADC both fail on your glass PFD. What are your attitude and air data references now?",
    "options": [
-    "The MFD synthetic vision",
-    "The autopilot's internal gyros",
-    "GPS groundspeed and track",
+    "The MFD synthetic vision, the GPS track and the HSI course pointer",
+    "The autopilot's internal gyros, read out through the MFD autopilot page",
+    "GPS groundspeed and track, plus the standby turn coordinator",
     "Standby airspeed, attitude indicator, altimeter and compass"
    ],
    "answer": 3,
@@ -1335,10 +1477,10 @@
   {
    "q": "Which is the best partial panel report to approach control?",
    "options": [
-    "\"N123AB has a problem, standby\"",
-    "\"N123AB, unable\"",
-    "\"N123AB, heading indicator and attitude indicator out, can fly timed turns, request no-gyro vectors\"",
-    "\"N123AB, request lower\""
+    "\"N123AB has an equipment problem and may be slow to respond, please stand by for my next call\"",
+    "\"N123AB, unable to continue, request vectors to the nearest airport and a lower altitude\"",
+    "\"N123AB, heading and attitude indicators out, can fly timed turns, request no-gyro vectors\"",
+    "\"N123AB, request lower altitude and the current weather, instruments are acting up\""
    ],
    "answer": 2,
    "why": "It gives ID, equipment, the limitation and the help wanted, the 91.187 items [[60:483|14 CFR 91.187]] [[33:431|AIM 5-4-11]]."
@@ -1346,45 +1488,45 @@
   {
    "q": "On partial panel you need to correct heading 8°. What bank should you use?",
    "options": [
-    "No more than about 8°",
-    "About 30°",
     "Exactly standard rate, whatever the change",
+    "About 30°",
+    "No more than about 8°",
     "Use rudder only"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "Use a bank no greater than the degrees to be turned, and never more than standard rate [[23:168|IFH 7-7]]."
   },
   {
    "q": "Near 30° N, with 15° of bank, you turn right from east to south by compass. Where do you start the rollout?",
    "options": [
     "At 180°",
-    "At 157°",
+    "At 203°",
     "At 210°",
-    "At 203°"
+    "At 157°"
    ],
-   "answer": 3,
+   "answer": 1,
    "why": "Turning to south, let the compass pass by the latitude minus half the bank: 180 + 30 - 7.5, about 203° [[23:183|IFH 7-22]]. 210° forgets the normal rollout lead."
   },
   {
    "q": "During a partial panel climb at 800 fpm you want to level at 6,000 ft. About when do you start the level-off?",
    "options": [
-    "At 5,920 ft",
-    "At 5,800 ft",
     "At 6,000 ft exactly",
+    "At 5,800 ft",
+    "At 5,920 ft",
     "At 5,500 ft"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "Lead by about 10% of the vertical speed: 10% of 800 is 80 ft, so begin at 5,920 ft [[23:198|IFH 7-37]] [[23:177|IFH 7-16]]."
   },
   {
    "q": "You are flying an approach and the heading indicator has failed. When does the AIM say you are already in at least an urgency condition?",
    "options": [
-    "Only after you lose control",
     "As soon as you doubt a condition that could hurt flight safety",
-    "Only when fuel is below 30 minutes",
-    "Only if ATC says so"
+    "Only after you have lost control of the airplane or cannot see the horizon",
+    "Only when fuel is below 30 minutes or you cannot reach an alternate",
+    "Only if ATC tells you or the controller declares an emergency for you"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "You are in at least an urgency condition the moment you become doubtful about any condition that could hurt flight safety [[34:28|AIM 6-1-2]]."
   },
   {
@@ -1402,45 +1544,92 @@
    "q": "In an emergency you deviate from your clearance. What must you do?",
    "options": [
     "Nothing until the FAA asks",
-    "File a NASA report within 10 days",
     "Notify ATC as soon as possible",
+    "File a NASA report within 10 days",
     "Land at the nearest airport immediately"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "A PIC who deviates from a clearance in an emergency notifies ATC as soon as possible [[60:450|14 CFR 91.123(c)]] and gets an amended clearance [[33:281|AIM 4-4-10]]."
   },
   {
    "q": "On partial panel the airspeed is decreasing and the altimeter climbing fast. What is the recovery order?",
    "options": [
-    "Pull power, level wings, raise nose",
-    "Level wings, then add power, then lower nose",
-    "Lower nose, then add full flaps",
-    "Add power, lower the nose, level the wings on the turn coordinator"
+    "Add power, lower the nose, level the wings on the turn coordinator",
+    "Level the wings first, then add power, and then lower the nose gently",
+    "Lower the nose, then extend full flaps to build up airspeed again",
+    "Pull the power off, level the wings, then raise the nose to stop the climb"
    ],
-   "answer": 3,
+   "answer": 0,
    "why": "Nose high: add power as needed, lower the nose to prevent a stall, then level the wings and center the ball [[23:188|IFH 7-27]]."
   },
   {
    "q": "You are 2 NM from the threshold on a partial panel approach. About how high above TDZE should you be for a 3° path?",
    "options": [
     "300 ft",
-    "600 ft",
+    "1,000 ft",
     "900 ft",
-    "1,000 ft"
+    "600 ft"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "Use 300 ft per NM: 2 × 300 = 600 ft above the TDZE [[29:177|IPH 4-37]]."
   },
   {
    "q": "Why do pilots who always fly the autopilot have more trouble with a gyro failure?",
    "options": [
-    "Autopilots damage the gyros",
-    "Regulations forbid hand flying in IMC",
+    "Autopilots slowly wear out the gyros through constant small corrections",
+    "Regulations forbid hand flying in IMC when an autopilot is installed",
     "Their hand-flying skills can degrade from consistent autopilot use",
-    "Autopilots cannot fly approaches"
+    "Autopilots cannot fly instrument approaches, so they never get practice"
    ],
    "answer": 2,
    "why": "Pilots who consistently rely on the autopilot may lose some ability to fly manually when they must [[30:51|RMH 7-2]]."
+  },
+  {
+   "q": "What RVR goes with the ILS line at Charlotte?",
+   "options": [
+    "RVR 2400",
+    "RVR 5500",
+    "RVR 4000",
+    "RVR 6000"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The S-ILS 18L line reads 998/40, so the RVR is 4000 feet [[2:120|Chart Users' Guide p 120]] [[29:214|IPH Figure 4-45]]."
+  },
+  {
+   "q": "With DME working, what is the Category A and B MDA in the ZIMOG fix block for S-LOC 18L?",
+   "options": [
+    "1240 feet",
+    "1500 feet",
+    "1140 feet",
+    "1320 feet"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The ZIMOG block lists S-LOC 18L at 1140/55 for A and B. The 1240-1 line is its circling line [[29:214|IPH Figure 4-45]]."
+  },
+  {
+   "q": "How much higher is the localizer-only MDA (1320) than the ILS DA (998) for Category A?",
+   "options": [
+    "250 feet",
+    "422 feet",
+    "98 feet",
+    "322 feet"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "1320 - 998 = 322 feet. That is the price of losing the glide slope [[29:214|IPH Figure 4-45]]."
+  },
+  {
+   "q": "Under 14 CFR 91.175(k), what are the basic components of an ILS?",
+   "options": [
+    "Localizer, glide slope and outer marker",
+    "DME, ADF, a localizer and a marker",
+    "Glide slope, VOR and a marker beacon",
+    "Approach lights, a transponder and an ADF"
+   ],
+   "answer": 0,
+   "why": "[[60:474|14 CFR 91.175]] paragraph (k) lists the localizer, the glide slope and the outer marker, and an inner marker when it is installed for Category II or III procedures."
   }
  ]
 }

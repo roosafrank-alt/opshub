@@ -997,6 +997,38 @@
     "q": "Where do you look for a runway closure at your destination?",
     "a": "NOTAMs (keyword RWY, e.g. 'RWY 18/36 CLSD') [[33:327|AIM TBL 5-1-1]]; also check the Chart Supplement for the airport [[1:404|PHAK 16-17]]."
    }
+  },
+  {
+   "title": "Reading the chart: airports and checkpoints for your route",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.D.K2",
+    "PA.I.D.S2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "When you draw your route, the chart tells you where you can land and what you can find from the air. Start with the airport symbols. Airports with a control tower are blue. All others are magenta [[2:23|Chart Users' Guide p 23]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "Read the shape next. A runway pattern is drawn only when the airport has at least one hard-surfaced runway of 1,500 ft or more. Tick marks around the symbol mean fuel is available. The chart does not say who sells it or when, so check the Chart Supplement [[2:14|Chart Users' Guide p 14]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "Pick checkpoints you can spot from the air. A flag with an underlined name is a VFR checkpoint, and the underline marks its proper name. A black four-point star such as VPXYZ is a VFR stand-alone waypoint. A blue one such as GRANT is an RNAV waypoint [[2:33|Chart Users' Guide p 33]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Charts are updated every 56 days [[2:23|Chart Users' Guide p 23]]. Plan with the chart that is in date, not one from last year's glove box."
+     }
+    }
+   ]
   }
  ],
  "figures": {
@@ -1047,6 +1079,22 @@
    "caption": "AIM FIG 5-6-1. Intercept Procedures.",
    "alt": "Three panels: fighters approaching an airliner from behind for identification, a fighter crossing ahead with flares for a diversion, and the airliner turning to comply.",
    "source": "AIM, PDF p. 21"
+  },
+  "f7": {
+   "file": "PA.I.D-7.jpg",
+   "res": "2",
+   "page": 33,
+   "caption": "Chart Users' Guide: airport beacons, VFR checkpoints and waypoints on a sectional chart.",
+   "alt": "Chart legend with three airport beacon symbols and an isolated beacon shown as a small star with 2520 beside it. Below are VFR checkpoint flags: a pictorial State Capitol with an underlined name, Signal Hill, Lewis (Pvt) with an R in a circle, and a boxed Northbrook navaid box. At the bottom are waypoints: a blue four-point star named GRANT and a black four-point star named VPXYZ.",
+   "source": "Chart Users' Guide, PDF p. 33"
+  },
+  "f8": {
+   "file": "PA.I.D-8.jpg",
+   "res": "2",
+   "page": 23,
+   "caption": "Chart Users' Guide: civil, military, heliport and foreign airport symbols.",
+   "alt": "Airport legend in two columns, non-towered in magenta and towered in blue. Rows show a circle with tick marks, a circle with an X and ticks for fuel, a runway pattern for a hard runway of 1,500 feet or more, then civil-military and military double rings, a heliport H in a circle and a plain gray foreign airport circle.",
+   "source": "Chart Users' Guide, PDF p. 23"
   }
  },
  "scenario": {
@@ -1116,55 +1164,55 @@
    "q": "Your magnetic course is 024° and you'll cruise more than 3,000 ft AGL under VFR. Which altitude fits?",
    "options": [
     "4,500 ft",
-    "5,500 ft",
+    "10,500 ft",
     "5,000 ft",
-    "6,500 ft"
+    "5,500 ft"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "Magnetic course 0-179° uses odd thousands + 500 [[60:467|14 CFR 91.159(a)(1)]]."
   },
   {
    "q": "Minimum fuel reserve for a day VFR flight in an airplane?",
    "options": [
     "20 minutes",
-    "30 minutes",
     "45 minutes",
+    "30 minutes",
     "1 hour"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "Enough to reach the first point of intended landing and then fly at least 30 minutes by day (45 at night) [[60:464|14 CFR 91.151]]."
   },
   {
    "q": "You'll depart at 0900 CDT (summer). What time goes on the flight plan?",
    "options": [
     "1500Z",
-    "1400Z",
+    "1300Z",
     "0300Z",
-    "1300Z"
+    "1400Z"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "Central: add 6 hours, then subtract 1 for Daylight Saving Time: 1400Z [[1:392|PHAK 16-5]]."
   },
   {
    "q": "TC 090°, wind from the left, WCA 14°. What is the true heading?",
    "options": [
-    "104°",
-    "090°",
     "076°",
+    "090°",
+    "104°",
     "045°"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "Wind from the left: subtract WCA. 090 - 14 = 076° [[1:402|PHAK 16-15]]."
   },
   {
    "q": "The trip is 53 NM at a 106-knot groundspeed and you add 5 minutes for the climb. What is the ETE?",
    "options": [
     "30 min",
-    "35 min",
+    "45 min",
     "28 min",
-    "45 min"
+    "35 min"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "53 ÷ 106 = 0.5 hr = 30 min, plus 5 = 35 min [[1:408|PHAK 16-21]]."
   },
   {
@@ -1183,32 +1231,32 @@
    "options": [
     "At your ETA",
     "15 minutes after ETA",
-    "1/2 hour after ETA",
-    "2 hours after ETA"
+    "2 hours after ETA",
+    "1/2 hour after ETA"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "If you fail to report or cancel within 1/2 hour after your ETA, SAR starts [[33:339|AIM 5-1-14]]."
   },
   {
    "q": "Who activates your VFR flight plan after takeoff from a towered airport?",
    "options": [
     "The tower, automatically",
-    "Approach control",
     "You, with Flight Service",
+    "Approach control",
     "Nobody; it activates when filed"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "Pilots are responsible for activating with Flight Service. Towers do not automatically activate VFR plans [[33:331|AIM 5-1-5]]."
   },
   {
    "q": "If intercepted, what should you do on the radio and transponder?",
    "options": [
-    "Squawk 7600 and stay silent",
-    "Call on 121.5 (or 243.0) and squawk 7700 unless ATC says otherwise",
-    "Squawk 1200 and call Flight Service",
-    "Squawk 7500 and climb"
+    "Call on 121.5 (or 243.0) and squawk 7700 unless told otherwise",
+    "Squawk 7600 and stay off the radio until the interceptor calls you",
+    "Squawk 1200 and call Flight Service to report the interception",
+    "Squawk 7500 and climb away to get clear of the interceptor"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "Call on guard giving identity, position and nature of flight, and select 7700 unless instructed otherwise [[34:22|AIM 5-6-13]]."
   },
   {
@@ -1221,6 +1269,65 @@
    ],
    "answer": 2,
    "why": "Series 2 signal: 'You may proceed.' Rock your wings [[34:23|AIM TBL 5-6-1]]."
+  },
+  {
+   "q": "On the chart legend, the name STATE CAPITOL is underlined next to a flag. What does the underline tell you?",
+   "options": [
+    "A rotating beacon is on top of it",
+    "It is the proper name of a VFR checkpoint",
+    "The building is more than 1,000 ft AGL",
+    "The checkpoint is closed"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "The legend says an underline indicates the proper name of a VFR checkpoint [[2:33|Chart Users' Guide p 33]]."
+  },
+  {
+   "q": "Which symbol on the legend is a VFR stand-alone waypoint?",
+   "options": [
+    "The boxed NORTHBROOK 113.0 navaid box",
+    "The black four-point star named VPXYZ",
+    "The small star with 2520 beside it",
+    "The blue four-point star named GRANT"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "A VFR stand-alone waypoint is the black four-point star. The blue star (GRANT) is an RNAV waypoint [[2:33|Chart Users' Guide p 33]]."
+  },
+  {
+   "q": "On the airport legend, how do you tell a towered civil airport from a non-towered one?",
+   "options": [
+    "Towered airports always have a runway pattern",
+    "Towered airports have tick marks around them",
+    "Towered airports are blue and the others are magenta",
+    "Towered airports are magenta and the others are blue"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "Airports having control towers are shown in blue. All others are magenta [[2:23|Chart Users' Guide p 23]]."
+  },
+  {
+   "q": "A magenta airport symbol shows a runway pattern. What does the pattern tell you?",
+   "options": [
+    "A control tower is on the field",
+    "A hard-surfaced runway of 1,500 ft or more exists",
+    "Fuel is sold at the airport",
+    "Every runway is longer than 8,069 ft"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "Runway patterns are drawn at airports with at least one hard-surfaced runway of 1,500 ft or more. Fuel is shown by tick marks, and a tower by blue color [[2:23|Chart Users' Guide p 23]]."
+  },
+  {
+   "q": "A pilot plans a day VFR flight in an airplane away from the airport area. Under 14 CFR 91.103(a), which items must the pilot know before the flight?",
+   "options": [
+    "Only the fuel prices and landing fees at the destination airport",
+    "Nothing in particular, since ATC supplies it after takeoff",
+    "Weather reports and forecasts, fuel needs, alternatives, and known traffic delays",
+    "Only the winds at the departure airport and the destination"
+   ],
+   "answer": 2,
+   "why": "[[60:440|14 CFR 91.103(a)]] lists weather reports and forecasts, fuel requirements, alternatives, and any known traffic delays for a flight not in the vicinity of an airport."
   }
  ],
  "takeaways": [
@@ -1373,29 +1480,69 @@
      "r": "I am in distress."
     }
    ]
+  },
+  {
+   "type": "label",
+   "figure": "f8",
+   "title": "Read the airport legend",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 87.5,
+     "y": 13.0,
+     "label": "Civil airport with a control tower (blue)"
+    },
+    {
+     "x": 66.6,
+     "y": 13.0,
+     "label": "Civil airport with no tower (magenta)"
+    },
+    {
+     "x": 66.6,
+     "y": 21.8,
+     "label": "Civil airport with fuel available (tick marks around it)"
+    },
+    {
+     "x": 87.0,
+     "y": 30.9,
+     "label": "Towered airport with a hard runway of 1,500 ft or more (runway pattern)"
+    },
+    {
+     "x": 66.5,
+     "y": 57.6,
+     "label": "Military airport with no tower"
+    },
+    {
+     "x": 88.7,
+     "y": 73.9,
+     "label": "Heliport (H in a circle)"
+    }
+   ],
+   "key": "h5",
+   "after": 15
   }
  ],
  "final_quiz": [
   {
    "q": "You plan a flight to an airport 90 NM away. Under 14 CFR 91.103, which item must you look into for this trip that you would not need for a flight near your home airport?",
    "options": [
-    "Runway lengths at the airports you will use",
-    "Takeoff and landing distance data",
-    "Alternatives if you can't complete the flight",
-    "The aircraft color for the flight plan"
+    "Runway lengths at the airports you plan to use",
+    "Takeoff and landing distance data for the flight",
+    "The aircraft color to enter on the flight plan",
+    "Alternatives if you can't complete the flight"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "For a flight not in the vicinity of an airport, 91.103(a) adds weather, fuel needs, alternatives and known ATC delays. Runway lengths and takeoff and landing data are required for every flight [[60:440|14 CFR 91.103]]."
   },
   {
    "q": "Your true course is 183° and variation is 6° E. You will cruise more than 3,000 ft AGL. Which altitude fits the VFR cruising rule?",
    "options": [
     "6,500 ft",
+    "10,500 ft",
     "7,500 ft",
-    "8,500 ft",
     "7,000 ft"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "The rule uses magnetic course. 183 - 6 = 177°, which is 0° to 179°, so use odd thousands + 500 [[1:395|PHAK 16-8]] [[60:467|14 CFR 91.159(a)(1)]]."
   },
   {
@@ -1412,100 +1559,100 @@
   {
    "q": "Two checkpoints are 34 NM apart. You pass them 20 minutes apart. What is your groundspeed?",
    "options": [
-    "68 kt",
+    "102 kt",
     "113 kt",
     "90 kt",
-    "102 kt"
+    "68 kt"
    ],
-   "answer": 3,
+   "answer": 0,
    "why": "GS = D ÷ T. 20 min = 1/3 hr, so 34 ÷ 1/3 = 102 kt [[1:398|PHAK 16-11]]."
   },
   {
    "q": "You plan to depart at 1430 Pacific Daylight Time in July. What departure time goes on the flight plan?",
    "options": [
     "2230Z",
-    "0630Z",
     "2130Z",
+    "0630Z",
     "2330Z"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "Pacific: add 8 hours, 2230. Daylight Saving Time: subtract 1, so 2130Z [[1:392|PHAK 16-5]]."
   },
   {
    "q": "You depart an airport in the Central time zone at 1520Z in summer. The ETE is 50 minutes. What is your ETA in local time?",
    "options": [
-    "1110 CDT",
-    "1010 CDT",
     "1210 CDT",
+    "1010 CDT",
+    "1110 CDT",
     "2110 CDT"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "ETA = 1520Z + 0:50 = 1610Z. Central standard time is UTC minus 6. During Daylight Saving Time it is UTC minus 5, so 1610Z is 1110 CDT [[1:392|PHAK 16-5]]."
   },
   {
    "q": "A day VFR trip has an ETE of 1 hour 15 minutes. The airplane burns 10 gallons per hour. What is the legal minimum fuel?",
    "options": [
     "12.5 gal",
-    "17.5 gal",
     "20.0 gal",
+    "17.5 gal",
     "15.0 gal"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "Trip fuel = 1.25 hr × 10 = 12.5 gal. Day reserve = 30 min × 10 GPH = 5 gal. Total 17.5 gal. 20.0 gal would be the night answer [[60:464|14 CFR 91.151]]."
   },
   {
    "q": "A trip has an ETE of 48 minutes at 9 GPH. You have 13 gallons usable. Which is true?",
    "options": [
     "Legal by day and at night",
-    "Legal at night only",
+    "Legal by day only",
     "Not legal by day or at night",
-    "Legal by day only"
+    "Legal at night only"
    ],
-   "answer": 3,
+   "answer": 1,
    "why": "Trip fuel = 0.8 × 9 = 7.2 gal. Day needs 7.2 + 4.5 = 11.7 gal, so day is legal. Night needs 7.2 + 6.75 = 13.95 gal, more than 13 [[60:464|14 CFR 91.151]]."
   },
   {
    "q": "On Form 7233-4, how do you enter a cruise of 7,500 ft at 105 knots TAS in Item 15?",
    "options": [
-    "N0105 A075",
-    "N105 A7500",
+    "N105 A75",
+    "N0105 A7500",
     "N0105 A750",
-    "N105 A75"
+    "N0105 A075"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "TAS is N plus four digits. Altitude is A plus 3 digits in hundreds of feet [[34:287|AIM App 4]]."
   },
   {
    "q": "You are on an active VFR flight plan. Weather makes you divert and land at a different airport. What should you do?",
    "options": [
-    "Nothing; the plan closes itself at your ETA",
-    "Tell the tower; it closes VFR plans for you",
-    "Report the landing to the nearest FSS and give your original destination",
-    "Wait until your original ETA, then call"
+    "Nothing; the plan closes itself at your ETA at the original destination",
+    "Report the landing to the nearest FSS, naming your original destination",
+    "Tell the tower when you land; it closes VFR flight plans for you automatically",
+    "Wait until your original ETA has passed, then call to close the plan"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "If you land somewhere other than your destination, report it to the nearest FSS with your original destination. Plans don't close by themselves [[34:34|AIM 6-2-6]]."
   },
   {
    "q": "You are being intercepted. ATC tells you one thing, but the interceptor's signals say another. What should you do?",
    "options": [
-    "Follow ATC and ignore the interceptor",
+    "Ask for clarification right away",
     "Squawk 7600 and leave the area",
     "Turn off your transponder and land at once",
-    "Ask for clarification right away"
+    "Follow ATC and ignore the interceptor"
    ],
-   "answer": 3,
+   "answer": 0,
    "why": "If instructions from any agency conflict with the interceptor's, seek immediate clarification. Keep complying with the interceptor until released [[34:22|AIM 5-6-13]]."
   },
   {
    "q": "You plan to fly a business associate to a meeting tomorrow. Which PAVE hazard is the meeting itself, and how do you reduce it?",
    "options": [
-    "Pilot: get extra sleep tonight",
-    "External pressure: set expectations early and plan another way to travel",
-    "Aircraft: carry extra fuel",
-    "Environment: fly lower to stay under clouds"
+    "External pressure: set expectations early and plan other travel",
+    "Pilot: get extra sleep tonight and eat a full meal before the flight",
+    "Aircraft: carry extra fuel and have a mechanic check the engine",
+    "Environment: fly lower to stay under clouds and out of the wind"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "A meeting someone must get to is an external pressure. Manage expectations and plan alternative travel [[30:40|RMH 5-2]]."
   },
   {
@@ -1518,6 +1665,41 @@
    ],
    "answer": 2,
    "why": "An EFB can replace paper only if its data is current and valid, as verified by the pilot. It must not replace required equipment and must show info equal to the paper [[42:3|AC 91-78A para 9.1]]."
+  },
+  {
+   "q": "What do the tick marks around an airport symbol mean?",
+   "options": [
+    "The runway is lighted all night long",
+    "The airport has a control tower and ATIS",
+    "Landing needs prior permission from the owner",
+    "Fuel is available; check the Chart Supplement"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "Fuel availability is shown by tick marks around the airport symbol. Consult the Chart Supplement for details and availability [[2:14|Chart Users' Guide p 14]] [[2:23|Chart Users' Guide p 23]]."
+  },
+  {
+   "q": "On the legend, LEWIS (Pvt) has an R in a circle. What does (Pvt) mean?",
+   "options": [
+    "A private control tower is on the field",
+    "A rotating beacon runs all night",
+    "Only private pilots may land there",
+    "A non-public airport that has landmark value"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "(Pvt) means non-public use having landmark value. The circled R is the restricted or private landmark airport [[2:24|Chart Users' Guide p 24]] [[2:23|Chart Users' Guide p 23]]."
+  },
+  {
+   "q": "You plan a day VFR flight in an airplane. The flight will take 2 hr 10 min to the first point of intended landing. What is the least fuel you may start with, per 14 CFR 91.151(a)?",
+   "options": [
+    "Enough for 2 hr 25 min at normal cruise",
+    "Enough for 3 hr 10 min at normal cruise",
+    "Enough for 2 hr 55 min at normal cruise",
+    "Enough for 2 hr 40 min at normal cruise"
+   ],
+   "answer": 3,
+   "why": "By day, the airplane needs fuel to the first point of intended landing plus 30 minutes at normal cruise: 2:10 plus 0:30 is 2:40 [[60:464|14 CFR 91.151(a)]]."
   }
  ]
 }

@@ -824,6 +824,37 @@
     "q": "What is the fix for giving ATC your fuel in gallons?",
     "a": "State fuel remaining as minutes of flight, including reserve and an allowance for gauge error [[34:349|P/CG Fuel Remaining]]."
    }
+  },
+  {
+   "title": "Reading the chart: name your position",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.D.S1",
+    "CA.VI.D.S3",
+    "CA.VI.D.S4"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "When you are unsure where you are, the chart gives you names and numbers to work with. The key is to match what you see to something that has a name, then say that name out loud to ATC or Flight Service. Flags on the chart mark VFR checkpoints, and an underline marks the proper name of the checkpoint [[2:47|Chart Users' Guide p 47]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "Checkpoints can be a circle, a pictorial landmark such as a stadium, or an airport with its identifier in parentheses, as in HARVEY (S43). A stand-alone VFR waypoint is a four-point star with its name in italics. A checkpoint that is also a waypoint shows the checkpoint name with the waypoint name in parentheses below [[2:47|Chart Users' Guide p 47]]."
+    },
+    {
+     "p": "The Navigational Data section shows two more ways to give a fix. A callout can give latitude and longitude, such as N38°56.32' W76°36.91'. A fix can also be written as a radial and distance from a NAVAID: ATL 033/25 NM means the point on the 033 degree radial, 25 NM out, with its latitude and longitude below it [[2:47|Chart Users' Guide p 47]]."
+    },
+    {
+     "p": "Use these in order. Say your last confirmed checkpoint, the heading and time since then, and the nearest named feature you can match. Do not let the search use up your fuel: set the point where you will land instead of searching, and use any nav source or ATC help early (ACS CA.VI.D.S4, S5). In a real emergency, the pilot in command may deviate from any Part 91 rule to the extent needed [[60:435|14 CFR 91.3(b)]]."
+    }
+   ],
+   "check": {
+    "q": "You can see a large stadium but you are not sure of your position. How does the chart help you use it?",
+    "a": "Look for the stadium on the chart. A pictorial symbol with a flag and an underlined name is a VFR checkpoint, and you can report it by name [[2:47|Chart Users' Guide p 47]]."
+   }
   }
  ],
  "figures": {
@@ -882,6 +913,14 @@
    "caption": "FIG 6-2-1. Ground-Air Visual Code for Use by Survivors. (AIM 6-2-8)",
    "alt": "A table of ground symbols: V means require assistance, X require medical assistance, N no, Y yes, and an arrow proceeding in this direction. If in doubt, use SOS. Instructions: make symbols at least 10 feet high from any material with strong color contrast; on snow, tramp or dig them; the pilot acknowledges by rocking the wings.",
    "source": "AIM, PDF p. 36"
+  },
+  "f8": {
+   "file": "CA.VI.D-8.jpg",
+   "res": "2",
+   "page": 47,
+   "caption": "Chart Users' Guide: VFR checkpoints, waypoints and navigational data (p 47, left column).",
+   "alt": "Three legend sections. VFR Checkpoints: a flag with LA PORTE, a pictorial STADIUM, a purple airport HARVEY (S43) and a blue NORTHBROOK, with a note that the underline marks the proper name. VFR Waypoints: a stand-alone four-point star labeled VPXYZ and a checkpoint flag labeled NAME with (VPXYZ) below. Navigational Data: a plus mark with N38 56.32 W76 36.91, a square marked POWER PLANT with N32 27.12 W70 15.73, and a fix on the ATL 25 NM arc and the ATL 033 degree radial labeled ATL 033/25 NM with N33 59.18 W84 10.62.",
+   "source": "Chart Users' Guide, PDF p. 47"
   }
  },
  "scenario": {
@@ -1165,31 +1204,31 @@
      "s": "Your first action?",
      "options": [
       "Turn toward the nearest lake on the chart that looks similar",
-      "Hold your heading and note the time",
+      "Call the passengers' attention to the lake as a 'scenic detour'",
       "Descend to 1,500 ft AGL to read road signs",
-      "Call the passengers' attention to the lake as a 'scenic detour'"
+      "Hold your heading and note the time"
      ],
-     "answer": 1,
+     "answer": 3,
      "why": "If confused, hold the heading; turning away is how pilots become lost [[1:399|PHAK 16-12]]. The time starts your last-known-position record [[34:46|AIM 6-3-2]]."
     },
     {
      "s": "Clouds are well above you. You climb to 5,500 ft. The VOR to the east now shows no flag and identifies correctly. What next?",
      "options": [
-      "Fly to that VOR and wait over it",
-      "Get a second VOR radial and cross it with the first, then confirm with a landmark",
-      "Trust the first radial alone and fly it outbound",
-      "Switch the transponder to 7700 and wait for a call"
+      "Fly directly to that VOR from here and orbit over it until you are found by search",
+      "Trust the first radial alone and fly it outbound until you see a known landmark",
+      "Cross a second VOR radial with the first, then confirm with a landmark",
+      "Switch the transponder to 7700 and wait for a call from the nearest radar facility"
      ],
-     "answer": 1,
+     "answer": 2,
      "why": "Plot azimuths from two or more stations for a fix [[1:421|PHAK 16-34]], identify each station [[1:410|PHAK 16-23]], and cross-check with pilotage [[1:419|PHAK 16-32]]."
     },
     {
      "s": "The fix still does not make sense and 10 minutes have passed. What do you do?",
      "options": [
-      "Keep trying alone; calling ATC would look unprofessional",
-      "Call approach on the chart frequency, say you are unsure of position, and ask for help",
-      "Turn back toward where you think you came from",
-      "Descend to look for the original course line"
+      "Keep trying alone for another twenty minutes; calling ATC would look unprofessional to the passengers",
+      "Call approach on the chart frequency, say you are unsure of position, ask for help",
+      "Turn back toward where you think you came from and look for the first checkpoint",
+      "Descend to look for the original course line, using the road signs you can read"
      ],
      "answer": 1,
      "why": "You were in an urgency condition the moment you became doubtful; this is the time to ask for help [[34:28|AIM 6-1-2]]. Use the frequencies on the chart and accept radar vectors [[1:421|PHAK 16-34]]."
@@ -1197,12 +1236,12 @@
     {
      "s": "Approach is too busy to vector you. You have 50 minutes of fuel and 25 minutes of daylight. What now?",
      "options": [
-      "Wait on frequency until the controller has time",
       "Declare an emergency (PAN-PAN or MAYDAY as fits) to get priority, or call FSS or 121.5",
-      "Turn off the radio to concentrate on the chart",
-      "Climb into the clouds to get better radar coverage"
+      "Wait on frequency until the controller has time, then repeat your request for vectors a little later",
+      "Turn off the radio to concentrate on the chart and finish the position fix alone",
+      "Climb into the clouds to get better radar coverage and a clearer signal from approach"
      ],
-     "answer": 1,
+     "answer": 0,
      "why": "Controllers may decline vectors for workload [[33:218|AIM 4-1-17e]]. Declaring an emergency brings additional help and priority handling [[30:47|RMH 6-4]], and 121.5 is guarded by radar facilities and towers [[34:45|AIM 6-3-1]]. Climbing into cloud violates VFR minimums [[60:465|14 CFR 91.155]]."
     },
     {
@@ -1217,38 +1256,78 @@
      "why": "With little daylight and a reduced reserve, choose margin over the original goal; get-there-itis is a listed pitfall [[1:61|PHAK 2-22]]. Report the landing to FSS if on a flight plan [[34:34|AIM 6-2-6]]."
     }
    ]
+  },
+  {
+   "type": "label",
+   "title": "Name each chart point",
+   "figure": "f8",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 76.2,
+     "y": 44.0,
+     "label": "Stand-alone VFR waypoint"
+    },
+    {
+     "x": 84.1,
+     "y": 52.2,
+     "label": "Checkpoint collocated with a waypoint"
+    },
+    {
+     "x": 75.8,
+     "y": 65.5,
+     "label": "Latitude and longitude of a point"
+    },
+    {
+     "x": 62.4,
+     "y": 88.7,
+     "label": "Fix by radial and distance"
+    },
+    {
+     "x": 82.8,
+     "y": 23.1,
+     "label": "Airport checkpoint with identifier"
+    },
+    {
+     "x": 69.4,
+     "y": 16.3,
+     "label": "Pictorial checkpoint"
+    }
+   ],
+   "key": "h8",
+   "after": 12
   }
  ],
  "quiz": [
   {
    "q": "How do the private and commercial ACS Tasks for lost procedures compare?",
    "options": [
-    "The commercial Task adds a heading tolerance of 10 degrees",
     "The elements are the same; neither gives a number tolerance",
+    "The commercial Task adds a heading tolerance of 10 degrees",
     "The commercial Task drops the risk elements",
     "The private Task requires declaring an emergency; the commercial does not"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "Both list K1 to K2, R1 to R4 and S1 to S5 with identical wording and no number tolerance (ACS CA.VI.D; ACS PA.VI.D)."
   },
   {
    "q": "In the AIM emergency message, what position do you give if you are lost?",
    "options": [
-    "Your best guess of present position",
-    "Last known position, the time there, and the heading since",
-    "The nearest VOR and DME",
-    "Only your altitude and fuel"
+    "Your best guess of present position, based on dead reckoning",
+    "Only your altitude and fuel, with the time you became lost",
+    "The nearest VOR and DME fix you can tune, with the heading to it",
+    "Last known position, the time there, and heading since"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "The AIM element is present position and heading, or if lost, last known position, time and heading since that position [[34:46|AIM 6-3-2]]."
   },
   {
    "q": "What area does one MEF on a sectional cover?",
    "options": [
-    "A circle 10 NM around each airport",
-    "A quadrant bounded by ticked lines every 30 minutes of latitude and 30 minutes of longitude",
-    "One degree of latitude by one degree of longitude",
-    "The area between two VOR radials"
+    "A circle 10 NM in radius around each airport, centered on the airport reference point",
+    "A quadrant bounded by ticked lines at every 30 minutes of latitude and longitude",
+    "One degree of latitude by one degree of longitude, as outlined by the heavy chart border lines",
+    "The area between two VOR radials, bounded by the nearest two airway lines on the chart"
    ],
    "answer": 1,
    "why": "A quadrant on sectionals is bounded by ticked lines dividing each 30 minutes of latitude and each 30 minutes of longitude [[2:12|Chart Users' Guide p. 12]]."
@@ -1257,66 +1336,66 @@
    "q": "A town you want as a checkpoint is 0.75 inch from your course line on a sectional. About how far is it from your course, in nautical miles?",
    "options": [
     "About 3.4 NM",
-    "About 5.1 NM",
+    "About 8.0 NM",
     "About 6.0 NM",
-    "About 8.0 NM"
+    "About 5.1 NM"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "1 inch = 6.86 NM, so 0.75 x 6.86 = 5.1 NM [[1:399|PHAK 16-12]]."
   },
   {
    "q": "Why should you not use FSS voice on a VOR frequency to identify the station?",
    "options": [
-    "FSS voice is only broadcast at night",
     "One FSS may transmit over several VORs with different names",
-    "FSS voice is always out of date",
-    "VORs do not carry voice"
+    "FSS voice is only broadcast on VOR frequencies at night, never by day",
+    "FSS voice on a VOR is always a recorded, outdated message",
+    "VORs do not carry voice, only a Morse code identifier of three letters"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "Many FSSs remotely transmit over several omniranges with names different from the FSS, so identify by Morse code or the VOR's recorded voice ID [[1:410|PHAK 16-23]]."
   },
   {
    "q": "ATC is giving you radar vectors as a lost VFR pilot. Who is responsible for flying the aircraft safely and obeying the CFRs?",
    "options": [
     "The controller, while vectors are being given",
-    "You, the pilot; the vectors are advisory",
     "The controller for terrain, you for traffic",
+    "You, the pilot; the vectors are advisory",
     "Nobody until you are found"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "Radar navigational assistance is advisory, does not authorize you to violate the CFRs, and flying the aircraft safely remains with the pilot [[33:217|AIM 4-1-17]]."
   },
   {
    "q": "You want to reach approach control before entering a Class C area near you. Where on the sectional is its VFR arrival frequency shown?",
    "options": [
     "In the airport data block under the runway length",
-    "In a magenta box note near the Class C",
+    "In the FSS heavy-line box",
     "Only in the Chart Supplement",
-    "In the FSS heavy-line box"
+    "In a magenta box note near the Class C"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "Separate notes in magenta boxes give the approach control frequencies for arriving VFR aircraft to call before entering Class C [[2:16|Chart Users' Guide p. 16]]."
   },
   {
    "q": "Which priority does a PAN-PAN call have?",
    "options": [
-    "Over all communications, including distress",
     "Over all communications except distress",
+    "Over all communications, including distress",
     "Equal to routine traffic",
     "Only on 121.5"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "Urgency communications have priority over all other communications except distress [[34:45|AIM 6-3-1]]."
   },
   {
    "q": "Where is maximum endurance found on the power-required curve?",
    "options": [
-    "At L/D max",
     "At minimum power required, where fuel flow is lowest",
-    "At maximum cruise power",
-    "At the stall speed"
+    "At L/D max, the best distance per unit of fuel",
+    "At maximum cruise power, for the greatest distance",
+    "At the stall speed, the lowest possible airspeed"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "Maximum endurance is at minimum power required; maximum range is at L/D max [[1:266|PHAK 11-10]] [[1:265|PHAK 11-9]]."
   },
   {
@@ -1329,18 +1408,77 @@
    ],
    "answer": 1,
    "why": "Unless you have good reason to think you will not be found, it is best to remain with the aircraft and prepare means of signaling [[34:47|AIM 6-3-2]]."
+  },
+  {
+   "q": "How does the chart show the proper name of a VFR checkpoint?",
+   "options": [
+    "With an underline",
+    "In parentheses",
+    "In italic type",
+    "With a box around it"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "The legend says an underline indicates the proper name of the VFR checkpoint [[2:47|Chart Users' Guide p 47]]."
+  },
+  {
+   "q": "A four-point star with VPXYZ in italics is what?",
+   "options": [
+    "A VFR checkpoint located at an airport",
+    "A lighted radio tower over 1,000 ft AGL",
+    "A stand-alone VFR waypoint",
+    "A VOR with collocated DME on the field"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The legend lists the four-point star as a stand-alone VFR waypoint [[2:47|Chart Users' Guide p 47]]."
+  },
+  {
+   "q": "Which of these checkpoints is a pictorial landmark?",
+   "options": [
+    "STADIUM",
+    "LA PORTE",
+    "HARVEY (S43)",
+    "NORTHBROOK"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "The legend labels the STADIUM symbol Pictorial. HARVEY (S43) is an airport symbol, and LA PORTE and NORTHBROOK use plain symbols with no picture [[2:47|Chart Users' Guide p 47]]."
+  },
+  {
+   "q": "A callout reads ATL 033/25 NM with a latitude and longitude. What does it describe?",
+   "options": [
+    "A VOR frequency and channel, plus the station's elevation",
+    "A point on the ATL 033 radial, 25 NM out, with its lat/long",
+    "A checkpoint with a stadium, with its latitude and longitude",
+    "A restricted area boundary point with its latitude and longitude"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "The fix is drawn where the ATL 033 degree radial meets the ATL 25 NM arc, and the callout gives its coordinates [[2:47|Chart Users' Guide p 47]]."
+  },
+  {
+   "q": "You are lost and low on fuel, and the nearest suitable airport is in Class B airspace. You have no clearance. What does the regulation allow?",
+   "options": [
+    "Enter only below 1,200 ft AGL, outside the inner ring",
+    "Enter at will, since emergencies cancel all rules",
+    "Deviate only as far as needed to meet the emergency",
+    "Nothing; you must stay out of Class B until cleared"
+   ],
+   "answer": 2,
+   "why": "In an in-flight emergency requiring immediate action, the pilot in command may deviate from any rule of Part 91 to the extent required, and must send a written report if the Administrator asks [[60:435|14 CFR 91.3(b), (c)]]."
   }
  ],
  "final_quiz": [
   {
    "q": "Twelve minutes after missing a checkpoint, you are still unsure of position but have plenty of fuel and good weather. A friend says you are not in an emergency yet. Per the AIM, what is your status?",
    "options": [
-    "Normal; urgency starts only at low fuel",
+    "Normal; urgency starts only at low fuel or an engine problem",
+    "Distress, requiring a MAYDAY call right away to anyone listening",
     "At least an urgency condition, and the time to ask for help",
-    "Distress, requiring MAYDAY",
-    "Minimum fuel"
+    "Minimum fuel, because your remaining fuel is now the limiting factor"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "An aircraft is in at least an urgency condition the moment the pilot becomes doubtful about position [[34:28|AIM 6-1-2]]. Distress means serious or imminent danger [[34:337|P/CG Distress]]."
   },
   {
@@ -1358,75 +1496,75 @@
    "q": "Your hand-held GPS (no RAIM) puts you 7 NM east of where a two-VOR fix and a stadium symbol on the chart agree. What should you believe?",
    "options": [
     "The GPS, because satellites are more accurate",
-    "The VOR fix and the landmark, and treat the GPS as suspect",
+    "Neither; call 121.5 before doing anything",
     "Average the two positions",
-    "Neither; call 121.5 before doing anything"
+    "The VOR fix and the landmark, and treat the GPS as suspect"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "Without RAIM, be suspicious of the GPS when it disagrees with other navigation, pilotage or dead reckoning [[1:420|PHAK 16-33]]; two independent sources agree here [[2:10|Chart Users' Guide p. 10]]."
   },
   {
    "q": "Lost and talking to no one, you squawk 7700. Several minutes pass with no radio contact. What does the AIM say?",
    "options": [
-    "Return to 1200, since 7700 has failed",
-    "Keep squawking 7700 and keep trying to establish communications; you may be outside radar coverage",
-    "Switch to 7600",
-    "Turn the transponder off to save power"
+    "Return to 1200 after a few minutes of silence, since 7700 has clearly failed to get a response",
+    "Switch to 7600 because the radios have clearly failed, and keep the transponder on",
+    "Keep squawking 7700 and keep trying for radio contact; you may be outside radar coverage",
+    "Turn the transponder off to save power and rely on your radio calls to the facility"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "You might not be within radar coverage, so continue squawking 7700 and establish radio communications as soon as possible [[34:29|AIM 6-2-2]]."
   },
   {
    "q": "You call Center on 121.5 MHz in a remote area and get no reply, though you are in Center radar coverage. What explains it, and what next?",
    "options": [
-    "Center never monitors 121.5; give up on it",
+    "Center never monitors 121.5, so give up on that frequency and use the regular sector frequency instead",
+    "121.5 is only for ELTs, so the call can never be heard by any facility, whatever the radar coverage",
     "Center emergency frequency coverage usually does not reach its radar limits; call the nearest tower",
-    "121.5 is only for ELTs",
-    "Switch to 243.0 and wait"
+    "Switch to 243.0 and wait for Center to answer there, with no other action needed"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "Normally ARTCC emergency frequency capability does not extend to radar coverage limits; if Center does not answer on 121.5, call the nearest tower [[34:45|AIM 6-3-1]]."
   },
   {
    "q": "You hear a station on its RCO frequency clearly but it never answers you. What is the most likely reason?",
    "options": [
-    "Your transponder is off",
-    "Remote sites may transmit to you but not receive you; climb or try another frequency",
-    "RCOs work only at night",
-    "You must use DF first"
+    "Your transponder is off, so the ground station cannot identify or hear you",
+    "You must use DF first before any ground station is allowed to answer you",
+    "RCOs accept calls only during published daylight hours, so it is shut for the night",
+    "A remote site may transmit but not receive you; climb or try another frequency"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "At remote sites you can sometimes hear but not reach the ground station's receiver; higher altitude increases VHF range [[33:227|AIM 4-2-2]]."
   },
   {
    "q": "Lost with 11 gallons left at 8.1 gal/hr, you call approach. What fuel figure fits the AIM?",
    "options": [
-    "'Eleven gallons'",
-    "'About 80 minutes,' a figure that includes reserve and gauge error allowance",
-    "'Minimum fuel,' which gives you priority",
-    "'Enough for an hour plus reserve'"
+    "'About 80 minutes,' including reserve and gauge error",
+    "'Eleven gallons,' read straight from the fuel gauge",
+    "'Minimum fuel,' which gives you priority handling",
+    "'Enough for an hour plus reserve,' with no exact figure"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "11 / 8.1 x 60 = 81.5, about 80 minutes. Fuel remaining is stated in minutes including reserve and gauge error [[34:349|P/CG Fuel Remaining]]. Minimum fuel does not imply priority [[34:10|AIM 5-5-15]]."
   },
   {
    "q": "ATC is vectoring you, a non-instrument-rated pilot, and the vector heads toward lowering clouds while clear weather lies to the west. What does the AIM advise?",
    "options": [
     "Follow the vector; ATC is responsible for terrain",
-    "Tell ATC the weather and choose the VFR option to the west",
     "Climb through the clouds on the vector",
+    "Tell ATC the weather and choose the VFR option to the west",
     "Stop talking and turn west without telling ATC"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "Keep the controller advised of weather; non-instrument pilots should choose a VFR course over a vector into IFR conditions [[34:29|AIM 6-2-1]]. Vectors are advisory [[33:217|AIM 4-1-17]]."
   },
   {
    "q": "You land at a different airport than your VFR flight plan destination after getting lost. What does the AIM require of you?",
    "options": [
-    "Nothing; the plan closes automatically",
+    "Nothing; the plan closes automatically once any tower sees you land somewhere",
     "Report the landing to the nearest FSS and give your original destination",
-    "Call the destination tower only",
-    "Wait one hour, then call"
+    "Call the destination tower only, since the flight plan was filed with them",
+    "Wait one hour after landing, then call the FSS that holds your flight plan"
    ],
    "answer": 1,
    "why": "If you land somewhere other than the intended destination, report to the nearest FSS with your original destination; flight plans are not closed automatically [[34:34|AIM 6-2-6]]."
@@ -1434,10 +1572,10 @@
   {
    "q": "Lost but not yet in distress, you ask Center for help. A friend says a search and rescue aircraft will automatically come up to escort you. What does the AIM say?",
    "options": [
-    "Intercept and escort is automatic for every urgency call",
-    "It is given if you specifically request it or declare distress; for urgency only when unusual circumstances make it advisable",
-    "It is given only to IFR flights",
-    "It is given only after you squawk 7600"
+    "Intercept and escort is automatic for every urgency call, whether or not the pilot asks for it at all",
+    "Only if you request it or declare distress; for urgency, only when unusual circumstances make it advisable",
+    "It is given only to IFR flights, because VFR flights are not tracked by the search and rescue coordinator at all",
+    "It is given only after you squawk 7600 and the controller confirms radio failure on your aircraft"
    ],
    "answer": 1,
    "why": "SAR coordinators intercept and escort when a pilot in difficulty asks or declares distress; for an urgency condition, only if unusual circumstances make it advisable. You may also refuse it [[34:29|AIM 6-2-3]]."
@@ -1446,34 +1584,69 @@
    "q": "You are lost at night. A controller asks you to hold the mike button for a few seconds, release it, then turn 90 degrees and repeat. What service is this?",
    "options": [
     "Radar identification by squawk",
-    "Direction finding (DF) assistance",
+    "Intercept and escort",
     "Minimum safe altitude warning",
-    "Intercept and escort"
+    "Direction finding (DF) assistance"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "In DF assistance the controller asks you to key the mike for a few seconds and may ask for turns, then plots your position [[1:421|PHAK 16-34]]."
   },
   {
    "q": "Flying an eastbound charter in the late afternoon, you get lost near a time zone boundary. Why does the PHAK warn about this kind of flight even before you get lost?",
    "options": [
-    "Eastbound flights burn more fuel",
     "An hour is lost going east, so darkness can arrive earlier than expected",
-    "VORs are not usable across time zones",
-    "Flight plans expire at the boundary"
+    "Eastbound flights always fly into the wind and burn more fuel",
+    "VORs cannot be used across time zones, so fly by dead reckoning",
+    "Flight plans expire at the boundary and must be refiled with FSS"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "Time zones must be considered on eastward flights that must finish before dark; an hour is lost going east [[1:391|PHAK 16-4]]."
   },
   {
    "q": "After a forced landing in a remote field with an injured passenger, which ground symbol asks for medical help?",
    "options": [
     "V",
-    "X",
     "N",
+    "X",
     "Y"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "X means require medical assistance; V means require assistance [[34:36|AIM FIG 6-2-1]]."
+  },
+  {
+   "q": "How is a VFR checkpoint that is also a waypoint shown?",
+   "options": [
+    "A square with a dot in the middle and the name below it",
+    "A flag with an underlined name, waypoint name in parentheses",
+    "A plain circle with a number and the name beside it",
+    "A four-point star with the waypoint name in italics below"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "The legend shows the flag with NAME underlined and (VPXYZ) below it [[2:47|Chart Users' Guide p 47]]."
+  },
+  {
+   "q": "On the chart, what does the line labeled ATL 25 NM represent?",
+   "options": [
+    "A Class B outer ring",
+    "A 2,500 ft runway length",
+    "A radial of 25 degrees",
+    "An arc 25 NM from ATL"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "The ATL 25 NM line is drawn as an arc crossed by the ATL 033 degree radial [[2:47|Chart Users' Guide p 47]]."
+  },
+  {
+   "q": "While lost, you see you are drifting toward a charted restricted area with no clearance from the controlling agency. What does 91.133 say?",
+   "options": [
+    "Enter freely if you stay above 3,000 ft AGL and squawk 1200",
+    "Enter only with the using agency's permission, or in an emergency",
+    "Enter freely in VFR conditions if you stay clear of clouds",
+    "Enter freely if your transponder is on and set to Mode C"
+   ],
+   "answer": 1,
+   "why": "No person may operate within a restricted area contrary to its restrictions, or within a prohibited area, without permission of the using or controlling agency [[60:456|14 CFR 91.133(a)]]. In a true emergency 91.3(b) can apply."
   }
  ],
  "takeaways": [

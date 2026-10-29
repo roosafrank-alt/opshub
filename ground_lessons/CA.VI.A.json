@@ -868,6 +868,39 @@
     "q": "The examiner asks for your destination estimate halfway through the leg. What do you base it on?",
     "a": "The actual groundspeed between your last checkpoints and the distance remaining, not the planned groundspeed [[1:408|PHAK 16-21]] (ACS CA.VI.A.S6)."
    }
+  },
+  {
+   "title": "Reading the chart: obstacles and mountain terrain",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.A.S2",
+    "CA.VI.A.S5"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Pilotage gets harder as the land gets rougher. In the mountains, contour lines, spot elevations and the MEF tell you what is ahead. On the excerpt, the blue 13 with a small 5 is 13,500 ft MSL, so any leg in that quadrant needs a margin above that figure, not just above the last peak you saw [[2:13|Chart Users' Guide p 13]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "Spot elevations also help you match the chart to the ground. Red River airport shows 8617, and the spot elevations around it (12584, 12441, 12734) tell you which peak is which. A mountain pass symbol is not a recommended route, and the elevation printed for a pass is not a recommended clearance altitude [[2:13|Chart Users' Guide p 13]]."
+    },
+    {
+     "p": "Now the obstacles. Every obstacle symbol shows its top in MSL (italic) and its height above ground in parentheses. A group symbol means several obstacles close together. A wind turbine farm is an outlined area with the top of the highest turbine, and UC after the number means that turbine is unverified, so allow extra room [[2:33|Chart Users' Guide p 33]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "Use these as checkpoints too, but only after you read the height: a tower group 1,432 ft above ground is a hazard on your track, not just a landmark. Keep your position within 2 NM of the planned route so the obstacles you planned around stay where you expect them (ACS CA.VI.A.S5)."
+    }
+   ],
+   "check": {
+    "q": "A group obstruction symbol reads 4977 over (1432). Which number do you use to see if you clear it at 5,500 ft MSL?",
+    "a": "The 4977. It is the top in MSL, so 5,500 ft clears it by 523 ft. The 1432 is height above ground, which only matters if you are measuring from the terrain [[2:33|Chart Users' Guide p 33]]."
+   }
   }
  ],
  "figures": {
@@ -918,6 +951,22 @@
    "caption": "Figure 11-28. Cruise power setting. (PHAK 11-25)",
    "alt": "A table for 65 percent maximum continuous power at 2,800 lb, with columns for ISA minus 20, standard day and ISA plus 20. For each pressure altitude from sea level to 16,000 ft it lists outside air temperature, 2,450 RPM, manifold pressure, fuel flow and TAS in knots and mph. Standard day: 150 knots at sea level, 158 at 6,000, 161 at 8,000, 163 at 10,000 and 12,000, at 11.5 GPH up to 10,000 ft. Rows from 12,000 ft up are shaded for full throttle.",
    "source": "PHAK, PDF p. 281"
+  },
+  "f7": {
+   "file": "CA.VI.A-7.jpg",
+   "res": "2",
+   "page": 33,
+   "caption": "Chart Users' Guide: group obstructions, wind turbine farms and the MEF symbol (p 33, right column).",
+   "alt": "Legend rows. Group obstruction symbols: 1062 over (227) for a group between 200 and 1,000 ft AGL; 4977 over (1432) for 1,000 ft AGL and higher; a two-spire symbol 2889 over (1217) for at least two in the group 1,000 ft AGL and higher; and a wind turbine 2735 over (415). A wind turbine farm is a dotted outline with 2894 UC and a turbine, with a note that UC after the MSL value means the highest turbine is unverified. At the bottom, the Maximum Elevation Figure shown as a blue 13 with a small 5.",
+   "source": "Chart Users' Guide, PDF p. 33"
+  },
+  "f8": {
+   "file": "CA.VI.A-8.jpg",
+   "res": "2",
+   "page": 13,
+   "caption": "Chart Users' Guide: mountain terrain on a sectional excerpt (p 13, map only).",
+   "alt": "Sectional excerpt of high mountains with brown relief and contour lines. A large blue 13 with a small 5 marks the maximum elevation figure. Red River airport (N02), 8617, 122.8 with a circled C, Red River Pass 9854, spot elevations such as 12931, 12584, 12441 and 12734, military training routes VR1176 and VR1175 as gray lines, Costilla Lake, wilderness boundaries and a yellow circle around the 13161 spot elevation.",
+   "source": "Chart Users' Guide, PDF p. 13"
   }
  },
  "scenario": {
@@ -1001,23 +1050,23 @@
   {
    "q": "On a sectional, what do the broken magenta lines marked with degrees east or west show?",
    "options": [
+    "Contour lines of equal terrain elevation, labeled in feet above sea level",
     "Isogonic lines, used to convert between true and magnetic direction",
-    "Contour lines of equal terrain elevation",
-    "Lines of equal compass deviation for your airplane",
-    "The boundaries of each MEF quadrant"
+    "Lines of equal compass deviation for your airplane, used to correct the compass",
+    "The boundaries of each MEF quadrant, with the clearance altitude printed in each"
    ],
-   "answer": 0,
+   "answer": 1,
    "why": "Isogonic lines are broken magenta lines joining points of equal magnetic variation; the line of zero variation is the agonic line [[1:393|PHAK 16-6]]. Deviation is not charted; it comes from the card in your own airplane [[1:395|PHAK 16-8]]."
   },
   {
    "q": "Dead reckoning by itself produces which two results?",
    "options": [
-    "Heading and groundspeed",
+    "True airspeed and density altitude",
     "Position and altitude",
     "Variation and deviation",
-    "True airspeed and density altitude"
+    "Heading and groundspeed"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "Dead reckoning uses time, airspeed, distance and direction; the products, adjusted for wind, are heading and groundspeed [[1:400|PHAK 16-13]]."
   },
   {
@@ -1034,91 +1083,162 @@
   {
    "q": "TC 165, TAS 110 knots, forecast wind 210 at 18. About what true heading do you fly?",
    "options": [
-    "172",
+    "183",
     "158",
     "165",
-    "183"
+    "172"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "Wind is 45 degrees from the right. Crosswind 18 x sin 45 = 12.7; WCA = arcsin(12.7/110) = 6.6, about 7 degrees right, added because the wind is from the right [[1:403|PHAK 16-16]]. 165 + 7 = 172."
   },
   {
    "q": "Why should a pilot have the compass deviation checked from time to time?",
    "options": [
-    "Landing shocks, vibration, maintenance and new equipment change the airplane's magnetic fields",
-    "Variation changes every flight",
     "The compass fluid evaporates each year",
+    "Variation changes every flight",
+    "Landing shocks, vibration, maintenance and new equipment change the airplane's magnetic fields",
     "Deviation changes with the airplane's location"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "The magnetic forces inside the airplane change because of landing shocks, vibration, mechanical work or changes in equipment, so deviation should be checked occasionally [[1:395|PHAK 16-8]]. Deviation does not depend on location [[1:226|PHAK 8-24]]."
   },
   {
    "q": "Using Figure 11-28, which change raises TAS at the same 65 percent power at 6,000 ft?",
    "options": [
-    "A hotter day (ISA plus 20)",
+    "None; TAS is fixed by percent power",
     "A colder day (ISA minus 20)",
     "Descending to sea level",
-    "None; TAS is fixed by percent power"
+    "A hotter day (ISA plus 20)"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "At 6,000 ft the table shows 155 knots at ISA minus 20, 158 at standard and 161 at ISA plus 20 [[1:281|PHAK 11-25]]."
   },
   {
    "q": "Using the IFH method at 30 degrees latitude with a 15 degree bank, where do you start the roll-out when turning from an easterly heading to south?",
    "options": [
-    "203",
     "180",
+    "203",
     "157",
     "165"
    ],
-   "answer": 0,
+   "answer": 1,
    "why": "Keep turning until the compass passes south by the latitude minus half the bank: 180 + 30 minus 7.5, about 203 [[23:183|IFH 7-22]]. 157 is the point for a turn to south from the west."
   },
   {
    "q": "How often are VFR sectional and terminal area charts updated, per the Chart Users' Guide?",
    "options": [
-    "Every 56 days",
+    "Once a year",
     "Every 28 days",
     "Every 6 months",
-    "Once a year"
+    "Every 56 days"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "Sectionals and TACs are updated every 56 days [[2:23|Chart Users' Guide p.23]]. PHAK 16-2 says these charts are revised semiannually [[1:389|PHAK 16-2]]; this lesson follows the current Chart Users' Guide."
   },
   {
    "q": "In the PHAK Chickasha to Guthrie example, 53 NM at a groundspeed of 106 knots is 30 minutes. Why does the log plan 35 minutes?",
    "options": [
-    "5 minutes are added for the climb",
-    "5 minutes are the legal VFR reserve",
     "The wind correction adds 5 minutes",
+    "5 minutes are the legal VFR reserve",
+    "5 minutes are added for the climb",
     "5 minutes are added for taxi"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "The total time is 30 minutes plus 5 minutes for climb, 35 minutes, with 4.7 gallons burned at 8 GPH [[1:408|PHAK 16-21]]. The day VFR reserve is 30 minutes, not 5 [[60:464|14 CFR 91.151(a)(1)]]."
   },
   {
    "q": "How far apart are the eye movements in an effective traffic scan, per AC 90-48E?",
    "options": [
-    "No more than 10 degrees, at least 1 second each",
+    "No more than 2 degrees, 5 seconds each",
     "About 30 degrees, half a second each",
     "One sweep of the whole windshield every 10 seconds",
-    "No more than 2 degrees, 5 seconds each"
+    "No more than 10 degrees, at least 1 second each"
+   ],
+   "answer": 3,
+   "why": "Each movement should not exceed 10 degrees, and each area should be looked at for at least 1 second [[16:12|AC 90-48E 12]]."
+  },
+  {
+   "q": "A wind turbine farm shows 2894 UC. What does UC mean here?",
+   "options": [
+    "The farm is under control of the nearby tower",
+    "The highest turbine's height is unverified",
+    "The farm is closed to flight below 1,000 ft",
+    "The turbines are lit with red lights at night"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "The legend says UC is shown after the MSL value when the highest wind turbine is unverified [[2:33|Chart Users' Guide p 33]]."
+  },
+  {
+   "q": "A group obstruction symbol reads 4977 over (1432). What does the number in parentheses give?",
+   "options": [
+    "The group's top in ft MSL",
+    "The height above ground in ft AGL",
+    "The number of obstacles in the group",
+    "The distance to the group in feet"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "The italic number is the top in MSL, and the number in parentheses is the height in feet AGL [[2:33|Chart Users' Guide p 33]]."
+  },
+  {
+   "q": "A wind turbine is shown as 2735 over (415). What are the two numbers?",
+   "options": [
+    "Elevation of the base 2,735 ft, 415 turbines",
+    "Distance 2,735 ft, height 415 ft",
+    "Top 2,735 ft AGL, 415 ft MSL",
+    "Top 2,735 ft MSL, 415 ft AGL"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "Obstacles show the top in MSL and the height in AGL in parentheses [[2:33|Chart Users' Guide p 33]]."
+  },
+  {
+   "q": "What is the elevation printed for Red River airport (N02) on the excerpt?",
+   "options": [
+    "12,711 ft",
+    "9,854 ft",
+    "11,302 ft",
+    "8,617 ft"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "The airport label reads RED RIVER (N02) 8617 122.8, so the elevation is 8,617 ft. 9854 belongs to Red River Pass [[2:13|Chart Users' Guide p 13]]."
+  },
+  {
+   "q": "What elevation does the quadrant's large blue 13 with a small 5 (the MEF) stand for?",
+   "options": [
+    "13,500 ft MSL",
+    "1,350 ft MSL",
+    "13,050 ft MSL",
+    "13,161 ft MSL"
    ],
    "answer": 0,
-   "why": "Each movement should not exceed 10 degrees, and each area should be looked at for at least 1 second [[16:12|AC 90-48E 12]]."
+   "figure": "f8",
+   "why": "The blue 13 with a small 5 is 13,500 ft MSL. 13,161 is the circled spot elevation it was built from [[2:13|Chart Users' Guide p 13]]."
+  },
+  {
+   "q": "It is a night cross-country in an airplane. Your ETE to the first point of intended landing is 2 hours 10 minutes. What is the minimum fuel endurance to start the flight?",
+   "options": [
+    "2 hours 10 minutes",
+    "2 hours 40 minutes",
+    "3 hours 10 minutes",
+    "2 hours 55 minutes"
+   ],
+   "answer": 3,
+   "why": "At night you need enough fuel to reach the first landing point and then fly at least 45 more minutes at normal cruise: 2:10 + 0:45 = 2:55 [[60:464|14 CFR 91.151(a)(2)]]."
   }
  ],
  "final_quiz": [
   {
    "q": "TC 315, TAS 150, wind 020 at 28 (true), variation 5 W. Figure 16-12 shows 332 for 330. What compass heading do you steer?",
    "options": [
-    "332",
-    "322",
     "328",
+    "322",
+    "332",
     "312"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "Wind 65 degrees from the right: crosswind 25.4, WCA = arcsin(25.4/150) = 9.7, about 10 right, TH 325 [[1:403|PHAK 16-16]]. Add 5 W: MH 330 [[1:395|PHAK 16-8]]. Card +2: CH 332 [[1:395|PHAK 16-8]]. 322 subtracts variation, 328 subtracts deviation, 312 subtracts the WCA."
   },
   {
@@ -1135,12 +1255,12 @@
   {
    "q": "On the commercial checkride you are 2.5 NM right of course at a checkpoint, on time, on altitude and heading. What is true?",
    "options": [
-    "You are outside the 2 NM position tolerance and need to correct",
     "You pass because time, altitude and heading are good",
+    "You are outside the 2 NM position tolerance and need to correct",
     "You are inside the tolerance, which is 3 NM",
     "Position only matters at the destination"
    ],
-   "answer": 0,
+   "answer": 1,
    "why": "Commercial applicants must verify position within 2 NM of the planned route (ACS CA.VI.A.S5); the 3 NM figure is the private standard (ACS PA.VI.A.S5). Pilotage depends on ample checkpoints so you do not drift far off course [[1:399|PHAK 16-12]]."
   },
   {
@@ -1157,65 +1277,65 @@
   {
    "q": "You planned 8,000 ft on a standard day with Figure 11-28 (161 knots). Clouds force you down to 6,000 ft at the same 65 percent power. What do you now plan?",
    "options": [
-    "158 knots at 11.5 GPH",
     "161 knots at 11.5 GPH",
+    "158 knots at 11.5 GPH",
     "158 knots at 10.9 GPH",
     "155 knots at 11.5 GPH"
    ],
-   "answer": 0,
+   "answer": 1,
    "why": "Standard day at 6,000 ft: 2,450 RPM, 20.4 in Hg, 11.5 GPH, 158 knots [[1:281|PHAK 11-25]]. 155 knots is the ISA minus 20 column. Rework your times with the lower groundspeed."
   },
   {
    "q": "Your winds aloft forecast says 270 at 30. Your magnetic course is 255 and variation is 12 E. What do you put in the wind triangle?",
    "options": [
-    "True course 267 with the wind 270 at 30",
-    "Magnetic course 255 with the wind 270 at 30",
     "True course 243 with the wind 258 at 30",
+    "Magnetic course 255 with the wind 270 at 30",
+    "True course 267 with the wind 270 at 30",
     "Magnetic course 255 with the wind 282 at 30"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "Winds aloft are given relative to true north [[1:323|PHAK 13-13]], and the triangle starts from the true course [[1:403|PHAK 16-16]]. East variation is subtracted going from true to magnetic [[1:395|PHAK 16-8]], so going back you add it: TC = 255 + 12 = 267."
   },
   {
    "q": "You need to turn from north to east using only the magnetic compass. When does the IFH say to start rolling out?",
    "options": [
+    "About 5 degrees before the compass reads east",
     "About 10 to 12 degrees before the compass reads east",
-    "About 5 degrees before east",
     "When the compass reads exactly east",
-    "About 30 degrees past east"
+    "About 30 degrees past east on the compass"
    ],
-   "answer": 0,
+   "answer": 1,
    "why": "Turning to east or west from a northerly heading, start the roll-out about 10 to 12 degrees before; from a southerly heading, about 5 degrees before [[23:183|IFH 7-22]]."
   },
   {
    "q": "You hold a standard-rate turn to change heading 60 degrees on the clock. How long do you hold it?",
    "options": [
-    "20 seconds",
-    "30 seconds",
     "15 seconds",
+    "30 seconds",
+    "20 seconds",
     "40 seconds"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "Standard rate is 3 degrees per second (45 degrees in 15 seconds), so 60 / 3 = 20 seconds [[23:182|IFH 7-21]]."
   },
   {
    "q": "Your 210 NM leg crosses isogonic lines from 2 degrees E near departure to 6 degrees E near the destination. How do you handle variation?",
    "options": [
-    "Apply the variation along the route as it changes, so the magnetic heading changes too",
     "Use the departure value for the whole leg",
+    "Apply the variation along the route as it changes, so the magnetic heading changes too",
     "Average the two and apply it only at the destination",
     "Ignore it; only deviation matters for the compass heading"
    ],
-   "answer": 0,
+   "answer": 1,
    "why": "Use the nearest isogonic line, and where the variation changes along the route, apply the values along the route [[1:394|PHAK 16-7]]. Variation must be converted before deviation, in the TC to CH sequence [[1:403|PHAK 16-16]]."
   },
   {
    "q": "You fly 15 NM with a heading 10 degrees off and do not notice. About how far are you from the course line, and does it pass?",
    "options": [
     "About 2.6 NM, outside the 2 NM standard",
-    "About 1.5 NM, inside the standard",
-    "About 0.3 NM, inside the standard",
-    "About 5.2 NM, outside the standard"
+    "About 1.5 NM, inside the 2 NM standard",
+    "About 0.3 NM, inside the 2 NM standard",
+    "About 5.2 NM, outside the 2 NM standard"
    ],
    "answer": 0,
    "why": "Application: 15 x sin 10 = 2.6 NM. The position standard is 2 NM (ACS CA.VI.A.S5), so a heading error inside the 10 degree limit (ACS CA.VI.A.S7) can still fail position if you do not check checkpoints. Checkpoints and brackets keep you from drifting too far off course [[1:399|PHAK 16-12]]."
@@ -1245,13 +1365,48 @@
   {
    "q": "Over checkpoint 2 you are 4 minutes later than the ETA you revised at checkpoint 1. What does the commercial ACS say?",
    "options": [
-    "You are outside the 3 minute tolerance against the revised ETA",
-    "You are fine because the private tolerance is 5 minutes",
-    "Only the destination time counts",
-    "Revised ETAs are not allowed on the checkride"
+    "Revised ETAs are not allowed on the checkride, only the initial ETA counts",
+    "You are fine because the private tolerance of 5 minutes applies to this checkride",
+    "Only the destination time counts, not the time at each checkpoint",
+    "You are outside the 3 minute tolerance against the revised ETA"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "Commercial: within 3 minutes of the initial or revised ETA (ACS CA.VI.A.S6). Four minutes is outside it. The 5 minute figure is private (ACS PA.VI.A.S6). As the trip progresses, note headings and time and adjust heading, groundspeed and time [[1:408|PHAK 16-21]]."
+  },
+  {
+   "q": "On the excerpt, which feature is circled in yellow?",
+   "options": [
+    "The Red River Pass label",
+    "The Red River airport symbol",
+    "The Costilla Lake outline",
+    "The 13161 spot elevation"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "The yellow circle surrounds the 13161 spot elevation used to build the MEF [[2:13|Chart Users' Guide p 13]]."
+  },
+  {
+   "q": "Which legend row is described as at least two obstacles, 1,000 ft AGL or higher, in the group?",
+   "options": [
+    "The wind turbine labeled 2735 over (415)",
+    "The two-spire symbol with 2889 over (1217)",
+    "The legend row labeled 1062 over (227)",
+    "The dotted outline of the wind farm, 2894 UC"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "The legend lists the two-spire symbol for at least two in the group at 1,000 ft AGL and higher [[2:33|Chart Users' Guide p 33]]."
+  },
+  {
+   "q": "You fly pilotage over a town. The highest obstacle within 2,000 ft horizontally of your track is 650 ft above the surface. What is the lowest cruise altitude above the surface over the town?",
+   "options": [
+    "1,500 ft",
+    "1,650 ft",
+    "650 ft",
+    "1,000 ft"
+   ],
+   "answer": 1,
+   "why": "Over a congested area the minimum is 1,000 ft above the highest obstacle within a 2,000 ft horizontal radius, so 650 + 1,000 = 1,650 ft [[60:449|14 CFR 91.119(b)]]."
   }
  ],
  "takeaways": [
@@ -1507,43 +1662,43 @@
     {
      "s": "Over checkpoint 1, a town with a railroad and highway, you are 2 minutes early and about 1 NM left of the line.",
      "options": [
+      "Turn right 30 degrees now to get back on the line quickly and hold it",
+      "Keep the planned ETAs; early is fine because the plan was right",
       "Note the time, work out the actual groundspeed and revise the ETAs",
-      "Keep the planned ETAs; early is fine",
-      "Turn right 30 degrees to get back on the line quickly",
       "Uncover the GPS to check"
      ],
-     "answer": 0,
+     "answer": 2,
      "why": "Note headings and times and adjust heading, GS and time as you go [[1:408|PHAK 16-21]]. The 3 minute standard is against the initial or revised ETA (ACS CA.VI.A.S6). One NM left is inside 2 NM, so a small heading change is enough (ACS CA.VI.A.S5)."
     },
     {
      "s": "Checkpoint 2 should be a town with a railroad on its east side. Three minutes before its ETA you see a town ahead, but no railroad.",
      "options": [
-      "Do not accept it yet: hold the heading and look for the railroad or the next checkpoint",
+      "Descend 1,000 ft for a better look",
       "Accept it and revise all the ETAs from it",
       "Turn toward the town to read its water tower",
-      "Descend 1,000 ft for a better look"
+      "Do not accept it yet: hold the heading and look for the railroad or the next checkpoint"
      ],
-     "answer": 0,
+     "answer": 3,
      "why": "Choose checkpoints that other features confirm, and never place complete reliance on a single checkpoint. If confused, hold the heading; a turn away from it makes it easy to get lost [[1:399|PHAK 16-12]]."
     },
     {
      "s": "While you look at the chart, the examiner points at an airplane at your 2 o'clock, same altitude, not moving in the windshield.",
      "options": [
-      "Give way: it is on your right and on a collision course",
-      "Hold course: you have the right-of-way",
       "Climb 100 ft and continue",
-      "Wait to see if it changes course"
+      "Hold course: you have the right-of-way over the airplane on your right",
+      "Give way: it is on your right and on a collision course",
+      "Wait to see if it changes course before you decide to maneuver"
      ],
-     "answer": 0,
+     "answer": 2,
      "why": "When converging, the aircraft on the other's right has the right-of-way [[60:447|14 CFR 91.113(d)]]. A target that appears motionless is likely on a collision course [[16:6|AC 90-48E 8.1.8]]. Give way and pass well clear [[60:447|14 CFR 91.113(b)]]."
     },
     {
      "s": "Back on course, you see 13 GPH on the fuel flow gauge. You planned 11.5 at this power and forgot to lean after the climb.",
      "options": [
       "Lean per the POH and refigure fuel remaining and reserve",
-      "Add power to arrive sooner",
-      "Ignore it; the leg is short",
-      "Switch tanks to balance the burn"
+      "Add power to arrive sooner and make up for the extra fuel burn",
+      "Ignore it; the leg is short and the reserve is large enough",
+      "Switch tanks to balance the burn and keep the same mixture"
      ],
      "answer": 0,
      "why": "A rich mixture at altitude wastes fuel and can foul plugs; lean per the POH [[1:169|PHAK 7-9]]. Then compare fuel used with planned [[1:399|PHAK 16-12]]."
@@ -1551,15 +1706,84 @@
     {
      "s": "The examiner asks for your destination estimate. 52 NM remain and your last two checkpoints gave a groundspeed of 140 knots.",
      "options": [
-      "About 22 minutes from now",
       "About 19 minutes, using the planned 164 knots",
+      "About 22 minutes from now",
       "About 26 minutes",
       "About 37 minutes"
      ],
-     "answer": 0,
+     "answer": 1,
      "why": "52 / 140 = 0.371 h = 22.3 minutes [[1:398|PHAK 16-11]]. Use the actual groundspeed, not the plan (ACS CA.VI.A.S6)."
     }
    ]
+  },
+  {
+   "type": "label",
+   "title": "Read the mountain excerpt",
+   "figure": "f8",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 55.6,
+     "y": 49.3,
+     "label": "Maximum elevation figure"
+    },
+    {
+     "x": 26.5,
+     "y": 56.0,
+     "label": "Airport symbol"
+    },
+    {
+     "x": 76.3,
+     "y": 35.5,
+     "label": "Military training route"
+    },
+    {
+     "x": 51.3,
+     "y": 25.5,
+     "label": "Lake"
+    },
+    {
+     "x": 45.6,
+     "y": 58.3,
+     "label": "Pass name and elevation"
+    },
+    {
+     "x": 21.0,
+     "y": 84.5,
+     "label": "Circled spot elevation"
+    }
+   ],
+   "key": "h8",
+   "after": 14
+  },
+  {
+   "type": "match",
+   "title": "Obstacle symbols",
+   "intro": "Tap a chart item, then what it means.",
+   "pairs": [
+    {
+     "l": "1062 over (227), group symbol",
+     "r": "Group of obstacles, under 1,000 ft AGL"
+    },
+    {
+     "l": "2889 over (1217), two spires",
+     "r": "At least two obstacles 1,000 ft AGL or higher"
+    },
+    {
+     "l": "2735 over (415) with a turbine",
+     "r": "Wind turbine: 2,735 ft MSL top, 415 ft AGL"
+    },
+    {
+     "l": "Dotted outline with 2894 UC",
+     "r": "Wind farm, highest turbine unverified"
+    },
+    {
+     "l": "Blue 13 with a small 5",
+     "r": "MEF, 13,500 ft MSL"
+    }
+   ],
+   "key": "h9",
+   "after": 14
   }
  ]
 }

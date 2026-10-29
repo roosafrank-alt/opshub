@@ -997,6 +997,39 @@
     "q": "The examiner asks what you will do if your tablet dies right after takeoff. What's a good answer?",
     "a": "Switch to the paper chart or a second device and the nav log you already prepared. AC 91-78A says to plan for EFB shutdown and failure [[42:4|AC 91-78A para 11]]."
    }
+  },
+  {
+   "title": "Reading the chart: MEF and airport data",
+   "kind": "knowledge",
+   "codes": [
+    "CA.I.D.K1",
+    "CA.I.D.S2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "The MEF is the highest terrain or obstacle in a quadrant, rounded up. Read it as a planning number, not a clearance. For a natural feature, the chart makers work four steps: take the feature's elevation, add the possible error of the source (100 ft), add 200 ft for uncharted natural or man-made obstacles, and round up to the next 100 ft. In the example, 13,161 + 100 + 200 = 13,461, so the chart prints 13 with a small 5, which means 13,500 ft MSL [[2:13|Chart Users' Guide p 13]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "A man-made obstacle is worked the same way but without the 200 ft allowance: 2,649 + 100 = 2,749, printed as 28 for 2,800 ft [[2:12|Chart Users' Guide p 12]]. The MEF is not checked by field surveys, so confirm your chart is current [[2:13|Chart Users' Guide p 13]]. A mountain pass symbol is not a recommended route, and its elevation is not a recommended clearance altitude [[2:13|Chart Users' Guide p 13]]."
+    },
+    {
+     "p": "Airport data is next. Elevation is the highest point on the usable landing area. Runway length is the longest active runway in hundreds of feet, rounded with 70 as the break: 8,070 ft shows as 81 and 8,069 ft as 80. Usable length may be less, so compare with your POH numbers, as 91.103(b) requires [[2:15|Chart Users' Guide p 15]] [[60:440|14 CFR 91.103(b)]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "For night planning, L means runway lights burn from dusk to dawn, and *L means lighting limits exist, so read the Chart Supplement. Blue data belongs to a tower airport, and everything else is magenta. A star after CT means the tower is part-time, so check the tower table [[2:15|Chart Users' Guide p 15]]."
+    }
+   ],
+   "check": {
+    "q": "The chart prints 72 beside an airport. A customer's airplane needs 6,000 ft to land. Is that enough to say yes?",
+    "a": "Not by itself. 72 means the longest runway is about 7,200 ft, but usable length may be less. Check the Chart Supplement and NOTAMs, then compare with the landing distance in your POH [[2:15|Chart Users' Guide p 15]] [[60:440|14 CFR 91.103(b)]]."
+   }
   }
  ],
  "figures": {
@@ -1039,6 +1072,22 @@
    "caption": "Figure 1-2. The PAVE checklist.",
    "alt": "Four overlapping colored boxes: blue Pilot (health, fatigue, a pilot who declined a 750-mile trip for the boss after 4 hours of sleep), purple Aircraft (an oil drip that turned out to be a loose oil cooler fitting), yellow Environment (weather, ATC, NAVAIDs, terrain, a hard landing in wake turbulence) and green External Pressures (a ferry pilot who added a fuel stop instead of arriving with 10 minutes of fuel).",
    "source": "RMH, PDF p. 11"
+  },
+  "f6": {
+   "file": "CA.I.D-6.jpg",
+   "res": "2",
+   "page": 13,
+   "caption": "Chart Users' Guide: Maximum Elevation Figure (MEF) for a natural terrain feature (p 13).",
+   "alt": "Four numbered steps for the MEF of a natural feature: find its elevation, add the possible vertical error (100 ft, or half the contour interval when the source interval is over 200 ft), add 200 ft for uncharted obstacles, and round up to the next hundred feet. Worked example: 13161 plus 100 plus 200 equals 13461, raised to 13500, shown as a blue 13 with a small 5. A mountain sectional excerpt shows the blue MEF 13 5, Red River airport and military training routes VR1175 and VR1176.",
+   "source": "Chart Users' Guide, PDF p. 13"
+  },
+  "f7": {
+   "file": "CA.I.D-7.jpg",
+   "res": "2",
+   "page": 15,
+   "caption": "Chart Users' Guide: airport data on a sectional (p 15).",
+   "alt": "A sample airport symbol with its data block (FSS, NO SVFR, name and identifiers, CT frequency, circled C, ATIS, elevation, L, runway length, UNICOM, RP and VFR Advisory) above a two-column table that explains each item: elevation, lighting L and *L, runway length in hundreds of feet, aeronautical advisory station, right traffic patterns, CTAF, ATIS, AFIS, ASOS/AWOS, weather camera and airport of entry.",
+   "source": "Chart Users' Guide, PDF p. 15"
   }
  },
  "scenario": {
@@ -1112,111 +1161,170 @@
    "q": "True course 175°, variation 10° W, VFR cruise more than 3,000 ft AGL. Which altitude fits?",
    "options": [
     "5,500 ft",
-    "6,500 ft",
     "7,000 ft",
+    "6,500 ft",
     "7,500 ft"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "Add west variation: magnetic course 185°. 180° to 359° uses even thousands + 500 [[60:468|14 CFR 91.159(a)(2)]] [[1:407|PHAK 16-20]]. Using true course (175°) would wrongly give an odd altitude."
   },
   {
    "q": "A sectional quadrant shows a large '28'. What does it mean?",
    "options": [
+    "Highest terrain only, 2,800 ft MSL, not counting towers or other man-made obstacles",
+    "Minimum safe altitude of 2,800 ft AGL, giving obstacle clearance anywhere in the quadrant",
     "Highest terrain or obstacle in the quadrant, rounded up to 2,800 ft MSL",
-    "Minimum safe altitude of 2,800 ft AGL for the quadrant",
-    "Highest terrain only, 2,800 ft MSL, not counting towers",
-    "Recommended VFR cruising altitude of 2,800 ft MSL"
+    "Recommended VFR cruising altitude of 2,800 ft MSL for flights crossing the quadrant"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "The MEF is the highest elevation in the quadrant including towers and trees, rounded up to the next 100 ft [[2:12|Chart Users' Guide p.12]]."
   },
   {
    "q": "Which TFRs are shown on VFR sectional charts?",
    "options": [
     "All TFRs in effect on the chart date",
-    "Only firefighting and disaster TFRs",
     "Only TFRs relating to national security",
+    "Only firefighting and disaster TFRs",
     "None; TFRs never appear on charts"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "Only national-security TFRs are charted. Check NOTAMs for the rest [[2:18|Chart Users' Guide p.18]]."
   },
   {
    "q": "Which NOTAMs does a Flight Service briefer give only if you ask?",
    "options": [
-    "Runway closures at your destination",
-    "Airway, procedural and general flight restriction NOTAMs",
-    "NAVAID outages at your departure airport",
-    "Taxiway closures at your fuel stop"
+    "Runway closures at your destination or an alternate",
+    "Taxiway closures and construction at your fuel stop",
+    "NAVAID outages at departure and along your route",
+    "Airway, procedural and general flight restriction NOTAMs"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "Airway NOTAMs, procedural NOTAMs and general restrictions not tied to one airport are briefed only on request [[33:322|AIM 5-1-1]]."
   },
   {
    "q": "Under AC 91-78A, which describes a portable EFB?",
    "options": [
     "Gets position from the aircraft GPS through a data link",
-    "Mounted in an approved bracket and wired to the bus",
+    "Not mounted and not connected to any aircraft system",
     "Must have FAA operational approval before use",
-    "Not mounted and not connected to any aircraft system"
+    "Mounted in an approved bracket and wired to the bus"
    ],
-   "answer": 3,
+   "answer": 1,
    "why": "A portable EFB is not attached to an aircraft mounting device and not connected to or receiving data from any aircraft system [[42:3|AC 91-78A para 10.1]]. Part 91 use needs no formal approval if the AC is followed [[42:3|AC 91-78A para 9.2]]."
   },
   {
    "q": "Figure 11-26: 3,700 lb, standard day, sea level to 12,000 ft. Climb time and total fuel including start, taxi and takeoff?",
    "options": [
-    "19 minutes, 37 lb",
     "19 minutes, 53 lb",
+    "19 minutes, 37 lb",
     "22 minutes, 60 lb",
     "16 minutes, 48 lb"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "The table gives 19 minutes and 37 lb; note 1 adds 16 lb, so 53 lb total [[1:279|PHAK Figure 11-26]]."
   },
   {
    "q": "You depart at 0915 CST (standard time, winter). What departure time goes on the flight plan?",
    "options": [
-    "1415Z",
     "1515Z",
+    "1415Z",
     "1615Z",
     "0315Z"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "Central standard time + 6 hours = 1515Z [[1:392|PHAK 16-5]]. 1415Z would be the daylight saving offset."
   },
   {
    "q": "Night VFR leg: ETE 2:00 at 11 GPH. What is the minimum legal fuel?",
    "options": [
     "27.5 gal",
-    "30.3 gal",
+    "24.0 gal",
     "33.0 gal",
-    "24.0 gal"
+    "30.3 gal"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "Trip 2 × 11 = 22 gal, plus 45 minutes at night: 0.75 × 11 = 8.25 gal, total about 30.3 gal [[60:464|14 CFR 91.151(a)(2)]]."
   },
   {
    "q": "Your fuel arm is aft of the loaded CG. As fuel burns in flight, the CG:",
    "options": [
-    "Moves aft",
-    "Stays where it was",
     "Moves forward",
+    "Stays where it was",
+    "Moves aft",
     "Moves outside limits"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "Removing weight behind the CG moves the CG forward. In the W&B Handbook example, fuel is at +46.6 in with the CG at +43.54 in [[22:50|W&B Handbook 5-2]]."
   },
   {
    "q": "You are intercepted. Unless ATC says otherwise, which transponder code do you set?",
    "options": [
     "7500",
-    "7600",
     "7700",
+    "7600",
     "1200"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "An intercepted aircraft selects code 7700 unless instructed otherwise by ATC [[34:22|AIM 5-6-13]]."
+  },
+  {
+   "q": "A natural peak is 11,420 ft MSL. Using the steps on the chart (100 ft source error, 200 ft allowance, round up), what MEF is printed?",
+   "options": [
+    "11,500 ft",
+    "11,600 ft",
+    "11,700 ft",
+    "11,800 ft"
+   ],
+   "answer": 3,
+   "figure": "f6",
+   "why": "11,420 + 100 + 200 = 11,720, raised to the next hundred feet: 11,800 ft, printed as 118 [[2:13|Chart Users' Guide p 13]]."
+  },
+  {
+   "q": "The sectional excerpt prints a large blue 13 with a small 5. What does that mean?",
+   "options": [
+    "13.5 NM to the nearest airport with a lighted runway",
+    "A 1,350 ft obstacle above ground, the tallest in the quadrant",
+    "13,500 ft MSL, the quadrant's highest elevation, rounded up",
+    "The 135th chart in the series, counted from the west edge"
+   ],
+   "answer": 2,
+   "figure": "f6",
+   "why": "The MEF drops the last two zeros, so 13 5 means 13,500 ft MSL (13,461 rounded up) [[2:13|Chart Users' Guide p 13]]."
+  },
+  {
+   "q": "At an airport, 72 is printed with the data block. What does it tell you?",
+   "options": [
+    "The airport elevation is 720 ft MSL, rounded to the nearest 10 ft",
+    "The airport is 72 NM from the nearest FSS or flight service outlet",
+    "The control tower closes at 7:20 p.m. local, per the hours listed",
+    "The longest runway is about 7,200 ft; usable length may be less"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "The table says the number is the length of the longest runway in hundreds of feet, and that usable length may be less [[2:15|Chart Users' Guide p 15]]."
+  },
+  {
+   "q": "You plan a night landing at an airport that shows *L in its data. What do you do?",
+   "options": [
+    "Assume the runway lights stay on from dusk to dawn every night",
+    "Check the Chart Supplement for the lighting limits, such as pilot-controlled",
+    "Ignore it, since *L only marks the rotating beacon on the airport",
+    "Plan to land on a different runway at that airport, since this one is unlit"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "*L means lighting limitations exist and you should refer to the Chart Supplement; plain L means lights are on from sunset to sunrise [[2:15|Chart Users' Guide p 15]]."
+  },
+  {
+   "q": "You hold a commercial certificate with no instrument rating, and a customer wants to pay you for a 90 NM cross-country in daylight. What does the certificate say?",
+   "options": [
+    "It is allowed, because commercial privileges cover all VFR flights for hire in daylight",
+    "It is allowed only if you fly above 3,000 ft AGL and file a VFR flight plan",
+    "It is not allowed: the certificate limits passengers for hire beyond 50 NM or at night",
+    "It is allowed with a logbook endorsement from a CFI within the past 90 days"
+   ],
+   "answer": 2,
+   "why": "Without an instrument rating in that category and class, the commercial certificate is limited: no carriage of passengers for hire on cross-country flights over 50 NM or at night [[60:322|14 CFR 61.133(b)(1)]]."
   }
  ],
  "takeaways": [
@@ -1465,10 +1573,10 @@
     {
      "s": "In your briefing, a NOTAM closes the longest runway at the fuel stop during your ETA.",
      "options": [
-      "Compare the open runway's length with your POH landing distance at your landing weight",
-      "Go anyway; you'll see what's open when you get there",
-      "Ignore it; runway NOTAMs only matter for IFR",
-      "Cancel the whole trip right away"
+      "Compare the open runway's length with your POH landing distance for your weight",
+      "Go anyway; you'll see what's open when you get there and can choose a runway then",
+      "Ignore it; runway NOTAMs only matter for IFR flights and not for a VFR trip",
+      "Cancel the whole trip right away, since a closed runway makes the airport unusable"
      ],
      "answer": 0,
      "why": "91.103 requires runway lengths and landing distance data for each airport you plan to use [[60:440|14 CFR 91.103(b)]] [[33:327|AIM TBL 5-1-1]]."
@@ -1476,21 +1584,21 @@
     {
      "s": "The runway is long enough. The tower clears you for takeoff. Is your VFR flight plan open?",
      "options": [
-      "Yes, the tower opens it automatically",
-      "Not yet; activate it with Flight Service by radio",
-      "Yes, filing it opened it",
-      "No, and it doesn't matter on a VFR trip"
+      "Yes, the tower opens it automatically when it clears you for takeoff",
+      "No, and it doesn't matter on a VFR trip since activating is optional",
+      "Yes, filing it opened it, so the plan became active when you filed it",
+      "Not yet; activate it with Flight Service by radio"
      ],
-     "answer": 1,
+     "answer": 3,
      "why": "You activate it with Flight Service. Control towers do not automatically activate VFR flight plans [[33:331|AIM 5-1-5]]."
     },
     {
      "s": "Level at cruise, your GPS shows 110 kt, not 128. Your math: the leg plus the 30-minute day reserve now needs 30.3 of your 32 gallons.",
      "options": [
-      "Continue; it's still legal",
-      "Lean far past peak to stretch the fuel",
+      "Continue to the destination, since the plan is still legal on paper",
+      "Lean far past peak to stretch the fuel and keep going to the original destination",
       "Plan a stop at the closer airport you marked on your route",
-      "Climb to 12,500 ft without checking the winds"
+      "Climb to 12,500 ft without checking the winds, hoping for a better tailwind"
      ],
      "answer": 2,
      "why": "Only about 8 minutes of margin is left. Plan to land before the planned fuel runs out, and don't stretch it, as the RMH ferry pilot chose [[1:399|PHAK 16-12]] [[30:11|RMH 1-2]]."
@@ -1498,47 +1606,76 @@
     {
      "s": "You turn toward the closer airport. You're established on the new course. What next?",
      "options": [
+      "Climb to look for your original destination and compare it with the new course",
+      "Draw the new course in full on the chart and measure it before doing anything else",
       "Note the time, then work out heading, GS, ETA and fuel with nearby winds",
-      "Draw the new course in full on the chart before doing anything else",
-      "Climb to look for your original destination",
-      "Hand the tablet to a passenger to sort it out"
+      "Hand the tablet to a passenger to sort out the new heading while you keep flying"
      ],
-     "answer": 0,
+     "answer": 2,
      "why": "Once on course, note the time, use the winds aloft nearest the diversion point for heading and GS, then figure the new arrival time and fuel [[1:422|PHAK 16-35]]."
     },
     {
      "s": "You land safely at the closer airport, short of the filed destination.",
      "options": [
-      "Nothing; the plan closes itself after 30 minutes",
+      "Nothing; the plan closes itself after 30 minutes once you are on the ground",
       "Tell the nearest FSS you landed, and give your original destination",
-      "Wait and close it when you reach the filed airport",
-      "Ask the tower to close it for you"
+      "Wait and close it when you later reach the filed destination airport",
+      "Ask the tower at the closer airport to close the plan for you when you taxi in"
      ],
      "answer": 1,
      "why": "If you land somewhere other than your destination, report it to the nearest FSS and give your original destination; otherwise a search starts [[34:34|AIM 6-2-6]] [[33:339|AIM 5-1-14]]."
     }
    ]
+  },
+  {
+   "type": "match",
+   "title": "Work out the MEF",
+   "intro": "Tap a step, then what it adds or does.",
+   "pairs": [
+    {
+     "l": "Elevation of the feature",
+     "r": "Where you start: 13,161 ft in the example"
+    },
+    {
+     "l": "Possible vertical error",
+     "r": "Add 100 ft, or half the contour interval over 200 ft"
+    },
+    {
+     "l": "Uncharted obstacle allowance",
+     "r": "Add 200 ft for a natural feature"
+    },
+    {
+     "l": "Last step",
+     "r": "Round up to the next 100 ft"
+    },
+    {
+     "l": "13 with a small 5",
+     "r": "13,500 ft MSL"
+    }
+   ],
+   "key": "h9",
+   "after": 14
   }
  ],
  "final_quiz": [
   {
    "q": "An FDC NOTAM shows a firefighting TFR under 91.137(a)(2) on your route, 4 NM radius, at and below 3,500 ft MSL. Which is true?",
    "options": [
-    "It's printed on your sectional, so NOTAMs add nothing",
-    "ATC can never authorize entry into any TFR",
+    "It's printed on your sectional, so NOTAMs add nothing to planning",
     "ATC may authorize entry, but plan to avoid it or overfly it",
+    "ATC can never authorize entry into any TFR, so you must wait it out",
     "It applies only to aircraft on IFR flight plans"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "ATC may authorize flights into (a)(2) and (a)(3) TFRs under its own authority, but your plan should avoid it [[33:196|AIM 3-5-3]]. Such TFRs are not charted [[2:18|Chart Users' Guide p.18]]."
   },
   {
    "q": "On a VFR flight plan, headwinds push your ETE 35 minutes past what you filed. What should you do?",
    "options": [
     "Report a new ETA to the nearest FSS and give your original destination",
-    "Nothing; SAR allows a full hour",
-    "Cancel the flight plan in the air",
-    "Squawk 7600 so ATC knows you'll be late"
+    "Nothing; search and rescue allows a full hour past your ETE",
+    "Call the destination tower and ask them to amend the plan for you",
+    "Squawk 7600 so ATC knows you will be late"
    ],
    "answer": 0,
    "why": "If your ETE changes by 30 minutes or more, report a new ETA to the nearest FSS and give your original destination [[34:34|AIM 6-2-6]]."
@@ -1557,7 +1694,7 @@
   {
    "q": "Your airplane glides about 10 to 1. Cruising 6,000 ft AGL into a strong headwind, which is true?",
    "options": [
-    "You can glide about 10 NM no matter the wind",
+    "You can glide about 10 NM over the ground in any wind",
     "You'll glide less than about 10 NM over the ground",
     "A headwind lets you glide farther than 10 NM",
     "Glide distance depends only on weight"
@@ -1568,56 +1705,56 @@
   {
    "q": "You plan 45 minutes at a cabin altitude of 13,500 ft MSL in an unpressurized airplane. What does 91.211 require?",
    "options": [
-    "Nothing below 14,000 ft",
-    "Oxygen for every occupant the whole time",
+    "Nothing, because oxygen is required only when cabin altitude is above 14,000 ft",
     "The required crew uses oxygen for the time over 30 minutes",
-    "Oxygen only at night"
+    "Oxygen for every occupant for the whole time spent above 12,500 ft MSL",
+    "Oxygen only at night, since the requirement applies to night VFR flights"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "Above 12,500 up to 14,000 ft, the required crew must use oxygen for the part of the flight at those altitudes over 30 minutes [[60:491|14 CFR 91.211(a)(1)]]."
   },
   {
    "q": "A 166 NM cruise segment at 12 GPH. Forecast GS was 128 kt; actual GS is 110 kt. About how much more cruise fuel do you need?",
    "options": [
-    "1.5 gal",
     "2.5 gal",
+    "1.5 gal",
     "3.5 gal",
     "5.0 gal"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "166 ÷ 128 = 1.30 hr × 12 = 15.6 gal; 166 ÷ 110 = 1.51 hr × 12 = 18.1 gal. The difference is about 2.5 gal. Use GS for fuel [[1:399|PHAK 16-12]] [[1:398|PHAK 16-11]]."
   },
   {
    "q": "The chart table for a restricted area lists 'MON-FRI 0700-1800'. You find no NOTAM about it for your Tuesday 1000 flight. What does that mean?",
    "options": [
+    "It's active only for IFR traffic, so a VFR flight can cross it freely",
+    "It's inactive, since there's no NOTAM saying it was activated today",
     "Treat it as active; no NOTAM is issued for listed times",
-    "It's inactive, since there's no NOTAM",
-    "It's active only for IFR traffic",
-    "It's active only if a TFR is also issued"
+    "It's active only if a TFR is also issued for the same area and times"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "A NOTAM about activation is not issued to announce permanently listed times of use [[2:20|Chart Users' Guide p.20]]."
   },
   {
    "q": "The sectional and the Chart Supplement show different CTAF frequencies for your fuel stop. Which should you use?",
    "options": [
-    "The sectional, because it's newer",
-    "Whichever your EFB shows",
-    "The one on the back of the chart",
-    "The Chart Supplement, which generally has the latest information"
+    "The Chart Supplement, which generally has the latest information",
+    "Whichever your EFB shows, since an EFB is always newer than any other source",
+    "The one printed on the back of the sectional, since it is revised each edition",
+    "The sectional, because it is the primary chart and is newer than the supplement"
    ],
-   "answer": 3,
+   "answer": 0,
    "why": "The Chart Supplement generally has the latest information and should be used over the chart when they differ [[1:404|PHAK 16-17]]."
   },
   {
    "q": "You use an assumed departure time but leave 40 minutes late and never update it. What happens?",
    "options": [
-    "The plan stays inactive until you call FSS",
+    "The plan stays inactive until you call FSS, so no search starts until you do",
+    "The tower updates the time when you depart, so search timing resets to your takeoff",
     "Search and rescue timing is based on the assumed departure time",
-    "The tower updates the time when you depart",
-    "The plan is cancelled automatically"
+    "The plan is cancelled automatically once the assumed departure time passes by 30 minutes"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "An assumed departure time makes the plan active at that time. If you don't update it, search and rescue is based on it [[33:331|AIM 5-1-5]]."
   },
   {
@@ -1625,28 +1762,28 @@
    "options": [
     "The tower, when you call clear of the runway",
     "ATC closes it automatically at landing",
-    "You do, with the FSS, right after arrival",
-    "No one; VFR plans expire at ETA"
+    "No one; VFR plans expire at ETA",
+    "You do, with the FSS, right after arrival"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "Towers don't close VFR plans automatically. You must close it, and SAR starts if you don't within 1/2 hour after ETA [[33:339|AIM 5-1-14]] [[34:34|AIM 6-2-6]]."
   },
   {
    "q": "Your EFB says the leg needs 18 gallons, but your hand math says 22. What does AC 91-78A training stress?",
    "options": [
+    "Averaging the two answers to split the difference between the EFB and your hand math",
+    "Always trusting the EFB over hand math, because software cannot make errors",
     "Procedures for cross-checking data entry and computed information",
-    "Always trusting the EFB because it can't make math errors",
-    "Averaging the two answers",
-    "Using the EFB only on the ground"
+    "Using the EFB only on the ground, never in flight, so cross-checking is unnecessary"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "EFB training should include procedures for cross-checking data entry and computed information [[42:4|AC 91-78A para 11.2]]. A wrong input (like TAS for GS) is a common cause."
   },
   {
    "q": "A GPS NOTAM for your route reads UNREL. What does that mean for your plan?",
    "options": [
-    "GPS is off for all users",
-    "Only WAAS approaches are affected",
+    "GPS is off for all users, so VFR flights cannot use it",
+    "Only WAAS approaches are affected, so en route GPS is fine",
     "It's a test you can ignore under VFR",
     "GPS service may not be available; have other navigation"
    ],
@@ -1656,13 +1793,48 @@
   {
    "q": "Weather ahead turns bad and you must divert now. What does the PHAK recommend?",
    "options": [
-    "Finish plotting and measuring the new course before turning",
-    "Turn toward the alternate promptly, then work out heading, ETA and fuel",
-    "Hold over a landmark until FSS gives a new route",
-    "Keep going toward the destination while you decide"
+    "Finish plotting and measuring the new course on the chart before making any turn",
+    "Keep going toward the original destination while you decide what to do next",
+    "Hold over a landmark until Flight Service gives you a new route and heading",
+    "Turn toward the alternate promptly, then work out heading, ETA and fuel"
+   ],
+   "answer": 3,
+   "why": "In an emergency, divert promptly; doing all the plotting first may make it worse. Then note the time and compute heading, GS, ETA and fuel [[1:422|PHAK 16-35]]."
+  },
+  {
+   "q": "Step 3 on the chart adds 200 ft to a natural feature's elevation. What is it for?",
+   "options": [
+    "The pressure altitude correction on a hot summer day",
+    "A safety margin for strong winds and turbulence aloft",
+    "The possible error in the chart's printed contour lines",
+    "Uncharted obstacles too small to be shown on the chart"
+   ],
+   "answer": 3,
+   "figure": "f6",
+   "why": "The allowance covers uncharted natural or man-made obstacles, because chart specs don't require showing obstacles below a minimum height [[2:13|Chart Users' Guide p 13]]."
+  },
+  {
+   "q": "The data above an airport name reads NO SVFR. What does that mean?",
+   "options": [
+    "Special VFR is allowed only at night, with a clearance",
+    "Fixed-wing special VFR is prohibited at that airport",
+    "No scheduled airline VFR flights are allowed at that airport",
+    "The airport has no VFR reporting point within 5 NM"
    ],
    "answer": 1,
-   "why": "In an emergency, divert promptly; doing all the plotting first may make it worse. Then note the time and compute heading, GS, ETA and fuel [[1:422|PHAK 16-35]]."
+   "figure": "f7",
+   "why": "The legend says it marks airports where fixed-wing special VFR operations are prohibited [[2:15|Chart Users' Guide p 15]]."
+  },
+  {
+   "q": "Your route passes over a small town. The tallest obstacle within 2,000 ft of your track is a 400 ft tower. What is the lowest legal altitude over the town in cruise?",
+   "options": [
+    "500 ft above the surface (100 ft above the tower)",
+    "1,000 ft above the surface (600 ft above the tower)",
+    "1,400 ft above the surface (1,000 ft above the tower)",
+    "1,200 ft above the surface (800 ft above the tower)"
+   ],
+   "answer": 2,
+   "why": "Over a congested area the minimum is 1,000 ft above the highest obstacle within a 2,000 ft horizontal radius [[60:449|14 CFR 91.119(b)]]. The tower is 400 ft tall, so 1,400 ft above the surface."
   }
  ]
 }

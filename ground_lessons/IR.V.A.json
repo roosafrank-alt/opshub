@@ -885,6 +885,36 @@
     "q": "Why does chasing the CDI end up as homing?",
     "a": "You keep turning to center the needle instead of holding a corrected heading, so you fly a curved path. Bracket the wind correction instead [[23:259|IFH 9-16]] [[23:257|IFH 9-14]]."
    }
+  },
+  {
+   "title": "Reading the chart: VOT table, checkpoint sign and DME fix symbols",
+   "kind": "knowledge",
+   "codes": [
+    "IR.V.A.K1",
+    "IR.V.A.S1",
+    "IR.V.A.S2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "A VOT list gives the airport and the test frequency. In the example, Groton is 110.25 and Hartford is 108.20 [[29:90|IPH Figure 2-50]]. On the test signal, set the course selector to 0 and the track bar should center with FROM showing. Set 180 and it should center with TO. The most error allowed is plus or minus 4 degrees [[29:90|IPH p 90]] [[60:470|14 CFR 91.171(b)(1)]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "A checkpoint sign marks the spot on the airport where the signal is strong enough to check your VOR [[29:90|IPH p 90]]. The sign here reads VOR 116.4 and 147 degrees 4.1 NM. Tune 116.4 and the VOR should show the 147 degree radial. A DME should show 4.1 NM. The limit is again plus or minus 4 degrees [[60:470|14 CFR 91.171(b)(2)]]."
+    },
+    {
+     "p": "On the en route chart, an arrow beside a fix shows which facility forms it. On a VHF chart it points away from that NAVAID. A DME fix has its own symbol, and the distance is the same as the airway mileage. When the mileage is not obvious, an encircled arrow gives it. In the example, 5 NM plus 10 NM gives 15 in the encircled arrow [[2:82|Chart Users' Guide p 82]]."
+    },
+    {
+     "figure": "f9"
+    },
+    {
+     "p": "Remember the paperwork too. The check must be within the last 30 days, and you record the date, place, bearing error and your signature [[60:470|14 CFR 91.171(a)(2)]] [[60:471|14 CFR 91.171(d)]]."
+    }
+   ]
   }
  ],
  "figures": {
@@ -943,6 +973,22 @@
    "caption": "Figure 9-13. A typical horizontal situation indicator (HSI).",
    "alt": "Close-up of the analog HSI face without its name labels: orange lubber line at the top, yellow heading bug near 33, yellow course pointer set near 020 with its deviation bar offset from the orange symbolic aircraft, yellow glideslope pointer on the left edge, red-striped GS, NAV and HDG flags, and the course select knob at lower left.",
    "source": "IFH, PDF p. 255"
+  },
+  "f8": {
+   "file": "IR.V.A-8.jpg",
+   "res": "29",
+   "page": 90,
+   "caption": "Figures 2-50 and 2-51. VOR test facilities (VOT) frequencies and a VOR checkpoint sign.",
+   "alt": "A table titled VOR test facilities (VOT) listing Bradley Intl 111.40, Bridgeport 109.25, Groton 110.25 and Hartford 108.20, each type G, and below it a sign reading VOR 116.4, 147 degrees 4.1 NM, DME and VOR check radial.",
+   "source": "IPH, PDF p. 90"
+  },
+  "f9": {
+   "file": "IR.V.A-9.jpg",
+   "res": "2",
+   "page": 82,
+   "caption": "Chart Users' Guide: IFR Enroute Symbology, off-set arrows and DME fixes.",
+   "alt": "Rows from the symbology table showing the off-set arrow fix symbol, two DME fix symbols, an encircled DME arrow with the number 15, and an example with a first segment of 5 NM, a second segment of 10 NM and a total of 15 in the encircled arrow.",
+   "source": "Chart Guide, PDF p. 82"
   }
  },
  "scenario": {
@@ -1042,19 +1088,19 @@
    "options": [
     "2°",
     "6°",
-    "12° or more",
-    "20° or more"
+    "20° or more",
+    "12° or more"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "Full deflection means 12° or more off course. 2° is only the edge of the center circle [[23:254|IFH 9-11]]."
   },
   {
    "q": "The TO flag is showing on your VOR. What does that tell you?",
    "options": [
-    "The selected course, if flown, takes you to the station",
-    "Your nose is pointed at the station",
+    "The selected course would take you to the station",
+    "The airplane's heading is pointed directly at the station",
     "You are flying inbound on the radial set in the OBS",
-    "You have already passed the station"
+    "You have passed the station and are now flying away from it"
    ],
    "answer": 0,
    "why": "TO/FROM shows where the selected course takes you, not where you are heading [[23:254|IFH 9-11]]."
@@ -1064,32 +1110,32 @@
    "options": [
     "Turn right, toward the needle",
     "Hold heading; the needle will center",
-    "Re-center the needle with the OBS",
-    "Turn left, away from the needle"
+    "Turn left, away from the needle",
+    "Re-center the needle with the OBS"
    ],
-   "answer": 3,
+   "answer": 2,
    "why": "That is reverse sensing, so you turn away from the needle. Set the OBS to your intended course to avoid it [[23:257|IFH 9-14]]."
   },
   {
    "q": "You are on the 070° radial and want to intercept the 100° radial. What intercept angle does the IFH method give?",
    "options": [
     "30°",
-    "45°",
     "60°",
+    "45°",
     "90°"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "Difference 30°, doubled = 60°, which is within the 20° to 90° limits [[23:257|IFH 9-14]]."
   },
   {
    "q": "What is the most error allowed using a designated airborne VOR checkpoint?",
    "options": [
     "±4°",
-    "±6°",
+    "±10°",
     "±2°",
-    "±10°"
+    "±6°"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "Airborne checkpoint: ±6°. ±4° is for a test signal or surface checkpoint [[60:470|14 CFR 91.171(b)]]."
   },
   {
@@ -1108,10 +1154,10 @@
    "options": [
     "Turn 20° away from the station",
     "Turn 90° toward the station",
-    "Hold heading; the arc will come to you",
-    "Turn 20° toward the station"
+    "Turn 20° toward the station",
+    "Hold heading; the arc will come to you"
    ],
-   "answer": 3,
+   "answer": 2,
    "why": "½ to 1 mile outside with the pointer on the wingtip: turn 20° toward the facility [[23:261|IFH 9-18]]."
   },
   {
@@ -1129,23 +1175,83 @@
    "q": "Within 30 NM of the airport with the approach armed, what is the GPS full-scale CDI sensitivity?",
    "options": [
     "±5 NM",
-    "±0.3 NM",
     "±1 NM",
+    "±0.3 NM",
     "±2 NM"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "Arming changes en route ±5 NM to terminal ±1 NM within 30 NM [[33:96|AIM 1-1-17]]."
   },
   {
    "q": "Your autopilot shows NAV in white and HDG in green. What is the autopilot doing?",
    "options": [
-    "Tracking the nav course",
-    "Flying the heading bug, with nav armed but not engaged",
-    "Flying wings level with no mode",
-    "Both modes are failed"
+    "Flying the heading bug, with NAV armed, not engaged",
+    "Tracking the nav course, with heading mode only armed",
+    "Flying wings level in roll mode, with neither mode engaged",
+    "Both modes are failed, so the autopilot has disconnected"
+   ],
+   "answer": 0,
+   "why": "Green annunciators are engaged; white ones are armed but not engaged [[30:52|RMH 7-3]]."
+  },
+  {
+   "q": "Which VOT frequency is listed for Groton?",
+   "options": [
+    "110.25",
+    "108.20",
+    "111.40",
+    "109.25"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "The table lists Groton at 110.25 [[29:90|IPH Figure 2-50]]."
+  },
+  {
+   "q": "A checkpoint sign reads VOR 116.4, 147 degrees 4.1 NM. Which frequency do you tune?",
+   "options": [
+    "4.1",
+    "116.4",
+    "114.7",
+    "112.4"
    ],
    "answer": 1,
-   "why": "Green annunciators are engaged; white ones are armed but not engaged [[30:52|RMH 7-3]]."
+   "figure": "f8",
+   "why": "The first line of the sign gives the VOR frequency [[29:90|IPH Figure 2-51]]."
+  },
+  {
+   "q": "At that sign, the VOR should show which radial?",
+   "options": [
+    "041",
+    "174",
+    "147",
+    "116"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The sign is the DME and VOR check radial, 147 degrees [[29:90|IPH Figure 2-51]]."
+  },
+  {
+   "q": "In the DME example, the first segment is 5 NM and the second is 10 NM. What is in the encircled DME arrow?",
+   "options": [
+    "15",
+    "50",
+    "5",
+    "10"
+   ],
+   "answer": 0,
+   "figure": "f9",
+   "why": "The encircled arrow gives the total mileage, 15 NM [[2:82|Chart Users' Guide p 82]]."
+  },
+  {
+   "q": "On a VHF airway, an arrow beside a fix points:",
+   "options": [
+    "Toward magnetic north at that fix",
+    "Away from the NAVAID forming the fix",
+    "Toward the NAVAID forming the fix",
+    "Toward the nearest airport on the chart"
+   ],
+   "answer": 1,
+   "figure": "f9",
+   "why": "Off-set arrows show the facility forming a fix. For VHF/UHF the arrow points away from the NAVAID [[2:82|Chart Users' Guide p 82]]."
   }
  ],
  "takeaways": [
@@ -1366,43 +1472,43 @@
     {
      "s": "Before departure you see the last VOR check was 33 days ago. Your airport has a VOT.",
      "options": [
-      "Depart; the GPS will cover you",
-      "Do a VOT check, confirm ±4°, and log date, place, error and signature",
-      "Depart and do an airborne check later in the clouds",
-      "Check that both VOR needles move, then depart"
+      "Depart on the GPS and skip the VOR check, since the GPS will cover you",
+      "Check that both VOR needles move and the flags clear, then depart",
+      "Depart now and do an airborne check later, once you are in the clouds",
+      "Do a VOT check within ±4° and log date, place, error and signature"
      ],
-     "answer": 1,
+     "answer": 3,
      "why": "The check must be within 30 days to use VORs under IFR. A VOT check allows ±4°, and you must log date, place, bearing error and signature [[60:470|14 CFR 91.171]] [[60:471|14 CFR 91.171(d)]]."
     },
     {
      "s": "Airborne, you tune the VORTAC. The needle looks good but you hear no ident at all.",
      "options": [
       "Use it; the needle is centered and steady",
-      "Turn the volume to zero and rely on the needle",
       "Do not rely on it; tell ATC and use another source",
+      "Turn the volume to zero and rely on the needle",
       "Use it only for distance, not course"
      ],
-     "answer": 2,
+     "answer": 1,
      "why": "Removing the ident warns that the facility may be off the air for maintenance and unreliable [[33:87|AIM 1-1-11]]. The ident is the only positive identification [[33:68|AIM 1-1-3]]."
     },
     {
      "s": "The ident returns and ATC confirms the VORTAC is fine. You track inbound on a radial at 140 knots to join the 10 DME arc.",
      "options": [
-      "Start the turn at 10.5 DME",
-      "Start the turn at 10.0 DME",
       "Start the turn at 11.5 DME",
+      "Start the turn at 10.0 DME",
+      "Start the turn at 10.5 DME",
       "Start the turn at 9.5 DME"
      ],
-     "answer": 0,
+     "answer": 2,
      "why": "At 150 knots or less, a 0.5 NM lead is enough: 10.5 DME. 9.5 DME is the lead when you are outbound [[23:260|IFH 9-17]] [[23:261|IFH 9-18]]."
     },
     {
      "s": "On the arc, the bearing pointer is on the wingtip and the DME reads 10.8 and rising. The wind is pushing you away from the station.",
      "options": [
-      "Turn about 20° away from the station",
-      "Hold heading and wait",
-      "Turn about 20° toward the station and keep the pointer ahead of the wingtip",
-      "Turn 90° toward the station"
+      "Turn about 20° away from the station and keep the pointer behind the wingtip",
+      "Hold heading and wait for the wind to carry you back to the arc",
+      "Turn about 20° toward the station, pointer ahead of the wingtip",
+      "Turn 90° toward the station and hold it until the DME reads 10.0"
      ],
      "answer": 2,
      "why": "½ to 1 mile outside with the pointer on the wingtip: turn 20° toward the facility. With wind pushing you away, keep the pointer ahead of the wingtip [[23:261|IFH 9-18]]. Stay within ±1 NM (ACS IR.V.A.S6)."
@@ -1410,21 +1516,21 @@
     {
      "s": "Later, coupled to GPS on the arc, the map position jumps two miles and a position-error message appears.",
      "options": [
-      "Keep the autopilot on GPS and wait for it to recover",
-      "Select heading mode, fly the arc on VOR and DME raw data, and tell ATC",
-      "Reset the GPS while the autopilot keeps flying",
-      "Climb 1,000 ft without a clearance for better reception"
+      "Keep the autopilot coupled to GPS and wait for the position to recover",
+      "Climb 1,000 ft without a clearance to get better satellite reception",
+      "Reset the GPS while the autopilot keeps flying the last heading",
+      "Use heading mode, fly the arc on raw VOR/DME data, and tell ATC"
      ],
-     "answer": 1,
+     "answer": 3,
      "why": "A large position shift and position-error warnings can mean jamming or spoofing. Verify with conventional NAVAIDs, be ready to revert, and tell ATC promptly [[33:119|AIM 1-2-4]] [[33:120|AIM 1-2-4]]. Step down the automation level to keep control [[30:51|RMH 7-2]]."
     },
     {
      "s": "Then the VOR flag drops into view and stays. You still have DME but no course guidance.",
      "options": [
-      "Report it: aircraft ID, equipment affected, how IFR capability is impaired, and help wanted",
-      "Keep flying the arc by DME alone and say nothing",
-      "Squawk 7600",
-      "Switch the GPS back on and continue the approach"
+      "Report it with aircraft ID, equipment, degree of impairment and help wanted",
+      "Keep flying the arc by DME alone, and say nothing to ATC until you are on the ground",
+      "Squawk 7600 and continue as if you had lost two-way radio communications",
+      "Switch the GPS back on and continue the approach without telling ATC about the VOR"
      ],
      "answer": 0,
      "why": "Under IFR in controlled airspace, report nav malfunctions to ATC as soon as practical with those four items [[60:483|14 CFR 91.187]]. A flag means the signal is not usable [[23:254|IFH 9-11]]."
@@ -1469,29 +1575,62 @@
      "why": "Yes. Routine crosschecks against VOR or DME can reveal a compromised GPS signal [[33:119|AIM 1-2-4]]."
     }
    ]
+  },
+  {
+   "type": "match",
+   "key": "h8",
+   "after": 13,
+   "title": "VOR check limits and symbols",
+   "intro": "Tap a term, then the answer that matches it.",
+   "pairs": [
+    {
+     "l": "Error limit on a VOT or ground checkpoint",
+     "r": "Plus or minus 4 degrees"
+    },
+    {
+     "l": "Error limit on an airborne checkpoint",
+     "r": "Plus or minus 6 degrees"
+    },
+    {
+     "l": "Dual VOR check, most difference allowed",
+     "r": "4 degrees"
+    },
+    {
+     "l": "Time limit between VOR checks",
+     "r": "30 days"
+    },
+    {
+     "l": "Sign reading 147 degrees 4.1 NM",
+     "r": "Check radial and DME distance"
+    },
+    {
+     "l": "Encircled DME arrow with 15",
+     "r": "Total mileage between fixes"
+    }
+   ]
   }
  ],
  "final_quiz": [
   {
    "q": "You are on the 340° radial and want to track the 010° radial inbound (course 190°). The IFH method gives a 60° intercept. What heading do you fly?",
    "options": [
-    "070°",
-    "250°",
     "130°",
+    "250°",
+    "070°",
     "160°"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "Double the 30° difference = 60° [[23:257|IFH 9-14]]. Flying 190° inbound, the course is to your left, so turn 60° left of 190°: 130°. 070° comes from adding the angle to the radial, which only works for a 90° intercept."
   },
   {
    "q": "At a VOT, you center the CDI and the OBS reads 177° with TO showing. What is the result?",
    "options": [
-    "Within limits: 3° error, under the ±4° allowed",
     "Out of limits: a VOT must read 0° FROM exactly",
+    "Within limits: 3° error, under the ±4° allowed",
     "Within limits only if checked again in the air",
     "Out of limits: the TO flag should show FROM at 180°"
    ],
-   "answer": 0,
+   "answer": 1,
    "why": "A VOT should give 180° TO (or 0° FROM) [[33:70|AIM 1-1-4]], and the limit is ±4° [[60:470|14 CFR 91.171(b)(1)]]."
   },
   {
@@ -1499,21 +1638,21 @@
    "options": [
     "1 NM",
     "3 NM",
-    "12 NM",
-    "6 NM"
+    "6 NM",
+    "12 NM"
    ],
-   "answer": 3,
+   "answer": 2,
    "why": "Slant range error is negligible at 1 NM or more for each 1,000 ft above the facility: 6 NM here [[23:262|IFH 9-19]]."
   },
   {
    "q": "Your VOR check was 35 days ago and the VOR is not on an approved maintenance procedure. Can you use VOR navigation under IFR today?",
    "options": [
-    "Yes; the check is good for 90 days",
-    "Not until you do a new check within limits and log it",
-    "Yes, if a second VOR agrees within 6°",
-    "Yes, as long as the station's ident is heard"
+    "Yes; a VOR check stays good for 90 days from the date it was done",
+    "Yes, as long as the station's ident is heard and the needle is steady",
+    "Yes, if a second VOR on the same station agrees within 6°",
+    "No; do a new check within limits and log it first"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "The check must be within the preceding 30 days [[60:470|14 CFR 91.171(a)]], logged with date, place, bearing error and signature [[60:471|14 CFR 91.171(d)]]. Dual VORs must agree within 4°, not 6°."
   },
   {
@@ -1521,65 +1660,65 @@
    "options": [
     "Yes, it is within 6°",
     "Yes, dual checks have no limit",
-    "No, the most allowed between them is 4°",
-    "No, dual checks are only allowed in the air"
+    "No, dual checks are only allowed in the air",
+    "No, the most allowed between them is 4°"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "A 5° spread is over the 4° maximum for a dual-system check [[60:471|14 CFR 91.171(c)]]."
   },
   {
    "q": "You will fly the 15 DME arc of a VORTAC using GPS in place of DME. Which waypoint do you make active?",
    "options": [
-    "The VORTAC the arc is based on",
     "The airport reference point",
+    "The VORTAC the arc is based on",
     "The initial approach fix at the start of the arc",
     "Any named fix along the arc"
    ],
-   "answer": 0,
+   "answer": 1,
    "why": "Only the DME facility the arc is based on is acceptable; fly the arc by GPS distance from it [[23:270|IFH 9-27]]."
   },
   {
    "q": "You are 40 NM from the destination with a GPS approach loaded and armed. What full-scale CDI sensitivity should you see?",
    "options": [
-    "±1 NM",
     "±5 NM",
+    "±1 NM",
     "±0.3 NM",
     "±2 NM"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "With the approach armed, the CDI stays at en route ±5 NM until you are within 30 NM of the airport, then changes to ±1 NM. ±0.3 NM comes only at the FAWP [[33:96|AIM 1-1-17]]."
   },
   {
    "q": "Your IFR GPS is TSO-C129 (no WAAS). Which equipment must also be installed and working for an en route IFR flight?",
    "options": [
-    "Nothing else; RAIM covers it",
-    "A hand-held GPS as backup",
-    "An ADF only",
-    "Avionics to receive the ground-based NAVAIDs for the route and any required alternate"
+    "Nothing else, because RAIM monitoring covers any outage of the ground-based NAVAIDs",
+    "A second hand-held GPS receiver as a backup for the panel-mounted unit, and nothing more",
+    "Avionics for the ground-based NAVAIDs on the route and any required alternate",
+    "An ADF receiver only, since the GPS replaces the VOR and DME"
    ],
-   "answer": 3,
+   "answer": 2,
    "why": "With TSO-C129() or C196() receivers, the avionics for all ground-based facilities on the route to the destination and alternate must be installed and operational [[33:94|AIM 1-1-17]]."
   },
   {
    "q": "Near a NOTAMed area, your GPS position jumps and the clock shows the wrong time. What is the best action?",
    "options": [
-    "Keep the autopilot on GPS; RAIM will catch it",
-    "Reset the GPS and continue on the magenta line",
-    "Crosscheck with VOR/DME, revert to conventional navigation and tell ATC",
-    "Climb to get better satellite reception and keep going"
+    "Keep the autopilot coupled to GPS, since RAIM will flag any bad position data",
+    "Crosscheck with VOR/DME, revert to conventional navigation, tell ATC",
+    "Reset the GPS receiver and continue on the magenta line once it recovers",
+    "Climb to get better satellite reception and keep going on the GPS course"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "Position jumps and clock errors are signs of jamming or spoofing. Verify with conventional NAVAIDs, be ready to revert, and notify ATC promptly [[33:119|AIM 1-2-4]] [[33:120|AIM 1-2-4]]. Inside a known NOTAMed test area, you need to report it to ATC only if you need help [[33:120|AIM 1-2-4]]."
   },
   {
    "q": "Which item is NOT required in a 91.187 malfunction report?",
    "options": [
-    "The date of your last VOR check",
-    "The equipment affected",
     "How much your IFR capability is impaired",
+    "The equipment affected",
+    "The date of your last VOR check",
     "The help you want from ATC"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "The report needs aircraft ID, equipment affected, degree of impairment and assistance desired [[60:483|14 CFR 91.187(b)]]."
   },
   {
@@ -1607,13 +1746,70 @@
   {
    "q": "You are hand-flying an intercept while ATC gives you a new clearance and you must load a new approach. What does the RMH suggest?",
    "options": [
-    "Turn the autopilot off so you can feel the airplane",
-    "Load the approach first, then fix the heading",
-    "Use the autopilot to fly the intercept so you can do the other tasks",
-    "Ignore the clearance until established"
+    "Turn the autopilot off so you can feel the airplane and stay in the loop",
+    "Load the approach first, then fix the heading once the box is done",
+    "Ignore the clearance until you are established on the intercept",
+    "Let the autopilot fly the intercept while you do the other tasks"
+   ],
+   "answer": 3,
+   "why": "The autopilot can make the control inputs while you complete other tasks, reducing workload [[30:51|RMH 7-2]]."
+  },
+  {
+   "q": "Which VOT frequency is listed for Hartford?",
+   "options": [
+    "109.25",
+    "108.20",
+    "110.25",
+    "111.40"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "The table lists Hartford at 108.20 [[29:90|IPH Figure 2-50]]."
+  },
+  {
+   "q": "The checkpoint sign reads 147 degrees 4.1 NM. What DME reading do you expect at the sign?",
+   "options": [
+    "41 NM",
+    "4.1 NM",
+    "14.7 NM",
+    "147 NM"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "The sign gives the distance as 4.1 NM [[29:90|IPH Figure 2-51]]."
+  },
+  {
+   "q": "Your last VOR check was 45 days ago. Can you fly IFR using the VOR system today without a new check?",
+   "options": [
+    "Yes, the check is good for 60 days",
+    "Yes, if you stay on a published airway",
+    "No, the check must be within 30 days",
+    "Yes, if the VOR looks accurate in flight"
    ],
    "answer": 2,
-   "why": "The autopilot can make the control inputs while you complete other tasks, reducing workload [[30:51|RMH 7-2]]."
+   "why": "Unless the equipment is kept on an approved procedure, the VOR must have been checked within the preceding 30 days [[60:470|14 CFR 91.171(a)(2)]]."
+  },
+  {
+   "q": "You check two independent VORs against each other on the same station. They read 3 degrees apart. Is that within limits?",
+   "options": [
+    "No, the limit is 1 degree",
+    "No, the limit is 2 degrees",
+    "Yes, the limit is 4 degrees",
+    "Yes, any difference is fine"
+   ],
+   "answer": 2,
+   "why": "With dual VORs, the maximum permissible variation between the two bearings is 4 degrees [[60:471|14 CFR 91.171(c)]]."
+  },
+  {
+   "q": "On the airport, a ground checkpoint shows your VOR is off by 5 degrees. Is it legal for IFR?",
+   "options": [
+    "No, the limit is plus or minus 4 degrees",
+    "Only for flights flown at night",
+    "Yes, an error up to 10 degrees is allowed",
+    "Yes, an error up to 6 degrees is allowed"
+   ],
+   "answer": 0,
+   "why": "At a VOT or airport checkpoint the maximum error is plus or minus 4 degrees. The 6 degree limit is for airborne checks [[60:470|14 CFR 91.171(b)(2)]]."
   }
  ]
 }

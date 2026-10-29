@@ -45,7 +45,9 @@ class CfiApproveEverywhereTest(OpsHubTestCase):
 
     def test_a_student_does_not_get_the_approve_url(self):
         html = self.login("flight_student").get(f"/flight/schedule?view=day&date={self.day.isoformat()}").get_data(as_text=True)
-        self.assertNotIn("/approve", html)
+        # The page's JavaScript mentions a /approve$/ regex; what must never
+        # reach a student is a real approve link for a booking.
+        self.assertNotIn(f"/flight/schedule/{self.sched}/approve", html)
 
     def test_denying_with_no_proposed_times_still_works(self):
         r = self.login("cfi").post(f"/flight/schedule/{self.sched}/deny",

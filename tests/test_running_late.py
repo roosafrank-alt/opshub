@@ -62,7 +62,8 @@ class RunningLateTest(OpsHubTestCase):
         c = self.login("cfi")
         c.post(f"/flight/log/{self.fid}/running_late", data={"late_minutes": "20", "late_note": "Fuel stop, sorry"})
         html = c.get("/flight/dashboard").get_data(as_text=True)
-        self.assertIn("Running late 20 min", html)
+        # The sender's own board shows it in the schedule block's tip text.
+        self.assertIn("Running late&#10;Late: 20 min", html)
         self.assertIn("Fuel stop, sorry", html)
         # the next student sees the minutes but never the note
         html = self.login("flight_student").get("/flight/dashboard").get_data(as_text=True)

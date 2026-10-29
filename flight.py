@@ -4263,6 +4263,10 @@ def school_settings_edit():
         _saved_start, _saved_end = _school_day_hours(conn)
         day_start_h = _parse_int(request.form.get("day_start_hour"))
         day_end_h = _parse_int(request.form.get("day_end_hour"))
+        # Read early: _again() below shows these on the re-rendered form, and a
+        # rejected calendar-hours save reaches it before they are validated.
+        normal_start_h = _parse_int(request.form.get("normal_start_hour"))
+        normal_end_h = _parse_int(request.form.get("normal_end_hour"))
 
         def _again(message, field):
             # SCHOOL-16: a rejected save shows the form again with every
@@ -4285,8 +4289,6 @@ def school_settings_edit():
             return _again("Calendar hours: pick a start before the end, at least 4 hours apart.", "day_hours")
 
         # Normal booking hours (optional): outside them Availability shows "Requests only".
-        normal_start_h = _parse_int(request.form.get("normal_start_hour"))
-        normal_end_h = _parse_int(request.form.get("normal_end_hour"))
         if normal_start_h is None and normal_end_h is None:
             normal_start_h = normal_end_h = None
         elif normal_start_h is None or normal_end_h is None or not (0 <= normal_start_h < normal_end_h <= 24):

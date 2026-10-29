@@ -933,6 +933,40 @@
     "q": "What does \"homing\" to a VOR look like, and why is it an error?",
     "a": "Recentering the needle and flying the new course each time. It makes a curved path to the station, like ADF homing, instead of a straight track [[23:257|IFH 9-14]]."
    }
+  },
+  {
+   "title": "Reading the chart: NAVAID boxes and radar frequencies",
+   "kind": "knowledge",
+   "codes": [
+    "CA.VI.B.S1",
+    "CA.VI.B.S2",
+    "CA.VI.B.S6"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Before you tune anything, read the NAVAID box on the chart. The blue box holds the name, the frequency (or TACAN channel), the Morse code and the identifier. Extra items appear only when they differ, such as an NDB frequency, FSS frequencies, an ASOS/AWOS, a weather camera, or a note on operating hours. A crosshatch shows the NAVAID is shut down [[2:14|Chart Users' Guide p 14]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "The top line of the box tells you what kind of facility it is: VOR, VORTAC, VOR-DME or DME. A DME alone is drawn without a compass rose. When a NAVAID is on an airport, a small open circle marks it, and the type is in the box [[2:14|Chart Users' Guide p 14]]."
+    },
+    {
+     "p": "Now radar services. The chart border lists approach control frequencies for Class B, Class C, TRSA and some radar approach control facilities, with service hours in local time. A facility with several frequencies has sectors, so choose the one for your direction or runway. Bristol TRSA is not continuous: its hours are 0600-2400 local [[2:21|Chart Users' Guide p 21]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "Write the right frequency on your kneeboard and tune it in standby. For Class C, a magenta boxed note near the airport gives the approach control frequency to use before you enter, generally within 20 NM [[2:16|Chart Users' Guide p 16]]. The rule is to establish two-way radio communications before entering and keep them while inside [[60:454|14 CFR 91.130(c)(1)]]."
+    }
+   ],
+   "check": {
+    "q": "Your chart shows a crosshatch on a VOR box. What should you do with that VOR on a cross-country?",
+    "a": "Treat it as shut down. Do not rely on it, and plan another way to fix your position, such as another VOR or GPS cross-checked with the chart [[2:14|Chart Users' Guide p 14]]."
+   }
   }
  ],
  "figures": {
@@ -983,6 +1017,22 @@
    "caption": "FIG 4-1-1 and FIG 4-1-2. Induced Error in Position of Traffic. (AIM 4-1-15)",
    "alt": "Top: with a wind from the north, airplane A tracks east while its nose points left of track, and airplane B tracks west with its nose pointing right of track. The example text says traffic called at 12 o'clock appears at 2 o'clock to A and 10 o'clock to B. Bottom: with a wind from the west, airplane C tracks north crabbed left, and airplane D tracks west with no crab.",
    "source": "AIM, PDF p. 216"
+  },
+  "f7": {
+   "file": "CA.VI.B-7.jpg",
+   "res": "2",
+   "page": 21,
+   "caption": "Chart Users' Guide: Class B, Class C, TRSA and radar approach control frequencies (p 21).",
+   "alt": "A table titled CLASS B, CLASS C, TRSA AND SELECTED RADAR APPROACH CONTROL FREQUENCIES with columns for facility, frequencies and service availability. Rows: Cincinnati Class B (VHF 119.7 and 123.875, UHF 363.15, with runway-dependent sectors), Charleston Class C, Columbus Class C, Dayton Class C with three direction sectors, Bristol TRSA (0600-2400 local), Huntington TRSA and Perkinson/BAAF Radar. Callouts mark the airspace name, radar approach control, sectors for VHF and UHF traffic and local time.",
+   "source": "Chart Users' Guide, PDF p. 21"
+  },
+  "f8": {
+   "file": "CA.VI.B-8.jpg",
+   "res": "2",
+   "page": 14,
+   "caption": "Chart Users' Guide: radio aids to navigation boxes (p 14).",
+   "alt": "A sample blue VORTAC PONTIAC box with callouts: crosshatch indicates shutdown status, weather camera, FSS radio frequencies 122.1R and 123.6, operates less than continuous or on request, NDB frequency 379, frequency, channel, ASOS/AWOS, name, Morse code, identifier PTK, and an operational note (FSS oper 0600-2200). Below, a VOR compass rose with a VOR SALEM 114.3 SVM box and a note that an open circle shows a NAVAID on an airport. Text explains that the NAVAID type is VOR, VORTAC, VOR-DME or DME and that DMEs have no compass rose.",
+   "source": "Chart Users' Guide, PDF p. 14"
   }
  },
  "scenario": {
@@ -1067,56 +1117,56 @@
   {
    "q": "While navigating with the systems in this Task, what altitude and heading tolerances does the commercial ACS allow?",
    "options": [
-    "Plus or minus 100 ft and 10 degrees",
     "Plus or minus 200 ft and 15 degrees",
+    "Plus or minus 100 ft and 10 degrees",
     "Plus or minus 100 ft and 15 degrees",
     "Plus or minus 50 ft and 5 degrees"
    ],
-   "answer": 0,
+   "answer": 1,
    "why": "Commercial: plus or minus 100 ft and 10 degrees (ACS CA.VI.B.S7). Plus or minus 200 ft and 15 degrees is the private standard (ACS PA.VI.B.S7)."
   },
   {
    "q": "Which is positive identification of a VOR?",
    "options": [
     "An FSS specialist speaking on the VOR frequency",
-    "A recorded voice giving the station name followed by \"VOR,\" or the Morse code",
+    "The identifier shown from the receiver's database, without listening",
     "A steady needle with no flag",
-    "The identifier shown from the receiver's database, without listening"
+    "A recorded voice giving the station name followed by \"VOR,\" or the Morse code"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "Only the Morse code or a recorded voice ID ending in \"VOR\" is positive. FSS voices may come from a facility running several VORs [[33:68|AIM 1-1-3]] [[33:69|AIM 1-1-3]]. A database display of the expected ID still has to be matched to the audio [[33:69|AIM 1-1-3]]."
   },
   {
    "q": "Under 14 CFR 91.171, a VOR used for IFR must have been operationally checked within the preceding:",
    "options": [
-    "10 days",
     "30 days",
+    "10 days",
     "90 days",
     "12 calendar months"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "30 days, unless the equipment is maintained under an approved procedure [[60:470|14 CFR 91.171]]."
   },
   {
    "q": "Checking VOR sensitivity, how far should you have to turn the OBS to move the needle from center to the last dot on one side?",
    "options": [
     "No more than 2 degrees",
-    "No more than 4 to 6 degrees",
     "No more than 10 or 12 degrees",
+    "No more than 4 to 6 degrees",
     "At least 20 degrees"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "The course selected should not exceed 10 or 12 degrees either side [[23:259|IFH 9-16]]. 4 and 6 degrees are accuracy limits, not sensitivity [[60:470|14 CFR 91.171]]."
   },
   {
    "q": "When is a DME groundspeed readout accurate?",
    "options": [
-    "At any heading within 30 NM",
     "Only when tracking directly to or from the station, after a minute or two of steady flight",
+    "At any heading within 30 NM",
     "Only above 6,076 ft AGL",
     "Only in RNAV en route mode"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "DME groundspeed and time to station are only accurate when tracking directly to or from the VORTAC, after a minute or two of stabilized flight [[1:415|PHAK 16-28]]."
   },
   {
@@ -1124,55 +1174,126 @@
    "options": [
     "4, or 3 plus baro-aiding",
     "5, or 4 plus baro-aiding",
-    "6, or 5 plus baro-aiding",
-    "8 always"
+    "8 always",
+    "6, or 5 plus baro-aiding"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "FDE needs 6 satellites, or 5 with baro-aiding. Five, or four plus baro-aiding, only detects the problem (RAIM) [[33:89|AIM 1-1-17]]."
   },
   {
    "q": "Besides corrections, what does the WAAS geostationary satellite add for your receiver?",
    "options": [
-    "A backup VOR signal",
+    "A backup VOR signal that the receiver uses when ground stations are out of range",
+    "A second frequency for DME slant range",
     "An extra ranging signal, in effect one more GPS satellite in view",
-    "A second frequency for DME",
-    "Radar traffic"
+    "Radar traffic information shown on the moving map"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "The GEO gives an additional pseudorange measurement, which improves availability like an extra satellite [[33:102|AIM 1-1-18]]."
   },
   {
    "q": "You are VFR on radar services, landing at a towered airport where basic radar service is provided. When does radar service end?",
    "options": [
-    "When you report the airport in sight",
-    "Automatically when you have landed, without being told",
+    "When you report the airport in sight and it is acknowledged",
+    "When you squawk 1200",
     "Only when the controller says radar service terminated",
-    "When you squawk 1200"
+    "Automatically when you have landed, without being told"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "For an arriving VFR aircraft at a tower airport with basic radar service, radar service ends automatically when it has landed, and you need not be advised [[33:218|AIM 4-1-18]]."
   },
   {
    "q": "An airplane with no transponder is flying nearby. Will it appear on your ADS-B In display as TIS-B traffic?",
    "options": [
-    "Yes, TIS-B shows all aircraft radar sees",
-    "Only within 15 NM",
-    "Only if it has a UAT receiver",
-    "No, TIS-B only uplinks transponder-equipped aircraft"
+    "Yes, TIS-B shows every aircraft the radar sees",
+    "Only within 15 NM, where ground radar can see it",
+    "No, TIS-B only uplinks transponder-equipped aircraft",
+    "Only if it has a UAT receiver installed"
    ],
-   "answer": 3,
+   "answer": 2,
    "why": "TIS-B only uplinks data on transponder-equipped aircraft; aircraft without a transponder are not shown [[33:306|AIM 4-5-8]]."
   },
   {
    "q": "While vectored around weather, your GPS keeps jumping to the next waypoint on the route. What prevents this?",
    "options": [
-    "Selecting the approach mode",
+    "Selecting the approach mode before the next waypoint",
+    "Turning off RAIM so it stops checking waypoints",
     "Placing the receiver in its non-sequencing mode",
-    "Turning off RAIM",
-    "Switching the CDI to VOR"
+    "Switching the CDI to VOR to stop sequencing"
+   ],
+   "answer": 2,
+   "why": "Receivers may sequence when you are off the active route because you pass near a waypoint; the non-sequencing mode stops this [[33:99|AIM 1-1-17]]."
+  },
+  {
+   "q": "What does a crosshatch on a NAVAID box show?",
+   "options": [
+    "The NAVAID has a weather camera",
+    "The NAVAID is part of a Class B",
+    "The NAVAID is shut down",
+    "The NAVAID is a DME only"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The callout on the sample box says crosshatch indicates shutdown status [[2:14|Chart Users' Guide p 14]]."
+  },
+  {
+   "q": "On the sample VORTAC box, which text is the identifier you should hear in the Morse code?",
+   "options": [
+    "PONTIAC",
+    "PTK",
+    "123.6",
+    "379"
    ],
    "answer": 1,
-   "why": "Receivers may sequence when you are off the active route because you pass near a waypoint; the non-sequencing mode stops this [[33:99|AIM 1-1-17]]."
+   "figure": "f8",
+   "why": "The callouts point to PONTIAC as the name and PTK as the identifier [[2:14|Chart Users' Guide p 14]]."
+  },
+  {
+   "q": "A small open circle appears on an airport icon with a VOR box. What does it mean?",
+   "options": [
+    "The VOR is a DME-only NAVAID near the field",
+    "The NAVAID is located on that airport",
+    "The airport is closed to civil aircraft",
+    "The airport has a lighted rotating beacon"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "The note says an open circle is shown when the NAVAID is located on the airport, and the NAVAID type is shown in the top of the box [[2:14|Chart Users' Guide p 14]]."
+  },
+  {
+   "q": "Which frequency pair is listed for the Dayton Class C sector marked (091 to 180)?",
+   "options": [
+    "118.85 and 327.1",
+    "132.3 and 279.6",
+    "127.65 and 294.5",
+    "134.45 and 316.7"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "The row shows 118.85 and 327.1 for the 091 to 180 sector. The other sectors are 360 to 090 and 181 to 359 [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "What service hours are listed for Bristol TRSA?",
+   "options": [
+    "Sunrise to sunset",
+    "0600-2400 local",
+    "Continuous",
+    "0600-2300 UTC"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "Its service availability reads 0600-2400, and the chart labels it local time [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "You are VFR and about to enter Class B airspace. What must you have before you operate in it?",
+   "options": [
+    "Two-way radio contact with approach control only",
+    "An ATC clearance from the controlling facility",
+    "A discrete transponder code assigned by the tower",
+    "Flight following service from approach control"
+   ],
+   "answer": 1,
+   "why": "No one may operate an aircraft within Class B airspace without first receiving an ATC clearance from the facility with jurisdiction [[60:455|14 CFR 91.131(a)(1)]]."
   }
  ],
  "final_quiz": [
@@ -1180,31 +1301,31 @@
    "q": "Your VOR read within 2 degrees at the VOT this morning, but 60 NM out it disagrees with a known radial by 8 degrees. What best explains this?",
    "options": [
     "VOTs are only accurate to 10 degrees",
-    "A worn gain or modulation circuit can look fine near a strong signal and be out of tolerance at a distance",
+    "VOR radials bend with distance",
     "Prop RPM always causes 8 degrees of error",
-    "VOR radials bend with distance"
+    "A worn gain or modulation circuit can look fine near a strong signal and be out of tolerance at a distance"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "A deteriorating receiver can show acceptable accuracy close to the VOR or VOT and out-of-tolerance readings in weaker signal areas; yearly calibration is recommended [[33:71|AIM 1-1-4]]. Prop RPM roughness is up to 6 degrees and is smoothed by an RPM change [[33:69|AIM 1-1-3]]."
   },
   {
    "q": "You fly outbound on the 090 radial but left the OBS set to 270 with TO showing. The needle moves right. Where is the course?",
    "options": [
     "To your right",
-    "To your left",
     "Directly behind you",
+    "To your left",
     "You are on course"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "With the OBS set to the reciprocal of your course you get reverse sensing, so you turn away from the needle to correct [[23:257|IFH 9-14]] [[1:413|PHAK 16-26]]. Needle right therefore means the course is to your left. Setting the OBS to 090 would make the needle point toward the course again."
   },
   {
    "q": "VFR with a panel GPS that has no RAIM alerting, your GPS position disagrees with your VOR cross radials by 4 NM. What should you do?",
    "options": [
-    "Trust the GPS; it is more accurate than VOR",
+    "Trust the GPS because it is more accurate than VOR, without a cross-check",
     "Be suspicious of the GPS and cross-check with pilotage and other navigation",
-    "Reset the GPS and continue on its guidance",
-    "Ignore both and fly the heading"
+    "Reset the GPS and continue on its guidance once it agrees with your plan",
+    "Ignore both and fly the heading until you see a landmark"
    ],
    "answer": 1,
    "why": "VFR panel and hand-held units have no RAIM alerting, so use a systematic cross-check and be suspicious of the GPS position if they disagree [[33:90|AIM 1-1-17]]."
@@ -1212,54 +1333,54 @@
   {
    "q": "Your GPS shows a RAIM alert that an error exceeding the limit for this phase of flight was detected. This means:",
    "options": [
-    "Not enough satellites, but the position is fine",
     "The receiver detected a potential error and an inconsistency in the solution",
-    "The database has expired",
-    "WAAS has replaced RAIM"
+    "Not enough satellites are in view, but the position is still fine to use",
+    "The navigation database has expired and the receiver cannot be used at all",
+    "WAAS has replaced RAIM and now does the integrity checks"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "There are two RAIM message types; this one means the integrity monitor found a potential error for the phase of flight. The other means not enough satellites to monitor integrity [[33:90|AIM 1-1-17]]."
   },
   {
    "q": "En route, far from any NOTAMed test area, your clock jumps 40 minutes and your map shifts. What is the best action?",
    "options": [
-    "Keep following GPS; clocks often glitch",
+    "Keep following GPS because clocks often glitch; report it after you land",
+    "Turn off the transponder to reset ADS-B, then keep navigating by GPS",
     "Verify position with conventional navaids, revert if needed, and promptly tell ATC",
-    "Turn off the transponder to reset ADS-B",
-    "Descend to improve satellite reception"
+    "Descend to improve satellite reception, then continue on GPS guidance"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "Clock changes and large position shifts are signs of jamming or spoofing. Verify with conventional navaids and notify ATC promptly [[33:119|AIM 1-2-4]] [[33:120|AIM 1-2-4]]. Outside a NOTAMed area, in-flight reports are wanted [[33:88|AIM 1-1-13]]."
   },
   {
    "q": "Approach calls traffic \"2 o'clock.\" You are flying a northbound track crabbed left into a west wind, like aircraft C in the AIM figure. Where will the traffic appear?",
    "options": [
     "At 1 o'clock",
-    "At 2 o'clock",
     "At 3 o'clock",
+    "At 2 o'clock",
     "At 12 o'clock"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "ATC calls traffic by your track. With the nose crabbed left into the wind, the traffic appears farther right; the AIM example gives 3 o'clock for aircraft C [[33:216|AIM 4-1-15]]."
   },
   {
    "q": "On flight following you hear \"low altitude alert, check your altitude immediately.\" What is this, and who decides what to do?",
    "options": [
-    "A clearance you must obey",
+    "A clearance you must obey immediately, as a controller's instruction to change altitude or heading",
+    "A traffic advisory that requires no action, since it only describes aircraft near your position",
     "A safety alert; it is solely the pilot's decision what action, if any, to take",
-    "A traffic advisory that requires no action",
-    "A request to squawk 7700"
+    "A request to squawk 7700 so the controller can identify an aircraft that is in distress"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "A safety alert is issued when the controller judges you are in unsafe proximity to terrain, obstructions or aircraft; the action is solely the pilot's prerogative [[33:216|AIM 4-1-16]] [[33:217|AIM 4-1-16]]."
   },
   {
    "q": "Your UAT is in anonymous mode for a local sightseeing flight. You decide to call approach for flight following. What must you do?",
    "options": [
-    "Nothing; ATC sees anonymous targets normally",
+    "Nothing; ATC sees anonymous targets normally, and the feature only hides your tail number from other pilots",
     "Disable the anonymous feature before contacting ATC and make sure the FLT ID matches",
-    "Squawk 1202",
-    "Switch the transponder to standby"
+    "Squawk 1202 and keep the anonymous feature on so ATC can track your target without the FLT ID",
+    "Switch the transponder to standby so only ADS-B Out is seen, then call approach for flight following"
    ],
    "answer": 1,
    "why": "Anonymous mode is only for VFR with 1200 and no ATC services; you must disable it before contacting ATC and ensure your FLT ID matches your aircraft identification [[33:303|AIM 4-5-7]]."
@@ -1267,21 +1388,21 @@
   {
    "q": "You fly VFR at 1,000 ft AGL in Class G airspace, far from any Class B or C, with a working transponder and ADS-B Out. Which is true?",
    "options": [
-    "Both may be switched off, since Class G is uncontrolled",
     "ADS-B Out must keep transmitting; the transponder should stay on if practicable",
+    "Both may be switched off, since Class G is uncontrolled and needs neither",
     "The transponder must stay on, but ADS-B Out may be switched off",
-    "Both must be off unless ATC asks for them"
+    "Both must be off in Class G unless ATC asks for them"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "If installed, ADS-B Out must transmit at all times unless ATC directs otherwise [[60:499|14 CFR 91.225]] [[60:500|14 CFR 91.225]]. The transponder rule requires operation in controlled airspace [[60:494|14 CFR 91.215]]; in uncontrolled airspace the AIM says to keep it on if practicable [[33:221|AIM 4-1-20]]. So switching the ADS-B Out off is the wrong half."
   },
   {
    "q": "Your autopilot has flown flawlessly for 200 hours. According to the PHAK, how does that reliability affect your monitoring?",
    "options": [
-    "It lets you monitor less, safely",
+    "It lets you safely monitor the system less, because a proven system rarely makes a mistake",
     "The more reliable the system, the poorer human monitoring tends to be",
     "It removes the need to know which modes are armed",
-    "It makes hand-flying practice unnecessary"
+    "It makes hand-flying practice unnecessary, since the autopilot flies"
    ],
    "answer": 1,
    "why": "Humans are poor monitors of automated systems, and the more reliable the system, the poorer the human performance [[1:70|PHAK 2-31]]. Pilots should still occasionally hand-fly to keep their skills [[1:66|PHAK 2-27]]."
@@ -1289,35 +1410,70 @@
   {
    "q": "You want an installed tablet mount that takes GPS position from the panel navigator. Under AC 91-78A, what is the condition for that input?",
    "options": [
-    "None; any connection is allowed",
-    "It must be designed so it does not adversely affect the navigation source's output",
-    "Only a portable EFB may take position input",
-    "It requires the EFB to be the primary navigator"
+    "None; any connection to the panel navigator is allowed once the mount is installed",
+    "It requires the EFB to be the primary navigator, with the panel unit as backup",
+    "Only a portable EFB may take position input; installed units stay isolated",
+    "It must be designed so it does not adversely affect the navigation source's output"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "Installed EFBs may receive position from an onboard navigation system if the input is designed and integrated so it does not adversely affect the navigation source [[42:3|AC 91-78A 10.2]]. Portable EFBs are not connected to aircraft systems [[42:3|AC 91-78A 10.1]]."
   },
   {
    "q": "Approach vectors you VFR toward a cloud layer to sequence you. Which is true?",
    "options": [
-    "The vector authorizes you to enter the cloud",
-    "You must follow the vector and let ATC handle weather",
     "The vector is advisory; keep ATC told about the weather and do not violate VFR minimums",
-    "You must cancel radar service"
+    "You must follow the vector exactly and let ATC handle weather",
+    "The vector authorizes you to enter the cloud, since ATC would not give it if unsafe",
+    "You must cancel radar service, since VFR flight toward a cloud layer cannot be vectored"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "Radar navigation assistance does not authorize violating the CFRs, and controllers may not know if a vector leads into IFR conditions, so keep them advised [[33:217|AIM 4-1-17]]; terminal services do not relieve you of VFR weather minimums [[33:220|AIM 4-1-18]]."
   },
   {
    "q": "With a WAAS navigator only (no VOR), what does the AIM say about planning for a GPS outage under part 91?",
    "options": [
     "You must carry fuel to a MON airport",
-    "You are not required to carry VOR avionics, but prudent planning should consider an outage",
+    "WAAS cannot be affected by GPS outages",
     "You may not fly cross-country",
-    "WAAS cannot be affected by GPS outages"
+    "You are not required to carry VOR avionics, but prudent planning should consider an outage"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "WAAS users under part 91 are not required to carry VOR avionics and cannot use the MON; prudent planning should consider a GPS outage [[33:70|AIM 1-1-3]]. A MON airport as alternate is not required [[33:70|AIM 1-1-3]]."
+  },
+  {
+   "q": "Which facility in the table does not have continuous service?",
+   "options": [
+    "Huntington TRSA",
+    "Cincinnati Class B",
+    "Bristol TRSA",
+    "Charleston Class C"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "Bristol TRSA is listed 0600-2400 local, while the others read CONTINUOUS [[2:21|Chart Users' Guide p 21]]."
+  },
+  {
+   "q": "How is a DME-only NAVAID drawn on the chart?",
+   "options": [
+    "With a double compass rose",
+    "In magenta",
+    "With a flag symbol",
+    "Without a compass rose"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "The page says DMEs are shown without the compass rose [[2:14|Chart Users' Guide p 14]]."
+  },
+  {
+   "q": "You approach Class C airspace in VFR. What does 91.130 say to do before you enter?",
+   "options": [
+    "Establish two-way radio communication with the ATC facility",
+    "Get an explicit entry clearance from the tower first",
+    "Make a position report to the approach facility at the boundary",
+    "Squawk 7600 and then proceed into the Class C airspace"
+   ],
+   "answer": 0,
+   "why": "Before entering Class C airspace, establish two-way radio communications with the ATC facility providing services and keep it while in the airspace [[60:454|14 CFR 91.130(c)(1)]]."
   }
  ],
  "takeaways": [
@@ -1591,54 +1747,54 @@
     {
      "s": "Before departure you noted the NOTAM. What should your plan already include?",
      "options": [
-      "Nothing; WAAS is immune to GPS tests",
       "VORs to use through the area, extra fuel, and a conventional plan at the destination",
-      "A plan to turn off ADS-B in the area",
-      "Climbing above 18,000 ft to avoid the test"
+      "Nothing; WAAS is immune to GPS tests, so no conventional backup or extra fuel is needed in the area",
+      "A plan to turn off ADS-B in the area, so the test does not disturb your transmitted position",
+      "Climbing above 18,000 ft to avoid the test, since the interference only affects lower altitudes"
      ],
-     "answer": 1,
+     "answer": 0,
      "why": "The FAA recommends knowing risk areas, checking NOTAMs, planning fuel contingencies and planning to use conventional navaids [[33:119|AIM 1-2-4]]. WAAS depends on GPS [[33:119|AIM 1-2-4]]."
     },
     {
      "s": "Inside the NOTAMed area, the map freezes and the GPS shows a loss of integrity. You need no help from ATC.",
      "options": [
       "Report the outage to ATC in detail right away",
+      "Squawk 7600 and ask ATC for vectors",
       "Do not report it in detail; navigate by VOR and pilotage",
-      "Squawk 7600",
-      "Reboot the GPS repeatedly until it works"
+      "Reboot the GPS repeatedly until the integrity returns"
      ],
-     "answer": 1,
+     "answer": 2,
      "why": "GPS problems inside a known test area should not be reported in detail in flight unless you need help or see unexpected effects [[33:88|AIM 1-1-13]] [[33:120|AIM 1-2-4]]. Revert to conventional navigation [[33:87|AIM 1-1-13]]."
     },
     {
      "s": "You tune the nearest VOR. The needle centers, but you hear no identifier at all.",
      "options": [
-      "Use it; the needle looks normal",
-      "Use it only with FROM showing",
-      "Do not use it; a removed identifier means it may be unreliable",
-      "Use it if the flag is out of view"
+      "Use it; the needle looks normal and no flag shows",
+      "Use it only with FROM showing, not TO",
+      "Use it if the flag is out of view; the audio is just off",
+      "Do not use it; a removed identifier means it may be unreliable"
      ],
-     "answer": 2,
+     "answer": 3,
      "why": "Removal of the identifier warns that the facility is officially off the air and may be unreliable even if signals are received [[33:87|AIM 1-1-11]]."
     },
     {
      "s": "You tune a second VOR, identify it, and switch the HSI source to VOR. The autopilot drops from NAV to ROL.",
      "options": [
       "Leave it in ROL; it will track the VOR",
-      "Hold heading and altitude, check the course, then re-engage NAV on the VOR source",
       "Disconnect and turn the GPS back on",
+      "Hold heading and altitude, check the course, then re-engage NAV on the VOR source",
       "Switch back to GPS to restore NAV"
      ],
-     "answer": 1,
+     "answer": 2,
      "why": "On some autopilots a source change drops NAV to wing level until the pilot re-engages it [[1:70|PHAK 2-31]]. You still owe 100 ft and 10 degrees meanwhile (ACS CA.VI.B.S7)."
     },
     {
      "s": "After landing, the GPS was also wrong for a few minutes outside the NOTAMed area. What now?",
      "options": [
-      "Nothing; it was a test",
+      "Nothing; it was a test and tests are not worth documenting",
       "Write it in the maintenance log and file an FAA GPS anomaly report",
-      "Only tell the next pilot",
-      "Replace the antenna yourself"
+      "Only tell the next pilot, since a short outage needs no report",
+      "Replace the antenna yourself, since it was most likely a bad antenna"
      ],
      "answer": 1,
      "why": "Post flight, document jamming or spoofing in the maintenance log and file a report [[33:120|AIM 1-2-4]]. Degradation outside the NOTAMed area is worth reporting [[33:88|AIM 1-1-13]]."

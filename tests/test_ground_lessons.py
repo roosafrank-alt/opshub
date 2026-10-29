@@ -82,6 +82,16 @@ class GroundLessonsTest(OpsHubTestCase):
         self.assertEqual(sum(len(v) for v in plan["by_chunk"].values()), 2 + 3)   # 2 games + 3 quiz groups
         self.assertTrue(any(i["kind"] == "act" and i["a"]["type"] == "sort" for i in plan["by_chunk"][2]))
 
+    def test_quick_check_questions_carry_their_chart_figure(self):
+        fig = {"file": "x.jpg", "caption": "c", "alt": "a", "res": "2", "page": 5, "source": "CUG"}
+        L = {"chunks": [{}] * 4, "figures": {"f1": fig},
+             "quiz": [{"q": "a", "figure": "f1"}, {"q": "b"}, {"q": "c", "figure": "nope"}]}
+        plan = ground_lessons.play_plan(L)
+        qs = [q for items in plan["by_chunk"].values() for it in items if it["kind"] == "quiz" for q in it["qs"]]
+        self.assertEqual(qs[0][1]["fig"], fig)
+        self.assertNotIn("fig", qs[1][1])
+        self.assertNotIn("fig", qs[2][1])
+
     def test_activities_adds_flashcards_and_term_match_from_key_terms(self):
         L = {"key_terms": [{"term": f"T{i}", "def": f"D{i}"} for i in range(8)]}
         acts = ground_lessons.activities(L)

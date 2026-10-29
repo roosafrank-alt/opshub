@@ -962,6 +962,35 @@
     "q": "ATC says “line up and wait.” You read it back. May you start the takeoff roll?",
     "a": "No. Line up and wait is not a takeoff clearance. Wait for “cleared for takeoff” [[33:344|AIM 5-2-5]]."
    }
+  },
+  {
+   "title": "Reading the chart: a SID and a STAR behind the clearance",
+   "kind": "knowledge",
+   "codes": [
+    "IR.III.A.K1",
+    "IR.III.A.S3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "When ATC clears you to fly a SID, the chart holds the details. Read the route description box at the bottom first. On the LUFKIN SIX DEPARTURE it says to climb on the assigned heading for radar vectors to KYANN INT, maintain 5000, and expect the filed altitude 10 minutes after departure [[29:40|IPH Figure 1-22]]."
+    },
+    {
+     "p": "Then check the notes and the take-off minimums box. This chart says radar is required. Runway 22 needs a standard minimum with a climb of 290 ft per NM to 1,500 ft, and Runway 17 is 300-1 [[29:40|IPH Figure 1-22]]. Make sure you can meet every note and minimum before you accept the SID."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "A STAR works the same way. The title carries the name, here CHINS SEVEN ARRIVAL, and the STAR starts at CHINS intersection. Transitions bring you to CHINS from places such as Ephrata, Kimberly and Pendleton [[29:125|IPH Figure 3-11]]. The hold at RADDY helps controllers when weather causes delays. Radar vectors then lead to a north or south final approach course [[29:125|IPH Figure 3-11]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "Look for a lost communications line. On this chart it says to proceed direct to the SEA VORTAC after the AUBRN DME fix [[29:125|IPH Figure 3-11]]. A STAR clearance can be short, such as cleared as filed, then the arrival name and transition, maintain 10,000. The chart holds the rest [[29:127|IPH p 127]]."
+    }
+   ]
   }
  ],
  "figures": {
@@ -1004,6 +1033,22 @@
    "caption": "Figure 2-68. ATC reporting procedures.",
    "alt": "Blue table of reports made without ATC request, each with an example call from Marathon 564: leaving an assigned altitude, VFR-on-top altitude change, leaving a holding fix, missed approach, unable 500 fpm, TAS change of 5% or 10 knots, reaching a holding fix or clearance limit, loss of nav/comm, and unforecast weather; plus nonradar reports for leaving the FAF or OM inbound and a revised ETA of more than three minutes.",
    "source": "IPH, PDF p. 105"
+  },
+  "f6": {
+   "file": "IR.III.A-6.jpg",
+   "res": "29",
+   "page": 125,
+   "caption": "Figure 3-11. STAR interpretation.",
+   "alt": "CHINS SEVEN ARRIVAL chart for Seattle-Tacoma over a sectional chart strip, with orange callouts: the primary airport is Seattle-Tacoma, the STAR starts at CHINS intersection, the hold at RADDY, radar vectors to the final approach course, and a lost communication line reading After AUBRN DME fix proceed direct SEA VORTAC.",
+   "source": "IPH, PDF p. 125"
+  },
+  "f7": {
+   "file": "IR.III.A-7.jpg",
+   "res": "29",
+   "page": 40,
+   "caption": "Figure 1-22. SID chart.",
+   "alt": "LUFKIN SIX DEPARTURE chart for Houston Hobby with frequencies at the top left, a RADAR required note, take-off minimums for runways 12L, 12R, 30L, 30R, 35, 4, 17 and 22, a route through KYANN, COLET, SUSHI and SKKIP to Little Rock VORTAC, and a departure route description box at the bottom.",
+   "source": "IPH, PDF p. 40"
   }
  },
  "scenario": {
@@ -1085,10 +1130,10 @@
   {
    "q": "In the IFH technique C-R-A-F-T, what do the letters stand for?",
    "options": [
-    "Course, Runway, Altimeter, Fuel, Time",
+    "Course, Route, Altimeter setting, Fuel, Time en route",
     "Clearance limit, Route, Altitude, Frequency, Transponder",
-    "Clearance, Radar, ATIS, Fix, Taxi",
-    "Clearance limit, Radial, Approach, Fix, Transponder"
+    "Clearance limit, Radar contact, Approach, Frequency, Taxi route",
+    "Clearance limit, Radial, Altitude restriction, Fix, Transponder code"
    ],
    "answer": 1,
    "why": "The IFH format is clearance limit, route, initial altitude, departure frequency and transponder code [[23:56|IFH 2-5]]."
@@ -1096,54 +1141,54 @@
   {
    "q": "Which parts of an airborne clearance does the AIM say you should read back?",
    "options": [
-    "Every word, in full",
-    "Only the frequency and squawk",
+    "Every word of the clearance, in full, including the frequency",
     "Altitude assignments, vectors and runway assignments",
-    "Nothing, if you say “roger”"
+    "Only the frequency and squawk code, since ATC checks the rest",
+    "Nothing, if you simply say “roger” and give your call sign"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "Read back altitudes, vectors and runway assignments as mutual verification [[33:278|AIM 4-4-7]]."
   },
   {
    "q": "Your clearance says “void if not off by 1420.” Your wheels leave the runway at exactly 1420. Are you cleared?",
    "options": [
-    "Yes, 1420 is within the time",
-    "Yes, if you call departure right away",
-    "No, but you may continue if the weather is VFR",
-    "No, the clearance is void; you must be off before 1420"
+    "No, it is void; you must be off before 1420",
+    "Yes, if you call departure right away after you are airborne",
+    "No, but you may continue if the weather is VFR once airborne",
+    "Yes, because 1420 is still within the time written in the clearance"
    ],
-   "answer": 3,
+   "answer": 0,
    "why": "If airborne exactly at the void time, the clearance is void. You must take off before it [[23:56|IFH 2-5]]."
   },
   {
    "q": "What does a “cleared to (destination) airport as filed” clearance NOT include?",
    "options": [
-    "Your filed en route altitude",
-    "Your filed route",
-    "Your destination airport",
-    "Any DP that ATC names"
+    "Any departure procedure that ATC names in the clearance",
+    "The route of flight exactly as you filed it",
+    "Your destination airport as named in the clearance",
+    "Your filed en route altitude"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "“As filed” does not include the en route altitude in your flight plan. ATC states an altitude or when to expect one [[33:346|AIM 5-2-6]]."
   },
   {
    "q": "ATC says “hold for release, expect 20 minutes departure delay.” What are your options?",
    "options": [
-    "Depart IFR when ready if the weather is good",
+    "Depart IFR as soon as you are ready if the weather is good enough",
+    "Depart IFR after waiting exactly 20 minutes from the controller's call",
     "Wait for a release, or cancel IFR and depart VFR on a VFR code",
-    "Depart IFR after exactly 20 minutes",
-    "Depart VFR on your IFR squawk and pick up IFR later"
+    "Depart VFR on your IFR squawk code and pick up IFR clearance later"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "You may not depart on that IFR clearance until released. You may depart VFR after canceling IFR and using a VFR code [[33:348|AIM 5-2-7]]."
   },
   {
    "q": "What does “descend via the Eagul Five arrival” authorize?",
    "options": [
-    "Descent to the lowest altitude on the STAR right away",
-    "Lateral navigation only, no descent",
-    "Descent at pilot's discretion meeting all published altitude and speed restrictions",
-    "Descent at 500 to 1,500 fpm to the approach altitude"
+    "Immediate descent to the lowest altitude published on the STAR, then level off",
+    "Lateral navigation only; wait for ATC to give every descent altitude",
+    "Descent at pilot's discretion, meeting all published restrictions",
+    "A constant descent of 500 to 1,500 fpm down to the approach altitude"
    ],
    "answer": 2,
    "why": "Descend via means descend at pilot's discretion and comply with all published altitude and speed restrictions [[33:393|AIM 5-4-1]] [[33:394|AIM 5-4-1]]."
@@ -1151,12 +1196,12 @@
   {
    "q": "Your radio fails in IMC while you are being vectored to join V12. Which route do you fly?",
    "options": [
-    "Direct from where the radio failed to V12, the airway in the vector clearance",
-    "Keep flying the last heading until you see the ground",
-    "The route you filed, from wherever you are",
-    "Direct to the destination airport"
+    "Keep flying the last assigned heading until you break out and see the ground",
+    "Direct from the point of failure to V12, the airway you were vectored to",
+    "The route you filed, joined from wherever you happen to be at the time",
+    "Direct to the destination airport, on the shortest line from your position"
    ],
-   "answer": 0,
+   "answer": 1,
    "why": "If being vectored, fly direct from the point of failure to the fix, route or airway in the vector clearance [[60:482|14 CFR 91.185(c)(1)]]."
   },
   {
@@ -1173,12 +1218,12 @@
   {
    "q": "In an emergency you deviate from your clearance. What must you do?",
    "options": [
-    "Nothing, emergencies need no report",
     "Notify ATC as soon as possible and get an amended clearance",
-    "Send a written report to the FAA within 10 days",
-    "Squawk 7600 until you land"
+    "Nothing, since emergencies need no notification or amended clearance",
+    "Send a written report to the FAA within 10 days of the deviation",
+    "Squawk 7600 and keep it until you land at your destination"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "Notify ATC of the deviation as soon as possible [[60:450|14 CFR 91.123]] and obtain an amended clearance [[34:28|AIM 6-1-1]]. A written report under 91.3 is only on request [[60:435|14 CFR 91.3]]."
   },
   {
@@ -1186,11 +1231,71 @@
    "options": [
     "105 to 115 knots",
     "110 to 120 knots",
-    "100 to 120 knots",
-    "90 to 130 knots"
+    "90 to 130 knots",
+    "100 to 120 knots"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "Maintain assigned speeds within plus or minus 10 knots: 100 to 120 knots [[33:283|AIM 4-4-12]]."
+  },
+  {
+   "q": "At which fix does the CHINS SEVEN ARRIVAL start?",
+   "options": [
+    "RADDY",
+    "CHINS",
+    "AUBRN",
+    "HUMPP"
+   ],
+   "answer": 1,
+   "figure": "f6",
+   "why": "The callout says the CHINS SEVEN ARRIVAL starts at CHINS intersection [[29:125|IPH Figure 3-11]]."
+  },
+  {
+   "q": "Which fix is named as the common holding point on this STAR?",
+   "options": [
+    "BRUKK",
+    "SUNED",
+    "AUBRN",
+    "RADDY"
+   ],
+   "answer": 3,
+   "figure": "f6",
+   "why": "A callout says the hold at RADDY intersection often helps controllers manage traffic during weather delays [[29:125|IPH Figure 3-11]]."
+  },
+  {
+   "q": "The lost communications line says that after the AUBRN DME fix you proceed:",
+   "options": [
+    "Direct to the Yakima VOR",
+    "Direct to the SEA VORTAC",
+    "Direct to Boeing Field",
+    "Direct to the RADDY fix"
+   ],
+   "answer": 1,
+   "figure": "f6",
+   "why": "The line reads After AUBRN DME FIX proceed direct SEA VORTAC [[29:125|IPH Figure 3-11]]."
+  },
+  {
+   "q": "On the LUFKIN SIX chart, Runway 22 takeoff needs a climb of 290 ft per NM up to:",
+   "options": [
+    "5,000 ft",
+    "300 ft",
+    "1,000 ft",
+    "1,500 ft"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "The take-off minimums box reads Rwy 22, standard with minimum climb of 290 ft per NM to 1500 [[29:40|IPH Figure 1-22]]."
+  },
+  {
+   "q": "What does the note on the LUFKIN SIX chart say about radar?",
+   "options": [
+    "Radar is not available",
+    "Radar is required",
+    "Radar is advised only",
+    "Radar contact ends at KYANN"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "The note reads RADAR Required [[29:40|IPH Figure 1-22]]."
   }
  ],
  "takeaways": [
@@ -1339,32 +1444,32 @@
     {
      "s": "Your tablet with the Hilltop Two just died, and you have no other copy of the chart or its text.",
      "options": [
-      "Accept it and plan to ask departure for vectors",
-      "Tell ATC you can't accept the DP and request an amended clearance",
-      "Accept it and fly runway heading until you see the chart again",
-      "Read it back and look up the route after takeoff"
+      "Tell ATC you can't accept the DP; request an amended clearance",
+      "Accept it and plan to ask departure for vectors after takeoff",
+      "Accept it and fly runway heading until you can see the chart again",
+      "Read it back and look up the route on another source after takeoff"
      ],
-     "answer": 1,
+     "answer": 0,
      "why": "To use a DP you must have at least its textual description. If you can't use one, tell ATC, and once you accept a DP you must fly it [[23:296|IFH 10-5]]."
     },
     {
      "s": "Your backup tablet works and you have the chart. What do you read back?",
      "options": [
-      "“Cleared to Albany airport, Hilltop Two, Eagle transition, then as filed, climb via SID, 124.35, squawk 4521, Cessna 5432K”",
-      "“Climb via SID, cross RIVET at or below 3,000, then 7,000, Cessna 5432K”",
-      "“Cleared as filed, climbing to 8,000, Cessna 5432K”",
-      "“Roger, 32K”"
+      "“Cleared to Albany airport via the Hilltop Two departure, Eagle transition, then as filed, climb via SID, departure 124.35, squawk 4521”",
+      "“Cleared to Albany airport, Hilltop Two, Eagle transition, then as filed, climb via SID, cross RIVET at or below 3,000, then 7,000, 124.35, squawk 4521, Cessna 5432K”",
+      "“Cleared to Albany airport, Hilltop Two, Eagle transition, then as filed, climb via SID, climb and maintain 8,000, 124.35, squawk 4521, Cessna 5432K”",
+      "“Cleared to Albany airport, Hilltop Two, Eagle transition, then as filed, climb via SID, 124.35, squawk 4521, Cessna 5432K”"
      ],
-     "answer": 0,
+     "answer": 3,
      "why": "Don't read back altitudes printed on a charted DP unless the controller states them, and include your call sign [[33:279|AIM 4-4-7]]. “As filed” does not include your filed altitude [[33:346|AIM 5-2-6]]."
     },
     {
      "s": "After takeoff, tower tells you to contact departure. You are passing 1,800 ft. What is your first call?",
      "options": [
-      "“Departure, Cessna 5432K, with you”",
-      "“Departure, Cessna 5432K, climbing to 8,000”",
+      "“Departure, Cessna 5432K, with you, Hilltop Two departure, request a higher altitude when ready”",
+      "“Departure, Cessna 5432K, leaving one thousand eight hundred, climbing to eight thousand as filed”",
       "“Departure, Cessna 5432K, leaving one thousand eight hundred, climbing via the Hilltop Two departure”",
-      "“Departure, Cessna 5432K, request higher”"
+      "“Departure, Cessna 5432K, request higher altitude, climbing on the Hilltop Two departure”"
      ],
      "answer": 2,
      "why": "On a climb via clearance, tell ATC on first contact the altitude you are leaving and that you are climbing via the SID [[33:357|AIM 5-2-9]]."
@@ -1372,23 +1477,23 @@
     {
      "s": "At 2,600 ft, short of RIVET, departure says: “Cessna 5432K, climb and maintain 5,000.” What do you do?",
      "options": [
-      "Hold 3,000 until past RIVET, then climb to 5,000",
+      "Hold 3,000 until past RIVET, then climb to 5,000 as the SID requires",
+      "Climb to 5,000 now and turn direct to Eagle, leaving the SID's path",
       "Climb to 5,000 now and keep flying the SID's lateral path",
-      "Climb to 5,000 now and turn direct to Eagle",
-      "Ask ATC to repeat, because it conflicts with the SID"
+      "Ask ATC to repeat it and explain, because it conflicts with the SID restriction"
      ],
-     "answer": 1,
+     "answer": 2,
      "why": "A new ATC altitude cancels earlier altitude restrictions, including those published on the SID. You still fly the SID's lateral path and speed restrictions [[33:357|AIM 5-2-9]]."
     },
     {
      "s": "Later, level at 8,000 and 40 NM from KNOBS, you hear: “Cessna 5432K, cross KNOBS at or above 6,000, descend and maintain 4,000.” What is your plan?",
      "options": [
-      "Descend promptly to 4,000 now and cross KNOBS at 4,000",
-      "Stay at 8,000 until KNOBS, then descend to 4,000",
-      "Descend when you choose but cross KNOBS at or above 6,000, then descend promptly to 4,000",
-      "Descend to 6,000 now and wait there for another clearance"
+      "Descend promptly to 4,000 now and cross KNOBS at 4,000, ahead of the restriction",
+      "Descend at your discretion, cross KNOBS at or above 6,000, then promptly to 4,000",
+      "Stay at 8,000 well past KNOBS, then descend to 4,000 whenever convenient",
+      "Descend to 6,000 now and wait there for another clearance before going lower"
      ],
-     "answer": 2,
+     "answer": 1,
      "why": "With a crossing restriction, the descent to the fix is at pilot's discretion, but you must meet the crossing altitude, so you can't be below 6,000 at KNOBS. After the fix, descend at the suggested rates to the assigned altitude [[33:280|AIM 4-4-10]] [[33:281|AIM 4-4-10]]."
     }
    ]
@@ -1489,18 +1594,59 @@
     "Complete the before-takeoff checklist and run-up, then tell tower you're ready",
     "After takeoff, contact departure when told, giving your altitude"
    ]
+  },
+  {
+   "type": "label",
+   "key": "h8",
+   "after": 14,
+   "title": "Read the SID chart",
+   "figure": "f7",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 20.2,
+     "y": 5.6,
+     "label": "Procedure name"
+    },
+    {
+     "x": 12.4,
+     "y": 10.7,
+     "label": "Frequencies"
+    },
+    {
+     "x": 17.1,
+     "y": 43.6,
+     "label": "Radar note"
+    },
+    {
+     "x": 21.5,
+     "y": 54.5,
+     "label": "Take-off minimums"
+    },
+    {
+     "x": 58.3,
+     "y": 75.6,
+     "label": "Route description"
+    },
+    {
+     "x": 79.0,
+     "y": 8.5,
+     "label": "Transition end (LIT)"
+    }
+   ],
+   "why": "The title names the procedure. Frequencies are listed at the top left, the note says radar is required, take-off minimums sit under the sketch, and the route description is in the box at the bottom. The Little Rock transition ends at the LIT VORTAC [[29:40|IPH Figure 1-22]]."
   }
  ],
  "final_quiz": [
   {
    "q": "Your clearance reads “void if not off by 1530, if not off by 1530 advise not later than 1600 of intentions.” You can't depart. If you never call, when may search and rescue begin?",
    "options": [
-    "At 1530",
-    "At 1545",
     "After 1600",
+    "At 1545",
+    "At 1530",
     "After 1630"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "ATC's notification time can't exceed 30 minutes after the void time. No contact by then and you are considered overdue and SAR starts [[33:347|AIM 5-2-7]]."
   },
   {
@@ -1528,78 +1674,78 @@
   {
    "q": "ATC: “Descend and maintain 4,000.” You are at 9,000, with no pilot's discretion. How should you descend?",
    "options": [
-    "At any rate, starting when convenient",
+    "At any rate you like, starting whenever it is convenient for you",
+    "At exactly 500 fpm the whole way down, from the moment you are cleared",
     "Promptly, at an optimum rate to 5,000, then 500 to 1,500 fpm to 4,000",
-    "At exactly 500 fpm the whole way",
-    "Promptly, at 1,500 fpm or more all the way to 4,000"
+    "Promptly, at 1,500 fpm or more all the way down to 4,000 without slowing"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "Start promptly, use an optimum rate to 1,000 ft above the assigned altitude, then 500 to 1,500 fpm [[33:280|AIM 4-4-10]]."
   },
   {
    "q": "You were cleared “cross Delta VOR at 10,000, maintain 6,000.” Before Delta, ATC says “turn right heading 180, vector ILS runway 36, maintain 6,000.” What about the Delta crossing?",
    "options": [
-    "It still applies; cross Delta at 10,000",
-    "It applies only if you pass over Delta",
-    "Ask ATC before descending below 10,000",
-    "It is canceled because the amended clearance left it out"
+    "It is canceled, because the amended clearance omitted it",
+    "It applies only if you actually pass directly over Delta at some point",
+    "Ask ATC before descending below 10,000, since the restriction is unresolved",
+    "It still applies; you must cross Delta at 10,000 before descending further"
    ],
-   "answer": 3,
+   "answer": 0,
    "why": "When ATC restates the altitude and omits earlier restrictions, those restrictions are canceled [[33:281|AIM 4-4-10]] [[33:282|AIM 4-4-10]]."
   },
   {
    "q": "Before takeoff you get “Climb via SID except maintain 9,000.” What do you do?",
    "options": [
-    "Fly the SID path and its published restrictions, stopping the climb at 9,000",
-    "Climb directly to 9,000 and ignore SID restrictions",
-    "Fly the SID to its top altitude, then descend to 9,000",
-    "Fly runway heading to 9,000, then join the SID"
+    "Fly the SID to its top altitude, then descend back down to 9,000",
+    "Climb directly to 9,000 and ignore the SID's lateral path and restrictions",
+    "Fly the SID path and its restrictions, stopping the climb at 9,000",
+    "Fly runway heading up to 9,000, then join the SID's lateral route"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "Comply with the SID lateral path and published speed and altitude restrictions while climbing to the stated altitude, then stop there [[33:356|AIM 5-2-9]]."
   },
   {
    "q": "In IMC, assigned 5,000, the MEA ahead rises to 7,000, and you were never told an expected altitude. Your radios fail. What altitude for the 7,000 MEA segment?",
    "options": [
-    "5,000, the last assigned altitude",
-    "Your filed altitude",
-    "7,000, the minimum IFR altitude for that segment",
-    "6,000, halfway between"
+    "5,000, the last altitude assigned in your clearance",
+    "Your filed altitude, because no expected altitude was given to you",
+    "6,000, halfway between your assigned altitude and the MEA ahead",
+    "7,000, the minimum IFR altitude for that segment"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "Fly the highest of the assigned, minimum IFR, or expected altitude for the segment being flown. Here the MEA is highest [[60:483|14 CFR 91.185(c)(2)]] [[34:54|AIM 6-4-1]]."
   },
   {
    "q": "Lost comm, your clearance limit is the IAF for the approach. No EFC was given. Your ETA from the filed ETE is 1452, but you reach the IAF at 1440. When do you start the approach?",
    "options": [
     "Right away at 1440",
-    "As close as possible to 1452",
+    "When you hear the ATIS",
     "At 1500, 20 minutes after reaching the IAF",
-    "When you hear the ATIS"
+    "As close as possible to 1452"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "With the clearance limit at an approach fix and no EFC, start descent and approach as close as possible to the ETA from the filed or amended ETE [[60:483|14 CFR 91.185(c)(3)]]."
   },
   {
    "q": "You depart VFR from a non-towered field and accept an IFR clearance while below the MIA. Who is responsible for terrain clearance until you reach it?",
    "options": [
-    "ATC, once you are radar identified",
-    "Nobody, because you are IFR",
-    "The departure controller only",
-    "You, until you reach the minimum IFR altitude"
+    "You, until you reach the minimum IFR altitude",
+    "Nobody, because you are on an IFR clearance and ATC is handling you",
+    "The departure controller only, from the moment you take off and call",
+    "ATC, once you are radar identified and the controller has you in contact"
    ],
-   "answer": 3,
+   "answer": 0,
    "why": "When you accept a clearance below the MEA/MIA/MVA/OROCA, terrain and obstruction clearance are your job until you reach it [[33:280|AIM 4-4-9]]."
   },
   {
    "q": "Your GPS fails just after ATC assigns an RNAV SID. What does the AIM say to do?",
    "options": [
+    "Fly the SID using your VOR receiver instead, without telling ATC",
     "Tell ATC you are unable RNAV and request an amended clearance",
-    "Fly the SID using your VOR receiver instead",
-    "Say nothing and fly runway heading",
-    "Squawk 7700 and fly the filed route"
+    "Say nothing to ATC and just fly runway heading until the GPS recovers",
+    "Squawk 7700 and continue to fly the route you originally filed"
    ],
-   "answer": 0,
+   "answer": 1,
    "why": "If unable to meet RNAV procedure requirements, advise ATC as soon as possible, e.g. “unable RNAV, request amended clearance” [[34:10|AIM 5-5-16]]."
   },
   {
@@ -1627,13 +1773,59 @@
   {
    "q": "You are in IMC on an IFR clearance and ATC hasn't spoken for a while. The frequency seems dead. What should you do first?",
    "options": [
-    "Squawk 7600 immediately",
-    "Wait at least 1 minute, then try other frequencies or an FSS while listening",
-    "Climb to the highest MEA on the route",
-    "Turn toward the nearest VFR airport"
+    "Squawk 7600 immediately, before trying any other frequency or radio",
+    "Climb to the highest MEA on the route and keep monitoring that frequency",
+    "Wait at least 1 minute, then try other frequencies or an FSS",
+    "Turn toward the nearest VFR airport and descend out of the clouds"
+   ],
+   "answer": 2,
+   "why": "Backup radios usually switch within 60 seconds, so wait at least 1 minute. Then try the last controller, another sector, or an FSS [[33:375|AIM 5-3-1]]."
+  },
+  {
+   "q": "The LUFKIN SIX route description says to expect the filed altitude:",
+   "options": [
+    "Upon reaching 1,500 ft",
+    "10 minutes after departure",
+    "After passing the LFK VORTAC",
+    "At the KYANN intersection"
    ],
    "answer": 1,
-   "why": "Backup radios usually switch within 60 seconds, so wait at least 1 minute. Then try the last controller, another sector, or an FSS [[33:375|AIM 5-3-1]]."
+   "figure": "f7",
+   "why": "It reads Expect filed altitude 10 minutes after departure [[29:40|IPH Figure 1-22]]."
+  },
+  {
+   "q": "The primary arrival airport for the CHINS SEVEN ARRIVAL is:",
+   "options": [
+    "Boeing Field/King County",
+    "Yakima Air Terminal",
+    "Sea-Tac International",
+    "Ephrata Municipal"
+   ],
+   "answer": 2,
+   "figure": "f6",
+   "why": "The callout names Seattle-Tacoma International as primary. Other airports, such as Boeing Field, may also be served [[29:125|IPH Figure 3-11]]."
+  },
+  {
+   "q": "You are not sure you heard a clearance altitude correctly. What does 14 CFR 91.123 say to do?",
+   "options": [
+    "Wait until ATC corrects you",
+    "Climb to the MEA and say nothing",
+    "Fly the altitude you believe you heard",
+    "Immediately ask ATC for clarification"
+   ],
+   "answer": 3,
+   "why": "When a pilot is uncertain of a clearance, that pilot shall immediately request clarification from ATC [[60:450|14 CFR 91.123(a)]]."
+  },
+  {
+   "q": "You deviate from a clearance because of a TCAS resolution advisory. What must you do under 14 CFR 91.123?",
+   "options": [
+    "Notify ATC as soon as possible",
+    "Nothing, because ATC saw it on radar",
+    "Return to the old altitude without a call",
+    "File a written report within 10 days"
+   ],
+   "answer": 0,
+   "why": "A pilot who deviates because of an emergency or a TCAS RA must notify ATC as soon as possible [[60:450|14 CFR 91.123(c)]]."
   }
  ]
 }

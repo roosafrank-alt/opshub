@@ -31,7 +31,7 @@ class NextLessonToggleNoReloadTest(OpsHubTestCase):
     def test_toggle_is_a_button_not_a_link_so_it_never_navigates(self):
         c = self.login("master")
         body = c.get("/flight/dashboard").get_data(as_text=True)
-        self.assertIn('class="btn next-scope-btn', body)
+        self.assertIn('class="btn dash-scope-btn', body)  # the single Whole school / Just mine switch
         self.assertNotIn('href="/flight/dashboard?next=', body)
 
     def test_a_non_master_admin_cannot_flip_the_scope(self):

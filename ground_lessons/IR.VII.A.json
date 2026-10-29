@@ -888,6 +888,38 @@
     "q": "You have an EFC of 1610Z and reach the clearance limit (not an approach fix) at 1550Z. When do you leave it?",
     "a": "At 1610Z, the EFC. You leave on arrival only when you have no EFC [[60:483|14 CFR 91.185(c)(3)(ii)]]."
    }
+  },
+  {
+   "title": "Reading the chart: the MEA part of the lost-comm altitude",
+   "kind": "knowledge",
+   "codes": [
+    "IR.VII.A.K1",
+    "IR.VII.A.S3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "For each route segment, the lost-comm altitude is the highest of three: the altitude in your last clearance, the minimum IFR altitude, and the altitude ATC told you to expect [[60:483|14 CFR 91.185(c)(2)]]. The chart supplies the middle one, segment by segment. The IPH uses the MEA for it [[29:108|IPH p 108]]."
+    },
+    {
+     "p": "Directional MEAs show two numbers with arrows. Each number applies when you fly the way its arrow points. An asterisk before a number is a MOCA [[2:83|Chart Users' Guide p 83]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "Use example 3 as practice. Traveling east from DBS, the MEA is 13,000 ft for the first two segments and 15,000 ft on the third. Traveling west from QUIRT it is 15,000, then 10,000, then 9,000 ft. The MOCA is 8,100 ft on the first two segments [[2:85|Chart Users' Guide p 85]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "Now compare. Say you are westbound from QUIRT with 12,000 ft assigned and nothing to expect. You need 15,000 ft on the first segment. On the second and third segments the MEAs are 10,000 and 9,000 ft, so your assigned 12,000 ft is the highest [[60:483|14 CFR 91.185(c)(2)]]."
+    },
+    {
+     "p": "Timing matters. When the MEA rises at a fix, begin the climb at that fix. If the fix has an MCA, be at or above it when you reach the fix. When the next MEA is lower, descend to your assigned or expected altitude at the fix where it drops [[29:108|IPH p 108]]. Plan with the MEA, not the lower MOCA, which assures signals only within 22 NM of a VOR [[2:69|Chart Users' Guide p 69]]."
+    }
+   ]
   }
  ],
  "figures": {
@@ -938,6 +970,22 @@
    "caption": "Figure 14-42. Light gun signals.",
    "alt": "Table of light gun signals with colored bars: steady green, flashing green, steady red, flashing red, flashing white, and alternating red and green, with their meanings for vehicles and personnel, aircraft on the ground, and aircraft in flight.",
    "source": "PHAK, PDF p. 359"
+  },
+  "f7": {
+   "file": "IR.VII.A-7.jpg",
+   "res": "2",
+   "page": 85,
+   "caption": "Chart Users' Guide: Low Enroute Chart example 3, MOCA and directional MEAs along a Victor route.",
+   "alt": "Example 3 from the guide. A strip of V298 from the DUBOIS VOR through SABAT and LAMON to QUIRT, with directional MEAs 13000 and 9000 and a MOCA of *8100 on the first segments, 15000 on the third, and a description: traveling east MEA 13,000 for two segments then 15,000; traveling west from QUIRT 15,000, 10,000 and 9,000; MOCA 8100.",
+   "source": "Chart Guide, PDF p. 85"
+  },
+  "f8": {
+   "file": "IR.VII.A-8.jpg",
+   "res": "2",
+   "page": 83,
+   "caption": "Chart Users' Guide: IFR Enroute Symbology, Minimum Enroute Altitude (MEA) and directional MEAs.",
+   "alt": "Top of the MEA row of the symbology table showing a plain MEA number, and a directional MEA symbol on a segment with 13000 and an arrow pointing right, 10000 with an arrow pointing left, an asterisk MOCA of 8100 and a distance of 18, plus high chart MEA examples.",
+   "source": "Chart Guide, PDF p. 83"
   }
  },
  "scenario": {
@@ -1011,34 +1059,34 @@
   {
    "q": "Your radios fail while you are IFR in clear VFR conditions. What does 14 CFR 91.185 require?",
    "options": [
-    "Squawk 7700 and continue IFR to the destination",
-    "Continue under VFR and land as soon as practicable",
-    "Land at the nearest airport of any kind",
-    "Climb to the MEA and fly the filed route"
+    "Squawk 7700 and continue IFR on the filed route to the destination",
+    "Climb to the MEA and fly the filed route to the destination",
+    "Land at the nearest airport of any kind, suitable or not",
+    "Continue under VFR and land as soon as practicable"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "In VFR conditions you continue VFR and land as soon as practicable [[60:482|14 CFR 91.185(b)]]. That does not mean any nearest airport [[34:53|AIM 6-4-1]]."
   },
   {
    "q": "You are being radar vectored to join V16 when the radios fail in IMC. Which route do you fly?",
    "options": [
-    "Keep the vector heading until you reach the destination",
-    "Turn to fly your filed route",
-    "Fly direct from the point of failure to V16, then along it",
-    "Fly direct to the destination airport"
+    "Keep flying the vector heading until you reach the destination airport",
+    "Turn to fly your filed route as soon as the radios fail, from where you are",
+    "Fly direct to the destination airport on the shortest line from your position",
+    "Go direct from the failure point to V16, then along it"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "When vectored, fly direct from the point of failure to the fix, route or airway in the vector clearance [[60:482|14 CFR 91.185(c)(1)]]."
   },
   {
    "q": "Last assigned altitude 6,000. The next segment's MEA is 8,000. No expected altitude was given. What altitude do you fly on the next segment?",
    "options": [
-    "6,000, the last assigned altitude",
+    "6,000, the last altitude assigned, until you regain radio contact",
+    "8,000, climbing right away, before you reach the fix where the MEA rises",
     "8,000, starting at the fix where the MEA rises",
-    "8,000, climbing right away",
-    "7,000, halfway between"
+    "7,000, halfway between the assigned altitude and the new MEA"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "Fly the highest of assigned, MEA and expected for the segment [[60:483|14 CFR 91.185(c)(2)]]. Climb right after passing the fix where the higher MEA begins [[60:480|14 CFR 91.177(b)]]."
   },
   {
@@ -1046,32 +1094,32 @@
    "options": [
     "7500",
     "7700",
-    "7600",
-    "1200"
+    "1200",
+    "7600"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "Set Mode A/3 code 7600 [[34:54|AIM 6-4-2]]. 7500 is the hijack code [[33:223|AIM 4-1-20]] and 7700 is the emergency code [[1:359|PHAK 14-25]]."
   },
   {
    "q": "Your clearance limit is the IAF at the destination and you have an EFC. When do you begin the approach?",
    "options": [
     "As close as possible to your ETA",
-    "As soon as you arrive at the IAF",
     "As close as possible to the EFC time",
+    "As soon as you arrive at the IAF",
     "Ten minutes after the EFC time"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "When the limit is an approach fix, begin descent or descent and approach as close as possible to the EFC if you received one [[60:483|14 CFR 91.185(c)(3)(i)]]."
   },
   {
    "q": "With no radio, you see a flashing green light from the tower while in flight. It means:",
    "options": [
-    "Cleared to land",
     "Return for landing, steady green to follow",
-    "Give way and continue circling",
-    "Cleared to taxi"
+    "Cleared to land, and no further light signal will follow",
+    "Give way to other aircraft and continue circling the airport",
+    "Cleared to taxi to the runway for departure"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "Flashing green in flight means return for landing, to be followed by steady green at the proper time [[60:451|14 CFR 91.125]]. Cleared to taxi is its meaning on the ground."
   },
   {
@@ -1088,24 +1136,84 @@
   {
    "q": "Center goes silent mid-flight. How long should you wait before deciding it is an ARTCC frequency outage?",
    "options": [
-    "At least 1 minute",
+    "Until the next reporting point",
     "About 10 seconds",
     "At least 10 minutes",
-    "Until the next reporting point"
+    "At least 1 minute"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "Backup radios seldom take more than 60 seconds to come on, so wait at least one minute [[29:108|IPH 2-48]]."
   },
   {
    "q": "You reach the clearance limit with no holding instructions and no charted hold. How do you hold?",
    "options": [
-    "Left turns on any radial you like",
     "Right turns on the course you flew to the fix",
-    "Circle over the fix at the MEA",
-    "Right turns on the reciprocal of your course"
+    "Left turns on any radial you like, as long as you stay at the MEA",
+    "Circle over the fix at the MEA until you regain radio contact",
+    "Right turns on the reciprocal of the course you flew to the fix"
+   ],
+   "answer": 0,
+   "why": "Enter a standard (right turn) pattern on the course on which you approached the fix [[33:382|AIM 5-3-8]] [[29:111|IPH 2-51]]."
+  },
+  {
+   "q": "You fly east from DBS on V298 with 9,000 ft assigned and nothing to expect. Radio fails on the first segment. What altitude do you fly?",
+   "options": [
+    "8,100 ft",
+    "15,000 ft",
+    "13,000 ft",
+    "9,000 ft"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The highest of assigned 9,000 ft and the MEA of 13,000 ft is 13,000 ft [[60:483|14 CFR 91.185(c)(2)]]. The MEA comes from the chart [[2:85|Chart Users' Guide p 85]]."
+  },
+  {
+   "q": "Westbound from QUIRT you have 12,000 ft assigned and nothing to expect. What altitude on the second segment, where the MEA is 10,000 ft?",
+   "options": [
+    "12,000 ft",
+    "15,000 ft",
+    "10,000 ft",
+    "9,000 ft"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "Your assigned altitude is higher than the 10,000 ft MEA, so it is the highest of the three [[60:483|14 CFR 91.185(c)(2)]] [[2:85|Chart Users' Guide p 85]]."
+  },
+  {
+   "q": "Same flight, westbound from QUIRT with 12,000 ft assigned. What altitude on the first segment, where the MEA is 15,000 ft?",
+   "options": [
+    "12,000 ft",
+    "8,100 ft",
+    "15,000 ft",
+    "10,000 ft"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "The MEA is higher than the assigned altitude, so you fly 15,000 ft on that segment [[60:483|14 CFR 91.185(c)(2)]] [[2:85|Chart Users' Guide p 85]]."
+  },
+  {
+   "q": "In the symbol with 13000 and a right arrow, 10000 and a left arrow, which MEA applies when you fly toward the left?",
+   "options": [
+    "18,000 ft",
+    "10,000 ft",
+    "8,100 ft",
+    "13,000 ft"
    ],
    "answer": 1,
-   "why": "Enter a standard (right turn) pattern on the course on which you approached the fix [[33:382|AIM 5-3-8]] [[29:111|IPH 2-51]]."
+   "figure": "f8",
+   "why": "Each number applies in the direction of its arrow. The left arrow goes with 10,000 ft [[2:83|Chart Users' Guide p 83]]."
+  },
+  {
+   "q": "On that segment you fly toward the right arrow with 9,000 ft assigned and nothing to expect. What altitude if the radio fails?",
+   "options": [
+    "13,000 ft",
+    "9,000 ft",
+    "8,100 ft",
+    "10,000 ft"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "The right arrow MEA is 13,000 ft, higher than 9,000 ft assigned [[2:83|Chart Users' Guide p 83]] [[60:483|14 CFR 91.185(c)(2)]]."
   }
  ],
  "takeaways": [
@@ -1356,59 +1464,95 @@
     {
      "s": "You set the new frequency and check in twice. No reply, and the frequency is strangely quiet.",
      "options": [
-      "Squawk 7700 and turn toward the nearest airport",
-      "Check volume, audio panel, frequency and a stuck mike, then call the previous controller",
-      "Descend to look for VFR conditions below",
-      "Wait 10 minutes and call again"
+      "Squawk 7700 right away and turn toward the nearest airport with an approach",
+      "Wait 10 minutes for the controller to come back and then call again",
+      "Descend to look for VFR conditions below and continue the flight visually",
+      "Check volume, audio panel, frequency and mike, then call the previous controller"
      ],
-     "answer": 1,
+     "answer": 3,
      "why": "Most silent radios are setup problems: check volume, frequency and a stuck mike [[33:227|AIM 4-2-2]], then call the transferring controller for another frequency [[29:108|IPH 2-48]]."
     },
     {
      "s": "Everything checks out and the previous controller doesn't answer either. A full minute has passed.",
      "options": [
-      "Squawk 7600 and try FSS, 121.5 and other aircraft",
-      "Squawk 7500 so ATC notices you",
       "Turn the radios off to save the battery",
+      "Squawk 7500 so ATC notices you",
+      "Squawk 7600 and try FSS, 121.5 and other aircraft",
       "Turn onto your filed route right away"
      ],
-     "answer": 0,
+     "answer": 2,
      "why": "Set 7600 [[34:54|AIM 6-4-2]] and try the old frequency, FSS, New York or San Francisco Radio and 121.5, all at once if you can [[34:55|AIM 6-4-3]]."
     },
     {
      "s": "Still no contact, still IMC. Past LAKE, the V45 MEA is 7,000 ft. Your filed route was different.",
      "options": [
-      "Fly the filed route at 6,000",
-      "Fly V45 at 6,000, your last assigned altitude",
       "Fly V45, climbing to 7,000 after passing LAKE",
+      "Fly V45 at 6,000, your last assigned altitude",
+      "Fly the filed route at 6,000",
       "Fly direct to the destination at the MEA"
      ],
-     "answer": 2,
+     "answer": 0,
      "why": "Fly the route in the last clearance [[60:482|14 CFR 91.185(c)(1)]] at the highest of assigned and MEA for each segment [[60:483|14 CFR 91.185(c)(2)]], climbing after passing the fix where the MEA rises [[60:480|14 CFR 91.177(b)]]."
     },
     {
      "s": "You reach WEST, the IAF, at 1625Z. No EFC was ever given.",
      "options": [
-      "Begin the approach right away",
+      "Begin the approach right away, since you are at the approach fix now",
+      "Hold at WEST until you get radio contact back, however long that takes",
       "Hold at WEST and begin descent and approach as close as possible to 1640Z",
-      "Hold until you get radio contact back",
-      "Leave for your alternate"
+      "Leave for your alternate and fly an approach there instead of the destination"
      ],
-     "answer": 1,
+     "answer": 2,
      "why": "When the limit is a fix where an approach begins and there is no EFC, begin descent, or descent and approach, as close as possible to the ETA, here 1640Z [[60:483|14 CFR 91.185(c)(3)(i)]]. You may not go past the clearance limit, so hold there as charted, or on the inbound course with right turns [[29:111|IPH 2-51]]."
     },
     {
      "s": "On the approach you break out into VFR conditions with the towered airport ahead. The tower shows you a steady green light.",
      "options": [
-      "Land: you are cleared to land",
       "Circle: give way to other traffic",
+      "Land: you are cleared to land",
       "Go around: the airport is unsafe",
       "Climb back into the clouds and fly the missed approach"
      ],
-     "answer": 0,
+     "answer": 1,
      "why": "Steady green to an aircraft in flight means cleared to land [[60:451|14 CFR 91.125]]. In VFR conditions you land as soon as practicable [[60:482|14 CFR 91.185(b)]]."
     }
    ]
+  },
+  {
+   "type": "label",
+   "key": "h8",
+   "after": 13,
+   "title": "Read the example 3 strip",
+   "figure": "f7",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 8.0,
+     "y": 37.6,
+     "label": "VOR (DBS)"
+    },
+    {
+     "x": 12.5,
+     "y": 59.1,
+     "label": "MOCA"
+    },
+    {
+     "x": 21.2,
+     "y": 55.0,
+     "label": "MCA and MRA flags"
+    },
+    {
+     "x": 29.3,
+     "y": 62.1,
+     "label": "Directional MEAs"
+    },
+    {
+     "x": 39.7,
+     "y": 77.1,
+     "label": "V298 airway"
+    }
+   ],
+   "why": "The VOR box sits at the left. The asterisk number is the MOCA. The X and R flags are at SABAT. Directional MEAs have arrows, V298 labels the airway and QUIRT ends the strip [[2:85|Chart Users' Guide p 85]] [[2:83|Chart Users' Guide p 83]]."
   }
  ],
  "final_quiz": [
@@ -1416,75 +1560,75 @@
    "q": "You took off at 1520Z with a filed ETE of 2:10. Your clearance limit is the destination IAF and you have no EFC. You arrive at the IAF at 1715Z. When should you begin the approach?",
    "options": [
     "At 1715Z, on arrival at the IAF",
-    "As close as possible to 1730Z",
     "As close as possible to 1740Z",
+    "As close as possible to 1730Z",
     "After one full lap of holding, whatever the time"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "ETA = 1520Z + 2:10 = 1730Z. With an approach fix as the limit and no EFC, begin as close as possible to that ETA [[60:483|14 CFR 91.185(c)(3)(i)]]."
   },
   {
    "q": "Assigned 5,000 and told \"expect 7,000 at FIXX.\" The radios fail before FIXX. After FIXX the MEAs are 6,000, then 9,000, then 4,000. What altitude do you fly on the 4,000 MEA segment?",
    "options": [
     "4,000",
-    "5,000",
+    "7,000",
     "9,000",
-    "7,000"
+    "5,000"
    ],
-   "answer": 3,
+   "answer": 1,
    "why": "Once past FIXX the expected 7,000 applies. On the 4,000 MEA segment the highest of assigned (5,000), expected (7,000) and MEA (4,000) is 7,000 [[60:483|14 CFR 91.185(c)(2)]] [[34:54|AIM 6-4-1]]."
   },
   {
    "q": "ATC said \"expect 9,000 at 1410Z.\" Your radios fail at 1425Z while you are still at the assigned 7,000, MEA 5,000. What do you fly?",
    "options": [
     "9,000, the expected altitude",
-    "5,000, the MEA",
     "7,000, the last assigned altitude",
+    "5,000, the MEA",
     "8,000, as a compromise"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "If the failure happens after the time or fix given, the expected altitude no longer applies. Fly the higher of the last assigned and the minimum IFR altitude [[34:54|AIM 6-4-1]]."
   },
   {
    "q": "Your clearance limit is an en route intersection (not an approach fix), and you have no EFC. The radios fail in IMC. What do you do at the intersection?",
    "options": [
+    "Hold there for 15 minutes, then continue on toward the destination",
+    "Hold there until your ETA, then fly on to the airport and land",
     "Leave it on arrival and fly to a fix where an approach begins",
-    "Hold there until your ETA, then fly to the airport",
-    "Hold there for 15 minutes, then continue",
-    "Hold there until you regain radio contact"
+    "Hold there until you regain radio contact with the controller"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "When the limit is not an approach fix and you have no EFC, leave it upon arrival, proceed to an approach fix, and begin as close as possible to the ETA [[60:483|14 CFR 91.185(c)(3)(ii)]]."
   },
   {
    "q": "You are on a radar SID whose chart has its own lost communications procedure. The radios fail during the vectors. What do you fly?",
    "options": [
-    "The AIM 6-4-1 procedure only",
-    "The lost communications procedure printed on the SID chart",
-    "Your filed route at the MEA",
-    "Return to the departure airport"
+    "The AIM 6-4-1 lost communications procedure only, ignoring the chart",
+    "Return to the departure airport and land as soon as you can",
+    "Your filed route at the MEA, ignoring what the SID chart prints",
+    "The lost communications procedure printed on the SID chart"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "On a radar SID you are expected to comply with the lost communications procedure on the chart, not necessarily the AIM one [[29:42|IPH 1-26]]."
   },
   {
    "q": "You are cleared to 2,700 ft until crossing the VOR, then cleared for the approach. The MOCA is 2,700, the MEA is 4,000, and you are 15 NM from the VOR when the radios fail. What altitude do you keep until the VOR?",
    "options": [
-    "Climb to 4,000, the MEA",
+    "Stay at 2,700 until crossing the VOR",
     "Descend to the approach's minimums",
     "Climb to 3,700, 1,000 ft above the MOCA",
-    "Stay at 2,700 until crossing the VOR"
+    "Climb to 4,000, the MEA"
    ],
-   "answer": 3,
+   "answer": 0,
    "why": "Within 22 NM of the VOR the MOCA is the minimum IFR altitude for that segment, so remain at 2,700 until crossing the VOR (AIM Example 2) [[34:54|AIM 6-4-1]] [[60:480|14 CFR 91.177(a)]]."
   },
   {
    "q": "Your radios fail in VFR conditions 10 minutes from your destination. A small private grass strip is right below you. What is the best choice?",
    "options": [
-    "Land on the grass strip because it is closest",
-    "Continue IFR at the MEA to the destination",
+    "Land on the grass strip because it is the closest airport",
+    "Continue IFR at the MEA to your destination despite the VFR conditions",
     "Continue VFR and land at your suitable destination",
-    "Climb into the clouds to follow your IFR route"
+    "Climb into the clouds to follow your IFR route to the destination"
    ],
    "answer": 2,
    "why": "\"As soon as practicable\" does not require landing at an unauthorized or unsuitable airport, or minutes short of your destination [[34:53|AIM 6-4-1]]. You still must continue VFR [[60:482|14 CFR 91.185(b)]]."
@@ -1492,34 +1636,34 @@
   {
    "q": "The ammeter shows a discharge, the alternator light is on, and the radios are getting weak. What is the best plan?",
    "options": [
+    "Turn everything off and fly by the magnetic compass alone to your destination",
+    "Keep everything on and fly 91.185 until you reach your original ETA",
     "Shed electrical load and land at the nearest suitable airport",
-    "Keep everything on and fly 91.185 to your ETA",
-    "Turn everything off and fly by the magnetic compass",
-    "Climb to improve radio range and wait for ATC"
+    "Climb to improve radio range and wait for ATC to call you back"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "After a charging failure, reduce the electrical load and land at the nearest suitable airport. The battery may last about 40 minutes or less [[23:330|IFH 11-5]]."
   },
   {
    "q": "You can hear nothing, but you think your transmitter works. Which method can let an FSS hear you while you listen on a VOR frequency?",
    "options": [
-    "Simplex on 121.5",
     "Duplex: transmit on 122.1 and listen on the VOR",
-    "Squawking 7600 and IDENT",
-    "Transmitting on the localizer frequency"
+    "Simplex on 121.5, listening on that same emergency frequency",
+    "Squawking 7600 and IDENT, then listening on the VOR frequency",
+    "Transmitting on the localizer frequency while listening on a VOR"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "Some FSSs can be reached by transmitting on 122.1 MHz and receiving on a VOR frequency. This is duplex operation [[23:53|IFH 2-2]]."
   },
   {
    "q": "You are on a long final with no radio and the tower shows you a steady red light. What does it mean?",
    "options": [
-    "Airport unsafe, do not land",
-    "Cleared to land",
-    "Stop immediately",
-    "Give way to other aircraft and continue circling"
+    "Airport unsafe, do not land until the tower shows a green light",
+    "Cleared to land on the runway you are lined up with",
+    "Give way to other aircraft and continue circling",
+    "Stop immediately; this is a signal for aircraft on the ground"
    ],
-   "answer": 3,
+   "answer": 2,
    "why": "Steady red to an aircraft in flight means give way to other aircraft and continue circling [[60:451|14 CFR 91.125]]. Flashing red means airport unsafe."
   },
   {
@@ -1537,23 +1681,81 @@
    "q": "Which action is the best example of single-pilot resource management for a possible radio failure?",
    "options": [
     "Waiting until a failure happens to look up frequencies",
-    "Relying on ATC to tell you what to do once the radios work again",
     "Organizing frequencies, airports and clearance notes before you need them",
+    "Relying on ATC to tell you what to do once the radios work again",
     "Doing every troubleshooting step at once while hand flying in IMC"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "SRM means managing all resources, and gathering them before flight lets a single pilot act with crew-like efficiency [[30:57|RMH 8-4]]. In an emergency, prioritize and manage workload [[30:56|RMH 8-3]]."
   },
   {
    "q": "Ice is building fast at your 91.185 altitude in IMC, and a lower altitude would clear it but put you below the MEA. What gives you authority to deviate?",
    "options": [
-    "Nothing; 91.185 can never be deviated from",
-    "Only a clearance relayed by another pilot",
-    "14 CFR 91.187, the malfunction report rule",
-    "14 CFR 91.3(b), PIC emergency authority, as much as the emergency needs"
+    "14 CFR 91.3(b), the PIC's emergency authority, as needed",
+    "Only a clearance relayed by another pilot on the radio frequency",
+    "14 CFR 91.187, the rule on reporting a malfunction of navigation equipment",
+    "Nothing; 91.185 can never be deviated from, even in an emergency"
+   ],
+   "answer": 0,
+   "why": "In an emergency needing immediate action, the PIC may deviate from Part 91 as needed, with a written report if asked [[60:435|14 CFR 91.3]]. The AIM says not to be reluctant to use it [[34:53|AIM 6-4-1]]."
+  },
+  {
+   "q": "What is the MOCA on the DBS to SABAT segment in example 3?",
+   "options": [
+    "9,000 ft",
+    "8,100 ft",
+    "13,000 ft",
+    "11,100 ft"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "The guide gives a MOCA of 8100 for DBS to SABAT and SABAT to LAMON [[2:85|Chart Users' Guide p 85]]."
+  },
+  {
+   "q": "Eastbound in example 3, what is the MEA on the third segment?",
+   "options": [
+    "15,000 ft",
+    "13,000 ft",
+    "10,000 ft",
+    "9,000 ft"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "Traveling east, the MEA is 13,000 ft for two segments and 15,000 ft along the third [[2:85|Chart Users' Guide p 85]]."
+  },
+  {
+   "q": "Westbound from QUIRT you have 8,000 ft assigned and nothing to expect. What altitude on the third segment, where the MEA is 9,000 ft?",
+   "options": [
+    "9,000 ft",
+    "8,000 ft",
+    "15,000 ft",
+    "10,000 ft"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "The MEA of 9,000 ft is higher than the assigned 8,000 ft [[60:483|14 CFR 91.185(c)(2)]] [[2:85|Chart Users' Guide p 85]]."
+  },
+  {
+   "q": "You lose radio while being radar vectored. Which route do you fly first?",
+   "options": [
+    "The route you filed, flown from your present position",
+    "A straight line to your destination, ignoring airways",
+    "Back to the departure airport and then your filed route",
+    "Direct to the fix or route in the vector clearance"
    ],
    "answer": 3,
-   "why": "In an emergency needing immediate action, the PIC may deviate from Part 91 as needed, with a written report if asked [[60:435|14 CFR 91.3]]. The AIM says not to be reluctant to use it [[34:53|AIM 6-4-1]]."
+   "why": "If being radar vectored, fly the direct route from the point of failure to the fix, route or airway in the vector clearance [[60:482|14 CFR 91.185(c)(1)(ii)]]."
+  },
+  {
+   "q": "You were never assigned a route, but ATC said to expect V10 in a further clearance. Radio fails. Which route do you fly?",
+   "options": [
+    "The last route you filed with ATC",
+    "The route ATC advised to expect",
+    "Any direct route to the destination",
+    "Direct to the nearest suitable airport"
+   ],
+   "answer": 1,
+   "why": "With no assigned route, use the route ATC advised to expect. Use the filed route only if there is none [[60:482|14 CFR 91.185(c)(1)]]."
   }
  ]
 }

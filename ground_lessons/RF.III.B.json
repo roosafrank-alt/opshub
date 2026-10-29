@@ -685,6 +685,42 @@
     "q": "Why can't you rely on \"it's still light out\" for SVFR without an instrument rating?",
     "a": "Because the SVFR time limit is sunset, not the end of civil twilight [[60:467|14 CFR 91.157(b)]]."
    }
+  },
+  {
+   "title": "Reading the chart: where Class E and Class G start",
+   "kind": "knowledge",
+   "codes": [
+    "RF.III.B.K1",
+    "RF.III.B.K2",
+    "RF.III.B.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "The weather minimums in 91.155 depend on the class of airspace and on your height above the surface. The chart shows you where those lines run, so read it before you judge the weather."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "Class E surface airspace is a magenta dashed line around an airport. Away from airports, Class E exists at 1,200 ft AGL unless the chart says otherwise. A magenta vignette shows a Class E floor of 700 ft AGL. A blue vignette shows a floor other than 700 ft, next to Class G, usually 1,200 ft AGL [[2:17|Chart Users' Guide p 17]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "Class G within the United States extends up to 14,500 ft MSL. At and above that altitude it is Class E, except in airspace less than 1,500 ft above the terrain and in some special use airspace [[2:17|Chart Users' Guide p 17]]."
+    },
+    {
+     "p": "Where a floor is higher than 700 ft AGL, the chart prints the number. When a ceiling is below 18,000 ft MSL, the word CEILING is added along the limits [[2:27|Chart Users' Guide p 27]]. For the 91.155 table, ask two questions: what class am I in, and am I 1,200 ft or less above the surface?"
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Under 1,200 ft AGL in Class G the minimums are the lowest in the table. The moment you climb above 1,200 ft AGL the minimums rise, even though the air is still uncontrolled."
+     }
+    }
+   ]
   }
  ],
  "figures": {
@@ -727,6 +763,22 @@
    "caption": "Chart Users' Guide: airports where fixed wing special VFR operations are prohibited are shown with NO SVFR above the airport name.",
    "alt": "Legend rows from the airport data table: Flight Service Station on field, shown as FSS, and Airports where fixed wing special VFR operations are prohibited (shown above airport name) FAR 91, shown as NO SVFR in blue.",
    "source": "Chart Guide, PDF p. 15"
+  },
+  "f6": {
+   "file": "RF.III.B-6.jpg",
+   "res": "2",
+   "page": 17,
+   "caption": "Chart Users' Guide: Class E surface airspace, the vignette colors and Class G.",
+   "alt": "Text with a small key on the right. Class E surface airspace is a magenta dashed line. Class E exists at 1,200 feet AGL unless designated otherwise. A magenta vignette marks a 700 foot floor and a blue vignette marks a higher floor next to Class G. A symbol with 2400 AGL over 4500 MSL shows a different floor and ceiling. The text then says Class G extends up to 14,500 feet MSL.",
+   "source": "Chart Users' Guide, PDF p. 17"
+  },
+  "f7": {
+   "file": "RF.III.B-7.jpg",
+   "res": "2",
+   "page": 27,
+   "caption": "Chart Users' Guide: the three Class E vignette bands and a CEILING label.",
+   "alt": "Three horizontal color bands with descriptions. A magenta band for Class E starting at 700 feet AGL that abuts 1,200 foot or higher Class E, labeled 700 Class E eff 0600-2300. A magenta band for 700 feet AGL that abuts Class G, labeled CLASS G. A blue band for 1,200 feet AGL that abuts Class G. At the bottom a boundary line labeled CEILING 14,000 MSL above and 8000 AGL below.",
+   "source": "Chart Users' Guide, PDF p. 27"
   }
  },
  "scenario": {
@@ -773,23 +825,23 @@
   {
    "q": "You will fly VFR through Class C airspace. What does 91.155 require?",
    "options": [
+    "1 SM; clear of clouds, as in Class G below 1,200 ft AGL by day",
+    "3 SM; clear of clouds, the same rule as Class B",
     "3 SM; 500 ft below, 1,000 ft above, 2,000 ft horizontal",
-    "3 SM and clear of clouds",
-    "1 SM and clear of clouds",
-    "5 SM; 1,000 ft below and above, 1 SM horizontal"
+    "5 SM; 1,000 ft below, 1,000 ft above, 1 SM horizontal"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "Class C uses 3 SM and 500 below, 1,000 above, 2,000 horizontal [[60:465|14 CFR 91.155(a)]]. Clear of clouds is Class B."
   },
   {
    "q": "You level at exactly 1,200 ft AGL, the floor of the Class E above you. Which minimums apply?",
    "options": [
     "Class E, because you are at its floor",
-    "Class G, the airspace below",
+    "Special VFR minimums",
     "Whichever is less restrictive",
-    "Special VFR minimums"
+    "Class G, the airspace below"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "At the base altitude of a Class E area you count as in the airspace directly below it [[60:466|14 CFR 91.155(e)]]."
   },
   {
@@ -797,10 +849,10 @@
    "options": [
     "No, the ceiling is 900 ft",
     "No, any layer below 1,000 ft counts",
-    "Yes, the ceiling is 1,400 ft",
-    "Only with special VFR"
+    "Only with special VFR",
+    "Yes, the ceiling is 1,400 ft"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "The ceiling is the lowest broken or overcast layer, 1,400 ft; a scattered layer is not a ceiling [[60:3|14 CFR 1.1 Ceiling]]. That meets the 1,000-ft rule [[60:466|14 CFR 91.155(c)]]. You still must keep Class D cloud clearance from the scattered layer [[60:465|14 CFR 91.155(a)]]."
   },
   {
@@ -808,66 +860,125 @@
    "options": [
     "1/2 SM",
     "2 SM",
-    "3 SM",
-    "1 SM"
+    "1 SM",
+    "3 SM"
    ],
-   "answer": 3,
+   "answer": 2,
    "why": "Except for helicopters, SVFR needs at least 1 SM flight visibility [[60:467|14 CFR 91.157(b)]]."
   },
   {
    "q": "The sectional shows \"NO SVFR\" above an airport name. What does it mean?",
    "options": [
-    "SVFR is allowed only at night there",
     "Fixed-wing special VFR is prohibited there",
-    "The airport has no weather reporting",
-    "SVFR needs a flight plan there"
+    "Fixed-wing special VFR is allowed there only between sunset and sunrise",
+    "The airport has no weather reporting, so only a pilot report can be used",
+    "Special VFR there requires a complete flight plan to be filed first"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "\"NO SVFR\" marks airports where fixed-wing SVFR is prohibited [[2:17|Chart Users' Guide p 17]], the Part 91 Appendix D, Section 3 list [[60:648|14 CFR Part 91 App. D, Sec. 3]]."
   },
   {
    "q": "Magnetic course 270°, cruising well above 3,000 ft AGL. Which altitude fits 91.159?",
    "options": [
-    "5,500 ft",
-    "6,000 ft",
     "6,500 ft",
+    "6,000 ft",
+    "5,500 ft",
     "7,500 ft"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "180° through 359° uses even thousands + 500, such as 6,500 [[60:468|14 CFR 91.159(a)(2)]]."
   },
   {
    "q": "Your magnetic course is 175°, but a crosswind gives a magnetic heading of 183°. Which rule picks your altitude?",
    "options": [
     "Heading 183°: even + 500",
-    "Course 175°: odd + 500",
+    "True course, before variation",
     "Either, pilot's choice",
-    "True course, before variation"
+    "Course 175°: odd + 500"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "VFR cruising altitude goes by magnetic course (ground track) [[33:177|AIM 3-1-5, TBL 3-1-2]] [[60:467|14 CFR 91.159(a)(1)]]."
   },
   {
    "q": "On an SVFR clearance, who is responsible for terrain and obstacle clearance?",
    "options": [
-    "The pilot",
-    "The controller, since you are on a clearance",
     "The controller, only at radar facilities",
+    "The controller, since you are on a clearance",
+    "The pilot",
     "Nobody; SVFR has no altitude"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "The clearance gives no specific altitude and the pilot is responsible for obstacle or terrain clearance [[33:278|AIM 4-4-6]]."
   },
   {
    "q": "According to the AFH, about how long does a pilot without instrument training, or with eroded skills, keep control once on instruments alone?",
    "options": [
-    "About 1 minute",
     "About 10 minutes",
+    "About 1 minute",
     "About 30 minutes",
     "Until fuel runs out, if trimmed"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "Accident statistics show these pilots lose control in about 10 minutes [[24:366|AFH 18-17]]."
+  },
+  {
+   "q": "According to the chart guide, how high does Class G extend within the United States?",
+   "options": [
+    "Up to 12,500 ft MSL",
+    "Up to 10,000 ft MSL",
+    "Up to 18,000 ft MSL",
+    "Up to 14,500 ft MSL"
+   ],
+   "answer": 3,
+   "figure": "f6",
+   "why": "Class G within the United States extends up to 14,500 ft MSL. At and above that altitude it is Class E, with exceptions [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "A magenta vignette appears along an edge of controlled airspace. What floor does it show?",
+   "options": [
+    "A Class E floor of 700 ft AGL",
+    "A Class E floor of 2,400 ft AGL",
+    "A floor at the surface (SFC)",
+    "A Class E floor of 1,200 ft AGL"
+   ],
+   "answer": 0,
+   "figure": "f6",
+   "why": "Controlled airspace floors of 700 ft above the ground are defined by a magenta vignette [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "The chart shows no vignette and no floor number in an area away from airports. At what height does Class E start there?",
+   "options": [
+    "10,000 ft MSL",
+    "1,200 ft AGL",
+    "700 ft AGL",
+    "The surface"
+   ],
+   "answer": 1,
+   "figure": "f6",
+   "why": "Class E airspace exists at 1,200 ft AGL unless designated otherwise [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "A boundary line is labeled CEILING 14,000 MSL above it and 8000 AGL below it. What does that show?",
+   "options": [
+    "Controlled airspace from 8,000 ft AGL up to 14,000 ft MSL",
+    "A military training area that is 14,000 ft wide",
+    "Uncontrolled Class G from 8,000 ft up to 14,000 ft",
+    "A weather ceiling report of 14,000 ft MSL overhead"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "A floor above 700 ft AGL is annotated with a number, and CEILING is added when the ceiling is below 18,000 ft MSL [[2:27|Chart Users' Guide p 27]] [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "It is day. You are in Class G, 800 ft AGL, in an airplane. What are the 14 CFR 91.155 minimums?",
+   "options": [
+    "1 SM and 500 ft below clouds",
+    "3 SM and 500 ft below clouds",
+    "5 SM and 1,000 ft below clouds",
+    "1 SM and clear of clouds"
+   ],
+   "answer": 3,
+   "why": "In Class G at 1,200 ft or less above the surface by day, an airplane needs 1 SM and to stay clear of clouds [[60:465|14 CFR 91.155(a)]]."
   }
  ],
  "takeaways": [
@@ -1059,10 +1170,10 @@
     {
      "s": "You want to fly to Valley. Can you take off VFR right now?",
      "options": [
-      "Yes: 4 SM is more than the 3 SM minimum",
-      "No: the ceiling is below 1,000 ft in a surface area, so you need special VFR or IFR",
-      "Yes, if you stay 500 ft below the clouds",
-      "No: special VFR needs 3 SM, so you can't go at all"
+      "Yes: 4 SM exceeds the 3 SM minimum, and VFR needs only visibility at the airport",
+      "No: the ceiling is below 1,000 ft in a surface area, so you need SVFR or IFR",
+      "Yes, VFR is fine as long as you stay 500 ft below the cloud base",
+      "No: special VFR needs 3 SM visibility, so no departure is possible at all"
      ],
      "answer": 1,
      "why": "No VFR beneath a ceiling under 1,000 ft in a surface area, except under special VFR [[60:466|14 CFR 91.155(c)]]. SVFR needs only 1 SM [[60:467|14 CFR 91.157(b)]]."
@@ -1070,45 +1181,45 @@
     {
      "s": "There is no tower at Hometown. Who do you ask for the SVFR clearance?",
      "options": [
-      "Nobody; announce it on the CTAF",
       "The nearest tower, FSS or center",
+      "Nobody; announce it on the CTAF",
       "Only FSS, after filing a VFR flight plan",
       "Any pilot on frequency"
      ],
-     "answer": 1,
+     "answer": 0,
      "why": "In a Class E surface area, a clearance may be obtained from the nearest tower, FSS or center, and no complete flight plan is needed [[33:278|AIM 4-4-6]]."
     },
     {
      "s": "Cleared SVFR out of the surface area. Past the boundary you level at 600 ft AGL, under the 700-ft Class E floor, in Class G. Visibility 4 SM, clear of clouds. What now applies?",
      "options": [
       "Still SVFR, with ATC separating you",
-      "Class G day: 1 SM and clear of clouds",
+      "No minimums; Class G is uncontrolled",
       "3 SM and 500 ft below clouds",
-      "No minimums; Class G is uncontrolled"
+      "Class G day: 1 SM and clear of clouds"
      ],
-     "answer": 1,
+     "answer": 3,
      "why": "SVFR is effective only inside the surface area [[33:278|AIM 4-4-6]]. In Class G at or below 1,200 AGL by day, the rule is 1 SM and clear of clouds [[60:465|14 CFR 91.155(a)]]. You must still meet the 91.119 minimum safe altitudes [[60:449|14 CFR 91.119]]."
     },
     {
      "s": "Halfway, visibility drops to about 1 SM and the ridge ahead disappears into cloud. Valley still reports VFR. What do you do?",
      "options": [
-      "Follow the highway lower, under the clouds",
-      "Climb through the clouds to get on top",
-      "Make a shallow turn back toward better weather and ask ATC for help if needed",
-      "Descend to 300 ft AGL to see better"
+      "Follow the highway lower, staying under the clouds to keep the ground in sight",
+      "Climb straight ahead through the clouds to get on top and call ATC there",
+      "Descend to about 300 ft AGL so the ridge and terrain stay in sight",
+      "Make a shallow turn back toward better weather and ask ATC for help"
      ],
-     "answer": 2,
+     "answer": 3,
      "why": "Don't continue VFR into IMC; turn around [[37:15|AC 91-92 8.2]]. Scud running is a known pitfall [[1:61|PHAK 2-22]]. Keep turns to 10° of bank or less if visual references fade [[24:368|AFH 18-19]]."
     },
     {
      "s": "At 1735 you are back near Hometown, still 900 overcast. ATC says to expect a 20-minute delay for SVFR entry. What is your plan?",
      "options": [
-      "Hold and accept SVFR at 1755",
+      "Hold and accept SVFR at 1755; the clearance is still available",
+      "Enter the surface area VFR under the 900 ft overcast, since it is still twilight",
       "Divert to an airport with VFR weather; after sunset you can't get SVFR",
-      "Enter VFR under the clouds; it is still twilight",
-      "Land anyway; the clearance is a formality"
+      "Land at Hometown anyway; the SVFR clearance is just a formality"
      ],
-     "answer": 1,
+     "answer": 2,
      "why": "Fixed-wing SVFR is only between sunrise and sunset unless the pilot meets the instrument requirements and the airplane is IFR-equipped [[60:467|14 CFR 91.157(b)]] [[33:278|AIM 4-4-6]]. Diverting before you run low on options is the safe choice [[1:48|PHAK 2-9]]."
     }
    ]
@@ -1151,6 +1262,31 @@
      "why": "MVFR is 3 to 5 miles or 1,000 to 3,000 ft [[34:79|AIM 7-1-7]]; Class E needs 3 SM and cloud clearance [[60:465|14 CFR 91.155(a)]]."
     }
    ]
+  },
+  {
+   "type": "match",
+   "title": "Read the Class E markings",
+   "intro": "Tap a chart marking, then what it tells you.",
+   "pairs": [
+    {
+     "l": "Magenta dashed line",
+     "r": "Class E that starts at the surface"
+    },
+    {
+     "l": "Magenta vignette",
+     "r": "Class E with a floor of 700 ft AGL"
+    },
+    {
+     "l": "Blue vignette",
+     "r": "Class E with a higher floor, next to Class G"
+    },
+    {
+     "l": "No marking away from airports",
+     "r": "Class E begins at 1,200 ft AGL"
+    }
+   ],
+   "key": "h7",
+   "after": 10
   }
  ],
  "final_quiz": [
@@ -1158,20 +1294,20 @@
    "q": "Day, Class E, 9,500 ft MSL, flight visibility 4 SM. A cloud base is 400 ft above you. Is the flight legal?",
    "options": [
     "Yes, 4 SM exceeds the minimum",
-    "No, you need 500 ft below clouds",
     "No, you need 5 SM at 9,500 ft",
+    "No, you need 500 ft below clouds",
     "Yes, Class E only requires clear of clouds"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "Below 10,000 MSL in Class E: 3 SM and 500 ft below clouds [[60:465|14 CFR 91.155(a)]]. 400 ft is not enough."
   },
   {
    "q": "You climb to 10,500 ft MSL in Class E with 4 SM visibility, well clear of clouds. Legal?",
    "options": [
-    "Yes, 3 SM is the Class E minimum",
-    "Yes, because you are clear of clouds",
+    "Yes, 3 SM is the Class E minimum at any MSL altitude",
+    "Yes, because 4 SM beats the minimum when you are clear of clouds",
     "No, at or above 10,000 MSL you need 5 SM",
-    "No, VFR is not allowed above 10,000 ft"
+    "No, VFR is not allowed above 10,000 ft MSL in Class E"
    ],
    "answer": 2,
    "why": "Class E at or above 10,000 MSL requires 5 SM [[60:465|14 CFR 91.155(a)]]."
@@ -1180,31 +1316,31 @@
    "q": "Day, Class G, 2,000 ft AGL, 5,000 ft MSL, visibility 1.5 SM, clouds 600 ft above you. Legal?",
    "options": [
     "No, Class G above 1,200 AGL needs 3 SM",
-    "No, you need 1,000 ft below clouds",
+    "Yes, 1 SM and 500 ft below are met",
     "Yes, if you stay within 1/2 mile of an airport",
-    "Yes, 1 SM and 500 ft below are met"
+    "No, you need 1,000 ft below clouds"
    ],
-   "answer": 3,
+   "answer": 1,
    "why": "Class G more than 1,200 AGL below 10,000 MSL by day: 1 SM, 500 below, 1,000 above, 2,000 horizontal [[60:466|14 CFR 91.155(a)]]."
   },
   {
    "q": "You cruise at 3,500 ft MSL over the Class E surface area of an airport (elevation 500 ft) reporting 800 overcast, tops 2,000 ft MSL, with 5 SM below. Does 91.155(c) stop you?",
    "options": [
-    "No, it applies beneath the ceiling; you still need cloud clearance",
+    "No, surface area rules apply only to towered airports",
     "Yes, no VFR anywhere in the surface area",
     "Yes, unless you get special VFR",
-    "No, surface area rules apply only to towered airports"
+    "No, it applies beneath the ceiling; you still need cloud clearance"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "91.155(c) bans VFR beneath a ceiling under 1,000 ft [[60:466|14 CFR 91.155(c)]]. Above, you are 1,500 ft over the tops, meeting the 1,000-ft-above rule [[60:465|14 CFR 91.155(a)]]."
   },
   {
    "q": "You want to depart SVFR from a satellite airport with no weather reporting inside a Class D surface area. Part 91. How can the 1 SM be determined?",
    "options": [
-    "Only by a tower observer",
-    "By flight visibility, which may include what you see from the cockpit in takeoff position",
-    "By the nearest METAR within 25 NM",
-    "It can't; SVFR needs reported weather"
+    "Only by a tower observer or another official ground visibility report",
+    "By flight visibility, including what you see from the cockpit in takeoff position",
+    "By the nearest airport's METAR, if it is within 25 NM of the field",
+    "It cannot be done; SVFR needs a reported ground visibility of 1 SM"
    ],
    "answer": 1,
    "why": "91.157(c)(2) lets flight visibility include cockpit visibility in takeoff position at such an airport [[60:467|14 CFR 91.157(c)]]; it is not an official report [[60:467|14 CFR 91.157(d)]]."
@@ -1212,101 +1348,136 @@
   {
    "q": "An instrument-rated, current pilot in an airplane equipped under 91.205(d) asks for SVFR at 2100. What does 91.157 say?",
    "options": [
-    "Not allowed; SVFR is day only for everyone",
-    "Allowed only with 3 SM visibility",
+    "Not allowed; special VFR is limited to sunrise to sunset for every pilot",
     "Allowed, clear of clouds with 1 SM, if ATC issues the clearance",
-    "Allowed only at airports with a tower"
+    "Allowed only with 3 SM visibility and 500 ft below the clouds",
+    "Allowed only at airports that have an operating control tower"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "The sunrise-to-sunset limit doesn't apply when the pilot meets the instrument requirements and the airplane has 91.205(d) equipment [[60:467|14 CFR 91.157(b)]] [[60:488|14 CFR 91.205(d)]]."
   },
   {
    "q": "You want SVFR into LaGuardia in a Cessna 172. What happens?",
    "options": [
-    "ATC issues it if traffic permits",
-    "Fixed-wing SVFR is prohibited there",
-    "It is allowed only before 0700",
-    "It needs a VFR flight plan"
+    "ATC may issue it if traffic permits and you stay clear of clouds",
+    "It is allowed once you file a VFR flight plan for the flight",
+    "It is allowed only between sunrise and 0700 local time",
+    "Fixed-wing SVFR is prohibited there"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "LaGuardia is on the Part 91 Appendix D, Section 3 list where fixed-wing SVFR is prohibited [[60:649|14 CFR Part 91 App. D, Sec. 3]]."
   },
   {
    "q": "Your SVFR clearance says \"maintain special VFR conditions at or below 1,500.\" Terrain rises to 1,200 ft ahead. Who keeps you clear of it?",
    "options": [
     "ATC, because it gave the altitude",
-    "You, the pilot",
+    "Nobody, because 1,500 is above the terrain",
     "ATC, at radar facilities",
-    "Nobody, because 1,500 is above the terrain"
+    "You, the pilot"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "ATC's altitude limit is for traffic; the pilot is responsible for obstacle and terrain clearance [[33:278|AIM 4-4-6]]."
   },
   {
    "q": "Magnetic course 359°, more than 3,000 ft AGL. Which altitude is correct?",
    "options": [
     "7,500 ft",
-    "8,000 ft",
     "8,500 ft",
+    "8,000 ft",
     "9,000 ft"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "359° falls in 180° through 359°: even thousands + 500, such as 8,500 [[60:468|14 CFR 91.159(a)(2)]]."
   },
   {
    "q": "The AIM table lists VFR flight levels like FL 195. Can you cruise VFR at FL 195 in the US?",
    "options": [
-    "Yes, on courses 0° to 179°",
-    "Yes, with a transponder",
     "No, it is Class A, IFR unless otherwise authorized",
-    "No, VFR flight levels start at FL 300"
+    "Yes, with a Mode C transponder and an ADS-B Out installation",
+    "Yes, on magnetic courses of 0° to 179° at odd flight levels",
+    "No, VFR flight levels begin at FL 300 and go up from there"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "Class A is 18,000 MSL to FL 600 and IFR unless otherwise authorized [[33:179|AIM 3-2-2]]; above 18,000 MSL fly what ATC assigns [[60:468|14 CFR 91.159(b)]]."
   },
   {
    "q": "Approach control tells you to \"maintain VFR at 5,000\" on a magnetic course of 090°, 4,000 ft AGL. What do you do?",
    "options": [
     "Climb to 5,500 to comply with 91.159",
-    "Refuse: 5,000 is not a VFR altitude",
+    "Fly 5,000; 91.159 applies unless ATC authorizes otherwise",
     "Descend below 3,000 AGL",
-    "Fly 5,000; 91.159 applies unless ATC authorizes otherwise"
+    "Refuse: 5,000 is not a VFR altitude"
    ],
-   "answer": 3,
+   "answer": 1,
    "why": "91.159 applies \"unless otherwise authorized by ATC\" [[60:467|14 CFR 91.159]]."
   },
   {
    "q": "Stations along your route report VFR near minimums, temperature-dewpoint spread 2 °C. What does AC 91-92 warn?",
    "options": [
-    "Areas between stations may be below VFR, and fog may form",
     "Reports near minimums mean the route is VFR",
+    "Areas between stations may be below VFR, and fog may form",
     "Only visibility matters, not the spread",
     "Climb on top and look for a hole later"
    ],
-   "answer": 0,
+   "answer": 1,
    "why": "AC 91-92 warns that areas en route may be below VFR, fog may form at a spread of 3 °C or less, and not to go on top hoping for a hole [[37:15|AC 91-92 8.2]]."
   },
   {
    "q": "You blunder into cloud VFR, not instrument current. Per the AFH, how should you turn back?",
    "options": [
-    "30° bank to get out fast",
-    "Standard-rate with a descent",
     "Shallow, no more than 10° of bank, wings level between turns",
-    "Don't turn; climb until on top"
+    "Standard-rate turn, descending below the cloud base",
+    "A 30° bank to get out of the cloud quickly",
+    "Don't turn at all; keep climbing until on top"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "Use the smallest practical bank, no more than 10°, and avoid combined maneuvers [[24:368|AFH 18-19]] [[24:370|AFH 18-21]]."
   },
   {
    "q": "METAR: 2,500 broken, 4 SM. Your flight is in Class E below 10,000 MSL. Which is true?",
    "options": [
-    "It is MVFR and not legal VFR",
-    "It is IFR; you need a clearance",
     "It is MVFR but can be legal VFR with 500 ft below clouds",
-    "It is VFR with no limits"
+    "It is IFR since the ceiling is under 3,000 ft; VFR is not allowed",
+    "It is MVFR, and MVFR weather is never legal for VFR flight",
+    "It is VFR weather, so no visibility or cloud rules apply"
+   ],
+   "answer": 0,
+   "why": "Ceiling 1,000 to 3,000 or visibility 3 to 5 is MVFR [[34:79|AIM 7-1-7]]. Class E below 10,000 needs 3 SM and 500 below clouds [[60:465|14 CFR 91.155(a)]]."
+  },
+  {
+   "q": "Which marking on the legend shows Class E with a floor of 1,200 ft AGL next to Class G?",
+   "options": [
+    "A solid blue line",
+    "A magenta dashed line",
+    "A blue vignette",
+    "A magenta vignette"
    ],
    "answer": 2,
-   "why": "Ceiling 1,000 to 3,000 or visibility 3 to 5 is MVFR [[34:79|AIM 7-1-7]]. Class E below 10,000 needs 3 SM and 500 below clouds [[60:465|14 CFR 91.155(a)]]."
+   "figure": "f6",
+   "why": "A blue vignette marks a floor other than 700 ft that laterally abuts Class G [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "A magenta dashed line surrounds an airport. What does it mark?",
+   "options": [
+    "Class E that starts at 700 ft AGL",
+    "Class E that starts at the surface",
+    "Class G airspace around the airport",
+    "A restricted area around the airport"
+   ],
+   "answer": 1,
+   "figure": "f6",
+   "why": "Class E surface airspace is a magenta dashed line [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "It is day. You are in Class G at 1,500 ft AGL, below 10,000 ft MSL, in an airplane. What are the 14 CFR 91.155 minimums?",
+   "options": [
+    "1 SM, staying clear of all the clouds",
+    "1 SM; 500 below, 1,000 above, 2,000 horizontal",
+    "3 SM and clear of clouds in all directions",
+    "5 SM; 1,000 below, 1,000 above, 1 SM horizontal"
+   ],
+   "answer": 1,
+   "why": "Above 1,200 ft AGL and below 10,000 ft MSL by day, the table gives 1 SM and 500 below, 1,000 above, 2,000 horizontal [[60:465|14 CFR 91.155(a)]]."
   }
  ]
 }

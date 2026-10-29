@@ -696,6 +696,41 @@
     "q": "You are getting flight following from approach and drifting toward a Class D. Must you still call the tower?",
     "a": "Yes. The pilot is responsible for meeting the radio and clearance requirements for B, C and D even when receiving radar advisories [[33:178|AIM 3-2-1]]."
    }
+  },
+  {
+   "title": "Reading the chart: ceilings, floors, vignettes and special areas",
+   "kind": "knowledge",
+   "codes": [
+    "PA.I.E.K2",
+    "PA.I.E.S2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Controlled airspace on a sectional is drawn with lines, numbers and color bands. Learn the numbers first. For Class C the top number is the ceiling and the bottom number is the floor, in hundreds of feet MSL. So 48 over 30 means 3,000 ft up to 4,800 ft MSL [[2:27|Chart Users' Guide p 27]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "Class D shows one number in a dashed box, also in hundreds of feet MSL. A minus sign in front, as in -27, means from the surface up to but not including 2,700 ft MSL [[2:27|Chart Users' Guide p 27]] [[2:16|Chart Users' Guide p 16]]."
+    },
+    {
+     "p": "A magenta dashed line is Class E that starts at the surface. Where Class E starts above the ground, a soft color band called a vignette shows it. Magenta means a floor of 700 ft AGL. Blue means a floor higher than 700 ft, usually 1,200 ft AGL, next to Class G. Class E exists at 1,200 ft AGL unless the chart shows another floor [[2:17|Chart Users' Guide p 17]] [[2:27|Chart Users' Guide p 27]]."
+    },
+    {
+     "figure": "f9"
+    },
+    {
+     "p": "Some areas are not Class A to E. A broken magenta line marks a National Security Area. A broken blue line marks a TFR relating to national security. An ADIZ has its own dotted symbol [[2:18|Chart Users' Guide p 18]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The chart shows only the TFRs that relate to national security. Most TFRs are not charted, so check NOTAMs before every flight [[2:18|Chart Users' Guide p 18]]."
+     }
+    }
+   ]
   }
  ],
  "figures": {
@@ -754,6 +789,22 @@
    "caption": "AIM FIG 3-5-5. SFRA Boundary.",
    "alt": "Sectional chart excerpt with a green line with square ticks labeled Washington DC Metropolitan SFRA, next to blue Class B boundaries.",
    "source": "AIM, PDF p. 202"
+  },
+  "f8": {
+   "file": "PA.I.E-8.jpg",
+   "res": "2",
+   "page": 27,
+   "caption": "Chart Users' Guide: Class C and Class D numbers, the Class E surface line and Class E vignettes.",
+   "alt": "Legend page. Class C shows a magenta arc named Burbank Class C, the numbers 48 over 30 for ceiling and floor in hundreds of feet MSL, and a magenta box with an approach frequency. Class D shows a blue dashed circle with a boxed 27 and a boxed minus 27. Class E shows a magenta dashed outline, a magenta vignette band for 700 feet AGL, a second magenta band marked Class G, and a blue band for 1,200 feet AGL.",
+   "source": "Chart Guide, PDF p. 27"
+  },
+  "f9": {
+   "file": "PA.I.E-9.jpg",
+   "res": "2",
+   "page": 18,
+   "caption": "Chart Users' Guide: national security areas, SFRAs, TFRs, ADIZ and TRSAs.",
+   "alt": "Text with small symbols. A broken magenta line marks a National Security Area, a blue-and-white bar marks an SFRA, a screened blue bar marks the Washington DC FRZ, a broken blue line marks TFRs relating to national security, a dotted magenta band marks an ADIZ, red cross-hatching marks a National Defense Airspace TFR and a gray bar marks a TRSA.",
+   "source": "Chart Guide, PDF p. 18"
   }
  },
  "scenario": {
@@ -809,12 +860,12 @@
   {
    "q": "What are the basic VFR weather minimums in Class D airspace?",
    "options": [
-    "3 SM; 500 below, 1,000 above, 2,000 horizontal",
+    "5 SM; 1,000 below, 1,000 above, 1 SM horizontal",
     "1 SM; clear of clouds",
     "3 SM; clear of clouds",
-    "5 SM; 1,000 below, 1,000 above, 1 SM horizontal"
+    "3 SM; 500 below, 1,000 above, 2,000 horizontal"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "Class C, D and E below 10,000 MSL all use 3 SM and 500/1,000/2,000 [[60:465|14 CFR 91.155]]."
   },
   {
@@ -831,90 +882,149 @@
   {
    "q": "Daytime, Class G, 1,000 feet AGL. What is the minimum flight visibility for an airplane?",
    "options": [
-    "3 SM",
-    "1/2 SM",
     "1 SM",
+    "1/2 SM",
+    "3 SM",
     "5 SM"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "Class G at 1,200 AGL or less by day: 1 SM and clear of clouds [[60:465|14 CFR 91.155]]."
   },
   {
    "q": "Before entering Class C airspace, a VFR pilot must:",
    "options": [
     "Receive an ATC clearance",
-    "Establish two-way radio communication with the ATC facility",
     "File a flight plan",
+    "Establish two-way radio communication with the ATC facility",
     "Hold at least a private pilot certificate"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "Class C requires two-way radio contact before entry; no clearance or certificate level required [[60:454|14 CFR 91.130(c)]] [[33:182|AIM 3-2-4]]."
   },
   {
    "q": "Which is required for special VFR in an airplane?",
    "options": [
-    "3 SM visibility and 500 feet below clouds",
-    "An ATC clearance, clear of clouds, and at least 1 SM flight visibility",
-    "An instrument rating at all times",
-    "Ground visibility of at least 3 SM"
+    "An ATC clearance, 3 SM flight visibility, and 500 feet below the clouds",
+    "An ATC clearance and ground visibility of at least 3 SM, reported by the tower",
+    "An instrument rating at all times, and an instrument-equipped airplane",
+    "An ATC clearance, clear of clouds, and at least 1 SM flight visibility"
    ],
-   "answer": 1,
+   "answer": 3,
    "why": "SVFR: ATC clearance, clear of clouds, 1 SM flight visibility; instrument qualifications only needed at night [[60:467|14 CFR 91.157]]."
   },
   {
    "q": "A magenta vignette on a sectional chart means:",
    "options": [
     "Class E begins at 1,200 feet AGL",
-    "Class E begins at 700 feet AGL",
     "Class D boundary",
+    "Class E begins at 700 feet AGL",
     "Mode C veil"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "Magenta vignette = controlled airspace floor at 700 feet AGL; blue vignette = other floors (normally 1,200 AGL) next to Class G [[2:17|Chart Users' Guide p.17]]."
   },
   {
    "q": "Within the 30 NM Mode C veil, from the surface to 10,000 feet MSL, you need:",
    "options": [
-    "Only a two-way radio",
-    "An ATC clearance",
-    "An altitude-reporting transponder and ADS-B Out",
-    "An instrument rating"
+    "Only a two-way radio and a current ATC clearance for each leg",
+    "An ATC clearance and an instrument-equipped airplane for each leg",
+    "An instrument rating, plus a current IFR-approved GPS in the airplane",
+    "An altitude-reporting transponder and ADS-B Out"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "Required within 30 NM of Appendix D, section 1 airports [[60:494|14 CFR 91.215(b)(2)]] [[60:499|14 CFR 91.225(d)(2)]]."
   },
   {
    "q": "You call approach and hear \"Aircraft calling Springfield Approach, standby.\" May you enter the Class C?",
    "options": [
     "Yes, \"standby\" means contact is made",
-    "No, ATC did not use your call sign",
     "Yes, if your transponder is on",
+    "No, ATC did not use your call sign",
     "Only if below 2,500 AGL"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "Without your call sign, two-way communication is not established [[33:182|AIM 3-2-4]]."
   },
   {
    "q": "What may a VFR pilot do with a restricted area that is active?",
    "options": [
-    "Fly through it if above 1,500 AGL",
+    "Fly through it if you stay above 1,500 feet AGL",
+    "Enter freely, since a restricted area is advisory only",
     "Enter only with permission of the using or controlling agency",
-    "Enter freely; it is advisory only",
-    "Enter if talking to any FSS"
+    "Enter if you are talking to any flight service station"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "No flight in a restricted area contrary to its restrictions without permission of the using or controlling agency [[60:456|14 CFR 91.133]]."
   },
   {
    "q": "Which transponder code is NOT allowed while flying VFR in the Washington DC SFRA?",
    "options": [
-    "A discrete code from ATC",
-    "1234 in a towered SFRA pattern",
     "1200",
+    "1234 in a towered SFRA pattern",
+    "A discrete code from ATC",
     "Any code assigned by Potomac Approach"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "No pilot may use code 1200 in the DC SFRA [[60:706|14 CFR 93.339(e)]]."
+  },
+  {
+   "q": "A Class C sector on the chart is marked 48 over 30. What are its limits?",
+   "options": [
+    "4,800 ft up to 3,000 ft AGL",
+    "300 ft up to 480 ft MSL",
+    "3,000 ft up to 4,800 ft MSL",
+    "30 ft up to 48 ft AGL"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The numbers are in hundreds of feet MSL. The top is the ceiling and the bottom is the floor [[2:27|Chart Users' Guide p 27]]."
+  },
+  {
+   "q": "A Class D area is marked with a boxed -27. What does the minus sign mean?",
+   "options": [
+    "Class D is active only during night hours",
+    "Class D starts at 2,700 feet MSL and goes up from there",
+    "The Class D ceiling is 2,700 ft above ground level",
+    "From the surface up to but not including 2,700 ft MSL"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "A minus sign before the figure means from the surface to, but not including, that altitude. The figure is in hundreds of feet MSL [[2:27|Chart Users' Guide p 27]] [[2:16|Chart Users' Guide p 16]]."
+  },
+  {
+   "q": "What does the blue vignette band on the legend show?",
+   "options": [
+    "Class E floor of 1,200 ft AGL next to Class G",
+    "Class E that begins right at the surface",
+    "Class E with a floor of 700 ft AGL above ground",
+    "A Class D area around a towered airport"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "A blue vignette marks controlled airspace with a floor other than 700 ft that laterally abuts Class G. A magenta vignette marks a 700 ft AGL floor [[2:27|Chart Users' Guide p 27]] [[2:17|Chart Users' Guide p 17]]."
+  },
+  {
+   "q": "On the national security legend, what does a broken blue line mark?",
+   "options": [
+    "A TFR relating to national security",
+    "A Terminal Radar Service Area",
+    "An Air Defense Identification Zone",
+    "A National Security Area"
+   ],
+   "answer": 0,
+   "figure": "f9",
+   "why": "A broken blue line marks TFR areas relating to national security. A broken magenta line marks a National Security Area [[2:18|Chart Users' Guide p 18]]."
+  },
+  {
+   "q": "You plan to fly VFR through Class B airspace at 4,000 ft MSL. What does 14 CFR 91.131(a)(1) require before you operate in that area?",
+   "options": [
+    "Two-way radio contact with the facility alone",
+    "A filed IFR flight plan for the whole trip",
+    "Only a transponder code of 1200 on the panel",
+    "An ATC clearance from the controlling facility"
+   ],
+   "answer": 3,
+   "why": "In Class B the operator must receive an ATC clearance before operating in the area [[60:455|14 CFR 91.131(a)(1)]]. Radio contact alone is the Class C and D rule."
   }
  ],
  "takeaways": [
@@ -1086,62 +1196,102 @@
      "why": "Yes. Warning areas extend from 3 NM outward from the coast and warn of hazardous activity [[33:191|AIM 3-4-4]]."
     }
    ]
+  },
+  {
+   "type": "label",
+   "figure": "f8",
+   "title": "Read the airspace legend",
+   "intro": "Drag each name to its numbered pin.",
+   "pins": [
+    {
+     "x": 23.6,
+     "y": 21.1,
+     "label": "Class C ceiling: 4,800 ft MSL"
+    },
+    {
+     "x": 33.6,
+     "y": 31.7,
+     "label": "Box with the Class C approach frequency to call"
+    },
+    {
+     "x": 88.3,
+     "y": 27.4,
+     "label": "Class D from the surface up to but not including 2,700 ft MSL"
+    },
+    {
+     "x": 80.4,
+     "y": 39.4,
+     "label": "Class E that begins at the surface (dashed magenta)"
+    },
+    {
+     "x": 37.9,
+     "y": 73.3,
+     "label": "Class E floor 700 ft AGL next to Class G (magenta vignette)"
+    },
+    {
+     "x": 37.9,
+     "y": 80.4,
+     "label": "Class E floor 1,200 ft AGL next to Class G (blue vignette)"
+    }
+   ],
+   "key": "h5",
+   "after": 12
   }
  ],
  "final_quiz": [
   {
    "q": "Which of these is nonregulatory special use airspace?",
    "options": [
-    "A prohibited area",
-    "A restricted area",
     "A military operations area (MOA)",
+    "A restricted area",
+    "A prohibited area",
     "Class D airspace"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "MOAs, warning, alert, controlled firing and national security areas are nonregulatory. Prohibited and restricted areas and Classes A to E are regulatory [[33:175|AIM 3-1-1]]."
   },
   {
    "q": "You fly a fast airplane beneath a Class B shelf, outside Class B. What is the highest indicated airspeed allowed?",
    "options": [
-    "200 knots",
+    "250 knots",
     "150 knots",
     "230 knots",
-    "250 knots"
+    "200 knots"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "Under a Class B shelf or in a VFR corridor, the limit is 200 knots (230 mph). The 250-knot limit is for the rest of the airspace below 10,000 MSL [[60:448|14 CFR 91.117(a),(c)]]."
   },
   {
    "q": "Calling a Class D tower, you hear: \"Cessna 5KM, remain outside the Class Delta and standby.\" What do you do?",
    "options": [
-    "Enter, because they used your call sign",
-    "Enter, but stay above pattern altitude",
+    "Enter, since they used your call sign to reply",
     "Stay outside until the tower says you may enter",
-    "Squawk 7600 and enter"
+    "Enter, but stay above the pattern altitude",
+    "Squawk 7600 and enter, since the tower is busy"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "\"Remain outside\" means ATC cannot take you yet, even though it used your call sign. Hold outside the Class D until told otherwise [[33:186|AIM 3-2-5]]."
   },
   {
    "q": "By day you cruise at exactly 1,200 feet AGL. Class E starts at 1,200 feet AGL here. Which VFR minimums apply?",
    "options": [
     "3 SM; 500 below, 1,000 above, 2,000 horizontal",
-    "1 SM; 500 below, 1,000 above, 2,000 horizontal",
+    "1 SM and clear of clouds",
     "5 SM; 1,000 below, 1,000 above, 1 SM horizontal",
-    "1 SM and clear of clouds"
+    "1 SM; 500 below, 1,000 above, 2,000 horizontal"
    ],
-   "answer": 3,
+   "answer": 1,
    "why": "At the base altitude of Class E you count as being in the airspace below it, which is Class G at 1,200 AGL or less: 1 SM and clear of clouds by day [[60:466|14 CFR 91.155(e)]] [[60:465|14 CFR 91.155(a)]]."
   },
   {
    "q": "You cruise at 10,500 feet MSL over a high plateau. The ground below you is 8,500 feet MSL. You are far from any Class B or Class C airspace and from every airport listed in Part 91 Appendix D. Do you need an altitude-reporting transponder and ADS-B Out?",
    "options": [
     "Yes, both are always required at or above 10,000 feet MSL",
-    "No, because you are within 2,500 feet of the surface",
     "Yes, because the ground below you is high",
+    "No, because you are within 2,500 feet of the surface",
     "Only at night"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "The transponder and ADS-B Out rules for at and above 10,000 feet MSL both exclude the airspace at and below 2,500 feet AGL. You are only 2,000 feet above the ground (10,500 - 8,500) [[60:494|14 CFR 91.215(b)(5)(i)]] [[60:499|14 CFR 91.225(d)(4)]]."
   },
   {
@@ -1158,45 +1308,45 @@
   {
    "q": "It is daytime. Your Class D airport reports visibility 6 SM and an overcast ceiling at 800 feet. You are a private pilot with no instrument rating. What can you do to depart?",
    "options": [
-    "Depart VFR, since visibility is over 3 SM",
-    "Depart VFR if you stay 500 feet below the clouds",
+    "Depart VFR, since visibility is over 3 SM and it reports VFR",
+    "Ask ATC for special VFR; if cleared, stay clear of clouds",
     "Nothing, special VFR is only for instrument-rated pilots",
-    "Ask ATC for special VFR; if cleared, stay clear of clouds"
+    "Depart VFR if you stay 500 feet below the clouds"
    ],
-   "answer": 3,
+   "answer": 1,
    "why": "No VFR beneath a ceiling under 1,000 feet in a surface area, except special VFR [[60:466|14 CFR 91.155(c)]]. By day, a non-instrument pilot can get SVFR: clearance, clear of clouds, 1 SM [[60:467|14 CFR 91.157(b)]]."
   },
   {
    "q": "A student pilot on a day solo flies in Class G at 1,000 feet AGL. Flight visibility drops to 2 SM. What is true?",
    "options": [
-    "Legal, because Class G needs only 1 SM",
     "Not legal, because a student needs at least 3 SM by day",
+    "Legal, because Class G needs only 1 SM",
     "Legal if the student stays clear of clouds",
     "Not legal, because a student needs at least 5 SM by day"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "Students may not act as PIC with flight or surface visibility under 3 SM by day (5 SM at night), even where 91.155 allows less [[60:278|14 CFR 61.89(a)(6)]]."
   },
   {
    "q": "A Class D ceiling on the chart is shown in a box as -30. What does it mean?",
    "options": [
-    "Floor of 3,000 feet MSL",
-    "Ceiling of 3,000 feet AGL",
-    "Surface up to but not including 3,000 feet MSL",
-    "Ceiling of 300 feet MSL"
+    "Floor of 3,000 feet MSL, not the ceiling",
+    "Ceiling of 3,000 feet AGL, from the airport surface",
+    "Ceiling of 300 feet MSL, read straight from the box",
+    "Surface up to but not including 3,000 feet MSL"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "A minus in front of the Class D ceiling means from the surface to, but not including, that altitude. Charted altitudes drop the last two zeros and are MSL [[2:16|Chart Users' Guide p.16]]."
   },
   {
    "q": "Your route crosses a military training route labeled VR1257. What does the four-digit number tell you?",
    "options": [
-    "The route has no segment above 1,500 feet AGL",
+    "Jets there are limited to 250 knots by the number",
     "Some segments are above 1,500 feet AGL",
-    "The route is only used under IFR",
-    "Military jets there fly under 250 knots"
+    "The route is used only under IFR, so no VFR traffic",
+    "The route has no segment above 1,500 feet AGL"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "Four digits mean no segment above 1,500 feet AGL; three digits mean at least one segment is higher. MTR traffic is often faster than 250 knots [[33:194|AIM 3-5-2]] [[33:193|AIM 3-5-2]]."
   },
   {
@@ -1204,10 +1354,10 @@
    "options": [
     "Up to 1,000 feet AGL within 1 NM",
     "Up to 10,000 feet MSL within 10 NM",
-    "Up to 18,000 feet MSL within 30 NM",
-    "Up to 2,000 feet above the surface within 3 NM"
+    "Up to 2,000 feet above the surface within 3 NM",
+    "Up to 18,000 feet MSL within 30 NM"
    ],
-   "answer": 3,
+   "answer": 2,
    "why": "Disaster and relief TFRs are normally within 2,000 feet above the surface and a 3 NM radius. Always read the actual NOTAM, since sizes vary [[33:196|AIM 3-5-3]]."
   },
   {
@@ -1231,6 +1381,41 @@
    ],
    "answer": 1,
    "why": "ATC service does not relieve you of VFR weather minimums. Advise approach and get a revised clearance or instruction [[33:184|AIM 3-2-4]]."
+  },
+  {
+   "q": "A magenta dashed line surrounds an airport. What does it mark?",
+   "options": [
+    "Class E airspace that starts at the surface",
+    "Class D airspace around a towered airport",
+    "Class C airspace around a busy airport",
+    "A Terminal Radar Service Area around the airport"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "Class E surface airspace is symbolized by a magenta dashed line. Class D is a blue dashed line [[2:17|Chart Users' Guide p 17]] [[2:27|Chart Users' Guide p 27]]."
+  },
+  {
+   "q": "The legend says an ADIZ is an area where what is required?",
+   "options": [
+    "Radio silence for every aircraft in it",
+    "Ready identification, location and control of aircraft",
+    "Military training flights only, no civil flights",
+    "Weather minimums are lowered for all aircraft flying in it"
+   ],
+   "answer": 1,
+   "figure": "f9",
+   "why": "An ADIZ is an area in which the ready identification, location and control of all aircraft is required in the interest of national security [[2:18|Chart Users' Guide p 18]]."
+  },
+  {
+   "q": "A restricted area on your route is active. Under 14 CFR 91.133(a), when may you operate in it?",
+   "options": [
+    "Any time your transponder is on and reporting",
+    "Any time you are above 3,000 ft AGL",
+    "Any time you are on a flight following service",
+    "Only with permission of the using or controlling agency"
+   ],
+   "answer": 3,
+   "why": "No person may operate an aircraft within a restricted area contrary to its restrictions unless that person has the permission of the using or controlling agency [[60:456|14 CFR 91.133(a)]]."
   }
  ]
 }

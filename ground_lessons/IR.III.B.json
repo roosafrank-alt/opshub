@@ -758,6 +758,35 @@
     "q": "Your inbound legs keep coming out at 1 minute 20 seconds. What should you change?",
     "a": "Shorten the next outbound leg to bring the inbound leg back to 1 minute [[33:387|AIM 5-3-8j4 NOTE]]."
    }
+  },
+  {
+   "title": "Reading the chart: the hold symbol and the holding template",
+   "kind": "knowledge",
+   "codes": [
+    "IR.III.B.K1",
+    "IR.III.B.S3a"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "On an en route chart, a charted hold is a small racetrack symbol beside the fix name. An oval next to it, such as 210K, is a maximum airspeed. 210K applies to altitudes from 6,000 ft up to and including 14,000 ft. 175K applies at all altitudes. The speeds are indicated airspeed [[2:83|Chart Users' Guide p 83]]."
+    },
+    {
+     "figure": "f9"
+    },
+    {
+     "p": "An RNAV hold is drawn in blue. The number with an arrow, such as 290 at CULTI, is the magnetic reference bearing. It comes from the isogonic value at the waypoint or fix [[2:83|Chart Users' Guide p 83]]."
+    },
+    {
+     "p": "The IPH template shows why a hold needs more room than the racetrack you draw. Two facilities form the fix, shown by the red lines meeting at the triangle. The white area is the primary holding airspace and the blue band around it is the secondary area. The yellow box around the fix is the fix displacement area [[29:109|IPH Figure 2-70]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "p": "The size of the pattern depends on many things, such as wind, outbound leg length, maximum holding speed and the distance from the fix to the NAVAID [[29:111|IPH p 111]]. You stay inside by flying the leg length and speed you were given. The chart gives the fix and the speed limit. ATC gives the direction, leg length, turns and expect further clearance time."
+    }
+   ]
   }
  ],
  "figures": {
@@ -816,6 +845,22 @@
    "caption": "Figure 3-18. Instead of flying for a specific time after passing the holding fix, these holding patterns use distances to mark where the turns are made. The distances come from DME or IFR-certified GPS equipment.",
    "alt": "Two DME holds off the Stedman VORTAC on a green background. One holds east of the 20 DME fix on the 265 radial with 5 mile legs, turning at 15 DME. The other holds northeast of the 16 DME fix on the 030 radial with 5 mile legs, turning at 21 DME.",
    "source": "IPH, PDF p. 133"
+  },
+  "f8": {
+   "file": "IR.III.B-8.jpg",
+   "res": "29",
+   "page": 109,
+   "caption": "Figure 2-70. Holding pattern design criteria template.",
+   "alt": "Diagram on a green background with two navigation facilities, one at the left and one at the top right, red course lines crossing at a triangle fix, a yellow fix displacement area around the fix, a white primary area holding pattern airspace with an airplane symbol, and a light blue secondary area band around it.",
+   "source": "IPH, PDF p. 109"
+  },
+  "f9": {
+   "file": "IR.III.B-9.jpg",
+   "res": "2",
+   "page": 83,
+   "caption": "Chart Users' Guide: IFR Enroute Symbology, Holding Patterns.",
+   "alt": "Row from the symbology table titled Holding Patterns. It shows a black holding symbol beside the fix RADDY, a brown LF/MF holding symbol, an oval reading 210K, a blue RNAV hold symbol with a 290 bearing at the waypoint CULTI, and text about airspeed limits of 210K and 175K.",
+   "source": "Chart Guide, PDF p. 83"
   }
  },
  "scenario": {
@@ -920,10 +965,10 @@
   {
    "q": "In an uncharted holding clearance, when does ATC state the direction of turns?",
    "options": [
-    "Always, in every holding clearance",
-    "Only for holds above 14,000 ft",
+    "Always, because every holding clearance must state which way the turns are made",
+    "Only for holds above 14,000 ft, where the 1½-minute legs and higher speeds apply",
     "For left turns, on pilot request, or when the controller thinks it necessary",
-    "Only when DME is used for the legs"
+    "Only when DME is used to define the length of the legs instead of time in minutes"
    ],
    "answer": 2,
    "why": "Turn direction is given if left turns are to be made, the pilot asks, or the controller thinks it necessary [[33:383|AIM 5-3-8i]]."
@@ -932,11 +977,11 @@
    "q": "Hold east of the VOR on the 090 radial, right turns. You arrive at the VOR heading 150°. Which entry?",
    "options": [
     "Direct",
-    "Teardrop",
     "Parallel",
+    "Teardrop",
     "Any entry, since none is required"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "For this hold the parallel slice is headings 090° to 200° [[23:303|IFH Figure 10-6]]. The FAA recommends the three standard entries [[33:386|AIM 5-3-8j3(d)]]."
   },
   {
@@ -964,57 +1009,117 @@
   {
    "q": "Holding at a VOR, when do you begin the turn to the outbound leg?",
    "options": [
-    "When the CDI centers",
+    "When the CDI needle first centers after you cross the station",
+    "30 seconds after the CDI needle first starts to swing toward full deflection",
     "At the first complete reversal of the TO/FROM indicator",
-    "30 seconds after the needle starts to move",
-    "When ATC tells you"
+    "When ATC radar advises you that you are now over the VOR"
    ],
-   "answer": 1,
+   "answer": 2,
    "why": "At a VOR, begin the outbound turn at the first complete reversal of the TO/FROM indicator [[33:382|AIM 5-3-8g]]."
   },
   {
    "q": "What do you report to ATC on reaching the holding fix?",
    "options": [
     "Fuel remaining in minutes",
-    "Your EFC time",
-    "The time and your altitude",
-    "Your entry type"
+    "The EFC time you expect",
+    "Your entry type and heading",
+    "The time and your altitude"
    ],
-   "answer": 2,
+   "answer": 3,
    "why": "Report the time and altitude on reaching the clearance limit, and report leaving it [[33:382|AIM 5-3-8f]]."
   },
   {
    "q": "A \"minimum fuel\" advisory tells ATC that:",
    "options": [
+    "You need priority handling now and want to be first to land",
     "You can accept no undue delay, but it is not an emergency",
-    "You need priority handling to land",
-    "You have less than 45 minutes of fuel",
-    "You are declaring an emergency"
+    "You have already dipped into the 45-minute reserve and must land",
+    "You are declaring an emergency and want other traffic moved out of your way"
    ],
-   "answer": 0,
+   "answer": 1,
    "why": "Minimum fuel means you can't accept any undue delay at the destination. It is not an emergency and does not mean priority [[34:10|AIM 5-5-15]]."
   },
   {
    "q": "Without a flight director or RNAV guidance, what bank do you use for holding turns?",
    "options": [
-    "Always 30°",
-    "Always 15°",
-    "Always 45° to stay close to the fix",
-    "3° per second or 30°, whichever needs less bank"
+    "3° per second or 30°, whichever needs less bank",
+    "Always 15° bank to keep the turns gentle for the whole hold",
+    "Always 45° so the pattern stays tight and close to the fix",
+    "Always 30°, no matter how fast you are flying in the pattern"
    ],
-   "answer": 3,
+   "answer": 0,
    "why": "Use 3° per second or 30° bank (25° with a flight director), whichever requires the least bank [[33:391|AIM 5-3-8j8(b)]]."
   },
   {
    "q": "Why might a GPS give you an unexpected holding entry in a strong crosswind?",
    "options": [
-    "It picks the entry from ground track, not heading",
-    "It always flies a direct entry",
-    "It ignores the turn direction",
-    "It uses 1½-minute legs at all altitudes"
+    "It applies 1½-minute legs at every altitude",
+    "It always flies a direct entry at the fix",
+    "It ignores the turn direction and flies left turns",
+    "It picks the entry from ground track, not heading"
+   ],
+   "answer": 3,
+   "why": "Many systems use ground track angle instead of heading, so a big drift angle can change the entry [[33:388|AIM 5-3-8j7(a)(1)]]."
+  },
+  {
+   "q": "The light blue band around the white holding area is the:",
+   "options": [
+    "Primary area",
+    "Fix displacement area",
+    "Secondary area",
+    "Holding fix"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "The figure labels the band around the white holding area as the secondary area [[29:109|IPH Figure 2-70]]."
+  },
+  {
+   "q": "The yellow box around the fix triangle is labeled:",
+   "options": [
+    "Secondary buffer area",
+    "Fix displacement area",
+    "Navigation facility area",
+    "Course reversal area"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "The yellow box carries the label fix displacement area [[29:109|IPH Figure 2-70]]."
+  },
+  {
+   "q": "How many navigation facilities are drawn in the template?",
+   "options": [
+    "One",
+    "Three",
+    "None",
+    "Two"
+   ],
+   "answer": 3,
+   "figure": "f8",
+   "why": "A facility sits at the left and another at the top right. Their red lines cross at the fix [[29:109|IPH Figure 2-70]]."
+  },
+  {
+   "q": "An oval beside a charted hold reads 210K. That speed limit applies to altitudes:",
+   "options": [
+    "At all altitudes up to 14,000 ft",
+    "Only at altitudes below 6,000 ft",
+    "From 6,000 ft through 14,000 ft",
+    "Only at altitudes above 14,000 ft"
+   ],
+   "answer": 2,
+   "figure": "f9",
+   "why": "The chart says 210K applies to altitudes 6000 ft to and including 14000 ft [[2:83|Chart Users' Guide p 83]]."
+  },
+  {
+   "q": "In the blue RNAV hold symbol at CULTI, what does the number 290 show?",
+   "options": [
+    "Magnetic reference bearing",
+    "Minimum holding altitude",
+    "Maximum holding airspeed",
+    "Outbound leg time in minutes"
    ],
    "answer": 0,
-   "why": "Many systems use ground track angle instead of heading, so a big drift angle can change the entry [[33:388|AIM 5-3-8j7(a)(1)]]."
+   "figure": "f9",
+   "why": "For an RNAV hold the number is the magnetic reference bearing [[2:83|Chart Users' Guide p 83]]."
   }
  ],
  "takeaways": [
@@ -1185,10 +1290,10 @@
     {
      "s": "You have just heard the clearance. What do you do first?",
      "options": [
-      "Read it back and ask which way to turn, since no turns were given",
+      "Read it back and ask ATC which way to turn, since a hold clearance with no turns stated is incomplete",
       "Read it back, picture the hold, pick the entry from the heading you expect at DUNKS, and note the EFC",
-      "Answer \"roger\" and plan the hold when you reach the VOR",
-      "Slow to holding speed right away, 12 minutes out"
+      "Answer \"roger\" and plan the hold when you reach the VOR, since the hold is still 12 minutes away and you have time",
+      "Slow to holding speed right away, 12 minutes out, and work out the entry once you get to the fix"
      ],
      "answer": 1,
      "why": "ATC states the turn direction only for left turns, on request, or when the controller thinks it necessary, so no turns given means right turns [[33:383|AIM 5-3-8i]] [[29:111|IPH 2-51]]. Pick the entry from your heading on arrival at the fix [[33:391|AIM 5-3-8j8(d)]], and note the EFC so you can plan fuel and radio failure [[29:111|IPH 2-51]]. \"Roger\" only means ATC received you, not that you understood [[29:111|IPH 2-51]]."
@@ -1208,44 +1313,44 @@
      "s": "At 1516 you are 4 minutes from DUNKS, still at cruise power.",
      "options": [
       "Keep cruise power until you cross DUNKS, then slow down",
-      "Slow to your holding speed and set holding power now",
+      "Start down to the minimum holding altitude to save fuel",
       "Keep cruise power: you are already under the 230 KIAS limit, so there is no reason to slow",
-      "Start down to the minimum holding altitude to save fuel"
+      "Slow to your holding speed and set holding power now"
      ],
-     "answer": 1,
+     "answer": 3,
      "why": "ATC gave you advance notice, so start slowing to be at or below the maximum holding speed at least 3 minutes before the fix [[33:390|AIM 5-3-8j8(a)]]. Being under 230 KIAS is legal, but slowing to your normal holding speed on the way can shorten the hold or avoid it, and it saves fuel [[29:112|IPH 2-52]]. Keep the last assigned altitude unless the clearance gives a new one [[29:111|IPH 2-51]]."
     },
     {
      "s": "At 1520 the TO/FROM indicator makes its first full reversal. What now?",
      "options": [
-      "Turn right to 360° and fly outbound on the west side",
-      "Turn left to 360° on the east (nonholding) side for 1 minute, note the time, and report time and altitude",
-      "Turn left to about 330° for 1 minute, then turn right to intercept 180° inbound",
-      "Hold 080° for 1 minute, then turn to 360°"
+      "Turn right to 360° and fly outbound on the west side for 1 minute, note the time, and report time and altitude",
+      "Hold 080° for 1 minute, then turn left to 360°, note the time, and report time and altitude",
+      "Turn left to about 330° for 1 minute, then turn right to intercept 180° inbound, and report the time and altitude",
+      "Turn left to 360° on the east (nonholding) side for 1 minute, note the time, and report time and altitude"
      ],
-     "answer": 1,
+     "answer": 3,
      "why": "Begin the turn at the first complete reversal of the TO/FROM indicator [[33:382|AIM 5-3-8g]]. A parallel entry flies outbound on the nonholding side for 1 minute [[33:386|AIM 5-3-8j3(a)]]. Report the time and altitude on reaching the clearance limit [[33:382|AIM 5-3-8f]]. The 330° heading is a teardrop entry, the wrong one from this sector [[33:386|AIM 5-3-8j3(b)]]."
     },
     {
      "s": "You are established. To track 180° inbound you need a heading of 187°. What heading do you fly on the next outbound leg?",
      "options": [
-      "339°",
-      "353°",
       "021°",
+      "353°",
+      "339°",
       "360°, and fix it with timing only"
      ],
-     "answer": 0,
+     "answer": 2,
      "why": "You correct 7° right inbound, so outbound you correct three times as much the other way: 360° - 21° = 339° [[33:391|AIM 5-3-8j8(c)]]. Correct on the legs, not in the turns [[23:301|IFH 10-10]]."
     },
     {
      "s": "At 1532 Center says: \"N4521K, revised EFC 1615.\"",
      "options": [
-      "Acknowledge and keep holding; you planned fuel before takeoff",
-      "Redo the fuel math (hold to 1615, approach, alternate, 45 minutes) against fuel on board, and tell ATC now if it won't work",
-      "Say \"minimum fuel\" so ATC moves you up the line",
-      "Leave DUNKS at 1540, your first EFC"
+      "Redo the fuel math (hold to 1615, approach, alternate, 45 minutes) and tell ATC now if fuel won't cover it",
+      "Acknowledge and keep holding, since you already planned your fuel before takeoff and the extra delay is ATC's concern",
+      "Say \"minimum fuel\" right away so ATC moves you ahead of the other traffic and ends your hold before 1615",
+      "Leave DUNKS at 1540, your first EFC, and fly to the approach fix because the new EFC is only an estimate"
      ],
-     "answer": 1,
+     "answer": 0,
      "why": "A new EFC means new fuel math. You still need fuel to the destination, then the alternate, then 45 minutes at normal cruise [[60:468|14 CFR 91.167]] [[60:469|14 CFR 91.167(a)(3)]]. Compare your time and fuel record with the plan [[29:112|IPH 2-52]]. \"Minimum fuel\" does not get priority [[34:10|AIM 5-5-15]]."
     }
    ]
@@ -1343,67 +1448,67 @@
   {
    "q": "\"Hold south of the ABC VOR on the 180 radial,\" no turn direction given. You arrive at the VOR heading 135°. What do you fly?",
    "options": [
-    "Teardrop: about 210° for 1 minute",
-    "Parallel: 180° for 1 minute",
     "Teardrop: about 150° for 1 minute",
-    "Direct: turn right to 180°"
+    "Parallel: fly 180° for 1 minute",
+    "Teardrop: about 210° for 1 minute",
+    "Direct: turn right to 180° outbound"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "No turns stated means right turns, so the inbound course is 360° and the holding side is east [[29:111|IPH 2-51]]. 135° falls in the teardrop slice (110° to 180°) [[23:303|IFH Figure 10-6]]. The teardrop heading is 30° off the 180° outbound course into the holding side: 150° [[33:386|AIM 5-3-8j3(b)]]."
   },
   {
    "q": "\"Hold west of the 12 DME fix on the 270 radial, 4 mile legs.\" At what DME does the outbound leg end?",
    "options": [
-    "8 DME",
+    "16 DME",
     "12 DME",
     "20 DME",
-    "16 DME"
+    "8 DME"
    ],
-   "answer": 3,
+   "answer": 0,
    "why": "Holding west of a fix west of the station puts the inbound leg toward the NAVAID, so the outbound end is farther out: 12 + 4 = 16 DME [[33:387|AIM 5-3-8j5]]."
   },
   {
    "q": "\"Hold northeast of the 25 DME fix on the 225 radial, 6 mile legs.\" At what DME does the outbound leg end?",
    "options": [
-    "19 DME",
+    "6 DME",
     "31 DME",
     "25 DME",
-    "6 DME"
+    "19 DME"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "The pattern lies between the fix and the station, so the inbound leg is away from the NAVAID and the outbound end is closer in: 25 - 6 = 19 DME [[33:387|AIM 5-3-8j5]]."
   },
   {
    "q": "Your groundspeed is 150 knots toward a clearance limit with no clearance beyond it. About how far from the fix does the AIM expect you to start slowing?",
    "options": [
-    "3 NM",
     "7.5 NM",
+    "3 NM",
     "5 NM",
     "15 NM"
    ],
-   "answer": 1,
+   "answer": 0,
    "why": "Start slowing when 3 minutes or less from the fix [[33:382|AIM 5-3-8d]]. 150 knots is 2.5 NM per minute, so 3 minutes is 7.5 NM."
   },
   {
    "q": "Inbound course 090°. You need a heading of 082° to track it. What outbound heading do you fly?",
    "options": [
-    "278°",
-    "246°",
     "294°",
+    "246°",
+    "278°",
     "262°"
    ],
-   "answer": 2,
+   "answer": 0,
    "why": "Inbound you correct 8° left, so outbound correct 24° right: 270° + 24° = 294° [[33:391|AIM 5-3-8j8(c)]]. 246° applies the correction the wrong way."
   },
   {
    "q": "Holding at 6,000 ft, your inbound legs keep taking 45 seconds. What do you change?",
    "options": [
-    "Lengthen the next outbound leg",
-    "Shorten the next outbound leg",
     "Switch to 1½-minute legs",
+    "Shorten the next outbound leg",
+    "Lengthen the next outbound leg",
     "Use a 45° bank in the turns"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "Adjust outbound timing to get a 1-minute inbound leg; a short inbound leg means a longer outbound leg [[33:387|AIM 5-3-8j4 NOTE]] [[23:301|IFH 10-10]]."
   },
   {
@@ -1411,10 +1516,10 @@
    "options": [
     "About 45 minutes",
     "About 135 minutes",
-    "About 180 minutes",
-    "About 90 minutes"
+    "About 90 minutes",
+    "About 180 minutes"
    ],
-   "answer": 3,
+   "answer": 2,
    "why": "15 + 30 + 45 = 90 minutes, or 12 gallons. That leaves 12 gallons, or 1.5 hours of holding [[60:468|14 CFR 91.167]] [[60:469|14 CFR 91.167(a)(3)]]. 135 minutes forgets the 45-minute reserve."
   },
   {
@@ -1431,32 +1536,32 @@
   {
    "q": "Holding for weather, your fuel is now so low that you need to land ahead of other traffic. What should you say?",
    "options": [
-    "\"Minimum fuel\" on the next transmission",
-    "Request a lower altitude to save fuel",
+    "Say \"minimum fuel\" on the next transmission and expect to be sequenced first",
     "Declare an emergency for low fuel and give fuel remaining in minutes",
-    "Squawk 7600"
+    "Request a lower altitude and a longer EFC so the hold burns less fuel",
+    "Squawk 7600 and wait for ATC to call you with a new clearance to land"
    ],
-   "answer": 2,
+   "answer": 1,
    "why": "If you need traffic priority to land safely, declare an emergency due to low fuel and report fuel remaining in minutes. Minimum fuel does not get priority [[34:10|AIM 5-5-15]]."
   },
   {
    "q": "ATC says \"hold as published,\" and the chart shows (175) inside the racetrack. What must you do?",
    "options": [
+    "Hold at exactly 175 knots groundspeed at all times in the pattern",
+    "Slow to 175 KIAS only after the entry is complete and you are established",
     "Be at or below 175 KIAS before you first cross the fix",
-    "Slow to 175 KIAS after the entry is complete",
-    "Fly 175 knots groundspeed",
-    "Ignore it below 6,000 ft, where 200 KIAS applies"
+    "Ignore it below 6,000 ft, where the 200 KIAS limit takes over"
    ],
-   "answer": 0,
+   "answer": 2,
    "why": "A speed in parentheses is a maximum for that hold. Be at or below it before first crossing the fix to stay in the protected airspace [[33:385|AIM 5-3-8j2(b)]]."
   },
   {
    "q": "On a direct entry from the holding side, why does the AIM caution against letting the GPS fly a fly-by turn at the fix?",
    "options": [
-    "It reverses the holding direction",
-    "The protected airspace assumes you fly over the fix, so a fly-by can take you outside it",
-    "It makes the inbound leg exactly 1 minute",
-    "It cancels the EFC in the GPS"
+    "It reverses the holding direction, so you end up flying left turns in a right-turn hold",
+    "Protected airspace assumes you fly over the fix, so a fly-by can take you outside it",
+    "It shortens the outbound leg below 1 minute, so the inbound leg runs long and wide",
+    "It drops the holding fix from the flight plan, so the GPS stops sequencing the hold"
    ],
    "answer": 1,
    "why": "Holding protection assumes fly-over at entry. A fly-by turn on a direct entry from the holding side may take you beyond protected airspace [[33:388|AIM 5-3-8j7(a)(2)]]."
@@ -1464,9 +1569,9 @@
   {
    "q": "While you hold, the destination weather drops below your approach minimums. What is the right move?",
    "options": [
-    "Keep quiet and wait for the EFC",
-    "Fly the approach anyway and look for the runway",
-    "Cancel IFR and descend",
+    "Say nothing, keep holding until the EFC arrives, and then ask ATC about the weather",
+    "Fly the approach anyway and look for the runway when you reach the minimums",
+    "Cancel IFR and descend below the clouds to continue to the airport visually",
     "Tell ATC; it will let you keep holding for better weather or send you elsewhere"
    ],
    "answer": 3,
@@ -1475,13 +1580,59 @@
   {
    "q": "Eastbound on V214, the VORTAC is your clearance limit. No hold is charted, no instructions came, and you can't reach ATC. How do you hold?",
    "options": [
-    "West of the VORTAC on V214, right turns",
+    "Circle over the VORTAC until ATC calls",
     "East of the VORTAC, left turns",
     "Any direction, as long as you stay at the MEA",
-    "Circle over the VORTAC until ATC calls"
+    "West of the VORTAC on V214, right turns"
    ],
-   "answer": 0,
+   "answer": 3,
    "why": "Hold on the inbound course you arrived on, using right turns. Arriving eastbound on V214, that means west of the VORTAC on V214 [[29:111|IPH 2-51]] [[33:382|AIM 5-3-8c]]."
+  },
+  {
+   "q": "A chart shows an oval reading 175K at a hold. That speed applies to:",
+   "options": [
+    "Altitudes from 6,000 to 14,000 ft only",
+    "All altitudes",
+    "Only above 14,000 ft",
+    "Only below 6,000 ft"
+   ],
+   "answer": 1,
+   "figure": "f9",
+   "why": "The chart says 175K applies to all altitudes [[2:83|Chart Users' Guide p 83]]."
+  },
+  {
+   "q": "In the template, the white area around the airplane symbol is the:",
+   "options": [
+    "Fix displacement area",
+    "Secondary area",
+    "Primary area",
+    "Facility"
+   ],
+   "answer": 2,
+   "figure": "f8",
+   "why": "It is labeled primary area holding pattern airspace area [[29:109|IPH Figure 2-70]]."
+  },
+  {
+   "q": "You are holding at a clearance limit that is not a fix where an approach begins. You have an EFC of 1430 when the radio fails. When do you leave?",
+   "options": [
+    "Never, hold until contact",
+    "At your original ETA",
+    "At 1430",
+    "When fuel is low"
+   ],
+   "answer": 2,
+   "why": "If the limit is not an approach fix, leave at the expect-further-clearance time [[60:483|14 CFR 91.185(c)(3)(ii)]]."
+  },
+  {
+   "q": "The radio fails while you hold at a fix where an approach begins, and you have an EFC time. When do you start down and fly the approach?",
+   "options": [
+    "Only at the top of the next hour",
+    "As near the EFC time as possible",
+    "Only after holding 30 minutes",
+    "Immediately on losing the radio"
+   ],
+   "answer": 1,
+   "why": "Commence descent or descent and approach as close as possible to the EFC time [[60:483|14 CFR 91.185(c)(3)(i)]]."
   }
  ]
 }

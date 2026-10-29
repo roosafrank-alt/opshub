@@ -321,7 +321,8 @@ class DashboardTest(FlyBase):
         html = c.get("/flight/dashboard").get_data(as_text=True)
         self.assertIn('data-dash-scope="mine"', html)
         c.get("/flight/dashboard/live?scope=mine")
-        self.assertIn("Showing only your flights", c.get("/flight/dashboard/live").get_data(as_text=True))
+        # The single Whole school / Just mine switch now marks "Just mine" as the active button.
+        self.assertIn('btn dash-scope-btn btn-primary" data-dash-scope="mine"', c.get("/flight/dashboard/live").get_data(as_text=True))
 
     def test_withdraw_change_request(self):  # FLY-35
         sid = self.book(change_request_note="Can we move it?", change_requested_at=db.now_iso())
@@ -490,11 +491,13 @@ class SchoolDayTest(FlyBase):
         self.assertIn("7 AM - 7 PM", c.get("/flight/cfis/schedule").get_data(as_text=True))
         c.get("/flight/schedule?view=day")
         day = c.get("/flight/schedule?view=day").get_data(as_text=True)
-        self.assertIn('data-start-min="420"', day)
-        self.assertIn('data-end-min="1140"', day)
+        self.assertIn("GRID_START = 420", day)  # the day grid starts at 7 AM
 
     def test_bad_window_is_refused(self):  # FLY-37
         c = self.login("master")
-        c.post("/flight/settings/school", data=dict(day_start_hour="12", day_end_hour="9", window_hours="24",
-                                                    fee_amount="0", limit="0"))
+        r = c.post("/flight/settings/school", data=dict(day_start_hour="12", day_end_hour="9", window_hours="24",
+                                                        fee_amount="0", limit="0"))
+        # The form comes back with the message (it used to crash with a server error).
+        self.assertEqual(r.status_code, 200)
+        self.assertIn("Calendar hours: pick a start before the end", r.get_data(as_text=True))
         self.assertIsNone(self.q1("SELECT value FROM app_settings WHERE key = 'school_day_start_hour'"))

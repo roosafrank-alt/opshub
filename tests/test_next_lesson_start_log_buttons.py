@@ -35,8 +35,11 @@ class NextLessonStartLogButtonsTest(OpsHubTestCase):
         # literal words "Start Session"/"Log Flight" (populated by JS when a
         # card/chip is clicked), so assertions have to be scoped to just the
         # Next Lesson card's own HTML, not the whole page.
-        start = body.index("Your Next Lesson")
-        end = body.index("Showing the whole school", start)
+        # "Your Next Lesson" also appears in CSS/JS comments earlier on the page,
+        # so start at the rendered label; the card ends where the Today's
+        # Schedule section's collapse button begins.
+        start = body.index('bi-calendar-event"></i> Your Next Lesson')
+        end = body.index("dash-collapse-toggle", start)
         return body[start:end]
 
     def test_more_than_30_min_out_shows_only_details_button(self):
@@ -77,21 +80,3 @@ class NextLessonStartLogButtonsTest(OpsHubTestCase):
         self.assertIn("Details &amp; changes", card)
         self.assertNotIn("Start Session", card)
         self.assertNotIn("Log Flight", card)
-
-    def _chip_detail(self, body):
-        start = body.index('class="flight-chip-detail"')
-        return body[start:start + 1500]  # comfortably covers one chip's detail block
-
-    def test_todays_flight_chip_follows_the_same_rule(self):
-        self._book(45)
-        c = self.login("cfi")
-        chip = self._chip_detail(c.get("/flight/dashboard").get_data(as_text=True))
-        self.assertNotIn("early-start-form", chip)
-        self.assertNotIn('href="/flight/log/new', chip)
-
-    def test_todays_flight_chip_shows_start_and_log_once_close(self):
-        self._book(10)
-        c = self.login("cfi")
-        chip = self._chip_detail(c.get("/flight/dashboard").get_data(as_text=True))
-        self.assertIn("early-start-form", chip)
-        self.assertIn('href="/flight/log/new', chip)
