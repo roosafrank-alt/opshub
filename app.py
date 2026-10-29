@@ -10815,6 +10815,18 @@ def admin_system_restart_app():
     return redirect(url_for("admin_system_wait", what="restart"))
 
 
+@app.route("/admin/system/exit_display", methods=["POST"])
+@master_admin_required
+def admin_system_exit_display():
+    # Closes the full-screen Chromium on the shop TV so the Pi desktop shows
+    # (the OpsHub icon on that desktop opens it again). The app itself keeps
+    # running; only the browser window goes away. No sudo needed - Chromium
+    # runs as the same OS user as this app on the Pi.
+    _run_delayed_command(["pkill", "-x", "chromium"])
+    flash("Closing the full-screen display on the Pi. Use the OpsHub icon on its desktop to open it again.", "success")
+    return redirect(url_for("admin_system"))
+
+
 @app.route("/admin/system/reboot", methods=["POST"])
 @master_admin_required
 def admin_system_reboot():

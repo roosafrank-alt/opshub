@@ -67,5 +67,33 @@ class ShutdownTest(OpsHubTestCase):
         self.assertIn("plug it back in", html)
 
 
+@unittest.skipUnless(hasattr(app_module, "admin_system_exit_display"), "Exit to desktop button not on this branch yet")
+class ExitDisplayTest(OpsHubTestCase):
+    def _post_exit(self, role):
+        calls = []
+        saved = app_module._run_delayed_command
+        app_module._run_delayed_command = lambda args, delay=2.0: calls.append(args)
+        try:
+            resp = self.login(role).post("/admin/system/exit_display")
+        finally:
+            app_module._run_delayed_command = saved
+        return resp, calls
+
+    def test_master_admin_can_close_the_display_without_sudo(self):
+        resp, calls = self._post_exit("master")
+        self.assertEqual(resp.status_code, 302)
+        self.assertEqual(calls, [["pkill", "-x", "chromium"]])
+
+    def test_other_roles_cannot(self):
+        for role in ("shop_admin", "tech", "cfi"):
+            with self.subTest(role=role):
+                _, calls = self._post_exit(role)
+                self.assertEqual(calls, [])
+
+    def test_system_page_shows_the_button(self):
+        html = self.login("master").get("/admin/system").get_data(as_text=True)
+        self.assertIn("Exit to Desktop", html)
+
+
 if __name__ == "__main__":
     unittest.main()
