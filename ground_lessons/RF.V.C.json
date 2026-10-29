@@ -681,6 +681,41 @@
     "q": "Assigned 10,000, MEA 8,000, no expected altitude, radios fail in cloud. Why not descend to 8,000 to get below the ice?",
     "a": "91.185 requires the highest of assigned, minimum and expected, which is 10,000 [[60:483|14 CFR 91.185(c)(2)]]. If the ice becomes an emergency, 91.3(b) lets you deviate as needed [[60:435|14 CFR 91.3(b)]] [[34:53|AIM 6-4-1a]]."
    }
+  },
+  {
+   "title": "Reading the chart: MEA and navaid clues for radio failure (awareness)",
+   "kind": "knowledge",
+   "codes": [
+    "RF.V.C.K3",
+    "RF.V.C.R1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "If the radio fails in IFR conditions, the altitude rule uses a number you can read on an en route chart: the highest of the last assigned altitude, the minimum IFR altitude, and the altitude ATC said to expect [[60:483|14 CFR 91.185(c)(2)]]. The minimum altitude for the leg is on the chart."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "Airway data sits along the airway in the same color. The MEA is the lowest published altitude between radio fixes that gives navigation signal coverage and obstacle clearance. The MRA is the lowest altitude at which a fix can be received. The MAA is the highest altitude with good reception. The MOCA gives obstacle clearance and signal coverage only within 22 NM of a VOR [[2:69|Chart Users' Guide p 69]]."
+    },
+    {
+     "p": "Small marks matter. A MOCA is preceded by an asterisk and shows only on low altitude charts, and only when it is lower than the MEA. A blue number with a G, like 11700G, is a GNSS MEA for aircraft navigating by GPS. An MCA is an altitude you must reach by a certain fix before a higher MEA starts [[2:69|Chart Users' Guide p 69]]."
+    },
+    {
+     "p": "Silence on the radio can also come from the navaid or station, not your radio. An underlined frequency has no voice. A star means part-time or on request. Hatching means the navaid is shut down [[2:78|Chart Users' Guide p 78]]."
+    },
+    {
+     "figure": "f8"
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "This is awareness, not a procedure. If you lose communications, the first question is VFR or IFR conditions. In VFR conditions you continue VFR and land as soon as practicable [[60:482|14 CFR 91.185(b)]]."
+     }
+    }
+   ]
   }
  ],
  "figures": {
@@ -731,6 +766,22 @@
    "caption": "IPH Figure 2-69. Two-way radio communications failure transponder code (IPH 2-47).",
    "alt": "A dark radar screen with a yellow-green data block reading 7600 over RDOF next to a target and its trail. A green box below explains that when an aircraft squawks 7600 during a two-way radio communication failure, the data block flashes RDOF, radio failure, to alert the controller.",
    "source": "IPH, PDF p. 107"
+  },
+  "f7": {
+   "file": "RF.V.C-7.jpg",
+   "res": "2",
+   "page": 69,
+   "caption": "Chart Users' Guide: airway and route data (MEA, MRA, MAA, MOCA, MTA, MCA).",
+   "alt": "A text page titled Airway/Route Data. It defines Minimum Enroute Altitude (MEA), Minimum Reception Altitude (MRA), Maximum Authorized Altitude (MAA), Minimum Obstruction Clearance Altitude (MOCA), Minimum Turning Altitude (MTA) and Minimum Crossing Altitude (MCA). At the bottom is a sample Victor route label V4 with 16000, 11700G in blue, an asterisk 11700, a distance of 29 and a boxed 158.",
+   "source": "Chart Users' Guide, PDF p. 69"
+  },
+  "f8": {
+   "file": "RF.V.C-8.jpg",
+   "res": "2",
+   "page": 78,
+   "caption": "Chart Users' Guide: voice or no voice on a navaid, shutdown status and part-time service.",
+   "alt": "Legend rows. Distance measuring equipment with a Y mode. Voice communications via navaid: 112.6 means voice is transmitted and an underlined 111.0 means no voice. Navaid shutdown status is a hatched pattern for VHF/UHF and LF/MF. Part time or on-request is a star. Automated weather broadcast services are a circled A for VHF/UHF and LF/MF.",
+   "source": "Chart Users' Guide, PDF p. 78"
   }
  },
  "scenario": {
@@ -876,6 +927,77 @@
    ],
    "answer": 0,
    "why": "Hold the 91.185(c)(2) altitude until arriving at the appropriate IAF [[33:405|AIM 5-4-5d5(a)]] [[29:200|IPH 4-60]]."
+  },
+  {
+   "q": "What is the MEA on an en route chart?",
+   "options": [
+    "The highest altitude with good signal reception",
+    "The lowest published altitude between radio fixes that gives acceptable navigation coverage and obstacle clearance",
+    "The lowest altitude at which a fix can be received",
+    "The altitude ATC must give you after a radio failure"
+   ],
+   "answer": 1,
+   "figure": "f7",
+   "why": "That is the MEA definition [[2:69|Chart Users' Guide p 69]]. The highest usable altitude is the MAA and the lowest altitude for a fix is the MRA."
+  },
+  {
+   "q": "Within what distance of a VOR does a MOCA assure acceptable navigation signal coverage?",
+   "options": [
+    "5 nautical miles",
+    "50 nautical miles",
+    "The whole airway",
+    "25 statute miles (22 nautical miles)"
+   ],
+   "answer": 3,
+   "figure": "f7",
+   "why": "A MOCA assures signal coverage only within 25 statute (22 nautical) miles of a VOR [[2:69|Chart Users' Guide p 69]]."
+  },
+  {
+   "q": "A blue number such as 11700G appears above an airway. What is it?",
+   "options": [
+    "A GNSS MEA for aircraft using GPS navigation",
+    "A MOCA for a VOR",
+    "A maximum authorized altitude",
+    "A minimum crossing altitude"
+   ],
+   "answer": 0,
+   "figure": "f7",
+   "why": "GNSS MEAs have a G suffix and are charted in blue [[2:69|Chart Users' Guide p 69]]."
+  },
+  {
+   "q": "What does a MAA tell you?",
+   "options": [
+    "The lowest altitude for obstacle clearance",
+    "The lowest altitude for a turn at a fix",
+    "The highest altitude on a route at which adequate navigation signal reception is assured",
+    "The altitude to cross a fix when climbing"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "MAA is the maximum authorized altitude, the highest usable altitude on a route segment [[2:69|Chart Users' Guide p 69]]."
+  },
+  {
+   "q": "In the legend, a star appears beside a navaid frequency. What does it mean?",
+   "options": [
+    "The navaid has no voice",
+    "The navaid operates part time or on request",
+    "The navaid is shut down",
+    "The navaid is on an airport"
+   ],
+   "answer": 1,
+   "figure": "f8",
+   "why": "A star marks part time or on-request service [[2:78|Chart Users' Guide p 78]]."
+  },
+  {
+   "q": "Your radio fails while you are flying under IFR, but you are in VFR conditions. What does 14 CFR 91.185(b) tell you to do?",
+   "options": [
+    "Continue under VFR and land as soon as practicable",
+    "Climb to the highest altitude and hold",
+    "Turn around and return to the departure airport",
+    "Land only at an airport with an approach"
+   ],
+   "answer": 0,
+   "why": "If the failure occurs in VFR conditions, or VFR is met after the failure, the pilot shall continue under VFR and land as soon as practicable [[60:482|14 CFR 91.185(b)]]."
   }
  ],
  "final_quiz": [
@@ -1021,6 +1143,41 @@
    ],
    "answer": 3,
    "why": "ATC service is provided on the basis that the pilot follows 91.185 [[34:53|AIM 6-4-1c]], and in IFR conditions the CFR procedures are what ensure separation [[29:107|IPH 2-47]]. The route is the last assigned one [[60:482|14 CFR 91.185(c)(1)]]."
+  },
+  {
+   "q": "What does an MCA mean on an en route chart?",
+   "options": [
+    "The maximum altitude for navigation reception",
+    "The minimum altitude for radar service",
+    "The lowest altitude at a fix where you must cross when going toward a higher minimum en route altitude",
+    "The altitude at which a holding pattern starts"
+   ],
+   "answer": 2,
+   "figure": "f7",
+   "why": "An MCA is the lowest altitude at certain fixes at which the aircraft must cross when proceeding in the direction of a higher minimum enroute IFR altitude [[2:69|Chart Users' Guide p 69]]."
+  },
+  {
+   "q": "On the legend, a frequency is underlined: 111.0. What should you expect when you tune it?",
+   "options": [
+    "No voice on that frequency",
+    "A recorded weather report",
+    "Radar vectors",
+    "A tower controller"
+   ],
+   "answer": 0,
+   "figure": "f8",
+   "why": "The underline marks a frequency with no voice transmitted [[2:78|Chart Users' Guide p 78]]."
+  },
+  {
+   "q": "Your last clearance assigned 6,000 ft. The MEA on the next segment is 7,000 ft. ATC had said to expect 8,000 ft. You lose radios in IFR conditions. What altitude does 14 CFR 91.185(c)(2) require?",
+   "options": [
+    "6,000 ft, the last assigned altitude",
+    "8,000 ft, the highest of the three",
+    "7,000 ft, the minimum altitude",
+    "The lowest of the three"
+   ],
+   "answer": 1,
+   "why": "The rule is the highest of the last assigned altitude, the minimum altitude for IFR operations, and the altitude ATC said to expect [[60:483|14 CFR 91.185(c)(2)]]."
   }
  ],
  "takeaways": [
@@ -1337,6 +1494,31 @@
      "why": "If VFR conditions are encountered after the failure, continue the flight under VFR and land as soon as practicable [[60:482|14 CFR 91.185(b)]]. Paragraph (c) is only for IFR conditions or when (b) cannot be complied with [[60:482|14 CFR 91.185(c)]]. Practicable is not \"as soon as possible\": you need not use an unsuitable or unauthorized airport [[34:53|AIM 6-4-1c2 NOTE]]."
     }
    ]
+  },
+  {
+   "type": "match",
+   "title": "Read the airway altitudes",
+   "intro": "Tap an altitude term, then what it means.",
+   "pairs": [
+    {
+     "l": "MEA",
+     "r": "Lowest published altitude between fixes with signal coverage and obstacle clearance"
+    },
+    {
+     "l": "MOCA",
+     "r": "Obstacle clearance, with signal coverage only within 22 NM of a VOR"
+    },
+    {
+     "l": "MAA",
+     "r": "Highest usable altitude with adequate signal reception"
+    },
+    {
+     "l": "MCA",
+     "r": "Altitude to cross a fix when climbing to a higher MEA"
+    }
+   ],
+   "key": "h8",
+   "after": 12
   }
  ]
 }
