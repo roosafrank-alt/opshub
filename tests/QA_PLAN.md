@@ -69,7 +69,7 @@ Shop / inventory
 - [x] Labor tracking: `/api/labor/scan` start/stop, double-start, stop someone else's session, pay totals
 - [ ] Labor: two scans of the same badge at the same instant (needs a threaded test; today's check-then-insert isn't atomic)
 - [ ] Pi health / System page (`/admin/system`, `pi_health.py`) once it's live: temperature parsing, alert thresholds, no duplicate alerts
-- [ ] Project lifecycle: new, intake, edit, status, trash/restore/purge, renumber after delete
+- [x] Project lifecycle: new, intake, edit, status, trash/restore/purge, renumber after delete
 - [x] Project sub-areas: add, rename (history follows), complete, then inspector confirm or send back
 - [x] Squawks: new, acknowledge, assign, repair, worker acknowledge (both `kind`s)
 - [ ] Assets: new, quick new, edit, hours update (can hours go backwards?), trash/restore/purge
@@ -121,3 +121,7 @@ Health check (live vs queued, identical): the same ~22 clock/network-dependent f
 ## Oct 27 note
 
 Health check (live vs queued, identical, no regressions): same ~26 clock/network-dependent failures as Oct 25-26. The photo size ceiling and empty-file fixes went live; markers removed. Squawks area re-covered (missing records on every step, reopen rules, odd estimate numbers): no new bugs.
+
+## Oct 29 note
+
+Health check (live vs queued, identical, no regressions): same 26 clock/network-dependent failures as Oct 25-27 (run with the system python that has Flask). Project lifecycle area finished (`test_project_new_edit_intake.py`: job form, edit, intake skip/save/verify, roles, missing and trashed jobs). New: a made-up start date such as "not-a-date" is saved on a job instead of refused (card `qa-project-bad-dates-saved`).
