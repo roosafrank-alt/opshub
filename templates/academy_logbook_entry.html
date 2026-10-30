@@ -15,7 +15,7 @@
   {% if e.source == 'foreflight' %}<div class="alert alert-secondary py-2 small"><i class="bi bi-upload"></i> Imported from ForeFlight{% if e.sic %} &middot; SIC {{ '%.1f'|format(e.sic) }}{% endif %}{% if e.dual_given %} &middot; dual given {{ '%.1f'|format(e.dual_given) }}{% endif %}{% if e.ifr %} &middot; IFR {{ '%.1f'|format(e.ifr) }}{% endif %}{% if e.sim_flight %} &middot; simulator {{ '%.1f'|format(e.sim_flight) }}{% endif %}{% if e.ground %} &middot; ground {{ '%.1f'|format(e.ground) }}{% endif %}. Not instructor-signed.</div>{% endif %}
   {% if e.status == 'denied' and e.deny_reason %}<div class="alert alert-danger py-2 small">Reason: {{ e.deny_reason }}</div>{% endif %}
   {% if not can_edit %}<div class="alert alert-info py-2 small"><i class="bi bi-eye"></i> You can read this logbook, but only the student or a Flight Admin can change it.</div>{% endif %}
-  <form method="post">
+  <form method="post" id="entry-form">
     {% if e.status == 'pending' %}<input type="hidden" name="deny_reason" id="deny_reason" value="">{% endif %}
     <h6 class="mt-2">From the flight</h6>
     <div class="row g-2 mb-2">
@@ -84,7 +84,8 @@
           <textarea id="f-remarks" name="remarks" rows="2" class="form-control form-control-sm">{{ e.remarks or '' }}</textarea></div></div>
     </div>
 
-    <div class="d-flex gap-2 flex-wrap mt-3" data-change="DESIGN-8">
+    {% set phone_bar = can_edit and e.status == 'pending' %}
+    <div class="d-flex gap-2 flex-wrap mt-3{{ ' d-none d-md-flex' if phone_bar else '' }}" data-change="DESIGN-8">
       {% if can_edit and (e.status == 'pending' or staff) %}
       <button class="btn btn-primary btn-sm" name="action" value="save" data-change="DESIGN-1"><i class="bi bi-save"></i> Save</button>
       {% endif %}
@@ -100,6 +101,24 @@
       {% endif %}
     </div>
   </form>
+  {% if can_edit and e.status == 'pending' %}
+  {#- Phone only: Approve / Save stay pinned to the bottom of the screen; Deny lives under the ... button. #}
+  <style>
+    .lb-bar { position:fixed; left:0; right:0; bottom:0; z-index:1030; background:#fff; border-top:1px solid #dbe3ee; box-shadow:0 -2px 8px rgba(0,0,0,.08); padding:.5rem .75rem calc(.5rem + env(safe-area-inset-bottom)); }
+    @media (max-width: 767.98px) { body { padding-bottom: 5rem; } }
+  </style>
+  <div class="lb-bar d-md-none d-flex gap-2 align-items-stretch" id="lb-bar">
+    <button form="entry-form" class="btn btn-success flex-grow-1 fw-semibold" name="action" value="approve"><i class="bi bi-check2-circle"></i> Approve</button>
+    <button form="entry-form" class="btn btn-primary" name="action" value="save"><i class="bi bi-save"></i> Save</button>
+    <div class="dropdown dropup">
+      <button class="btn btn-outline-secondary h-100" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="More"><i class="bi bi-three-dots"></i></button>
+      <ul class="dropdown-menu dropdown-menu-end">
+        <li><a class="dropdown-item" href="{{ url_for('pilotlog.logbook', student_id=e.student_id if staff else None) }}">Cancel</a></li>
+        <li><button form="entry-form" class="dropdown-item text-danger" name="action" value="deny" formnovalidate data-confirm="Deny this entry? It won't count toward your totals or requirements. You can reopen it later." data-confirm-title="Deny entry" data-confirm-ok="Deny entry" data-confirm-style="danger"><i class="bi bi-x-octagon"></i> Deny - not my flight / wrong</button></li>
+      </ul>
+    </div>
+  </div>
+  {% endif %}
 </div>
 
 <div class="card academy-card p-3 mt-3" id="route-card" data-student="{{ e.student_id }}">
