@@ -9,11 +9,14 @@
     <a href="{{ url_for('flight.schedule_calendar') }}" class="btn btn-outline-secondary btn-sm"><i class="bi bi-calendar3"></i> Back to Schedule</a>
   </div>
 </div>
-<p class="text-muted small">Want to fly sooner? Join the waitlist with the days and times that work{{ ' for the student' if staff }}. When a booking that fits is cancelled, everyone who matches gets a text/notification at once - <span data-change="FLY-34">the first request a CFI approves gets the slot.</span></p>
+{% if staff %}<p class="text-muted small d-lg-none">Cancelled slots go to the first waitlisted match a CFI approves.</p>{% endif %}
+<p class="text-muted small{{ ' d-none d-lg-block' if staff }}">Want to fly sooner? Join the waitlist with the days and times that work{{ ' for the student' if staff }}. When a booking that fits is cancelled, everyone who matches gets a text/notification at once - <span data-change="FLY-34">the first request a CFI approves gets the slot.</span></p>
 
 <div class="row g-3">
-  <div class="col-lg-5">
-    <div class="card p-3">
+  <div class="col-lg-5{{ ' order-2 order-lg-1' if staff }}">
+    {#- Staff on a phone: the add form starts folded behind one button so "Who's waiting" (the daily job) is first. Desktop keeps it open, side by side. #}
+    {% if staff %}<button class="btn btn-primary w-100 fw-bold d-lg-none mb-2" type="button" data-bs-toggle="collapse" data-bs-target="#wl-add-card" aria-expanded="false" aria-controls="wl-add-card"><i class="bi bi-plus-lg"></i> Add a student to the waitlist</button>{% endif %}
+    <div class="card p-3{{ ' collapse d-lg-block' if staff }}" id="wl-add-card">
       <h6>{{ 'Add a student' if staff else 'Join the waitlist' }}</h6>
       <form method="post" action="{{ url_for('flight.waitlist_join') }}">
         {% if staff %}
@@ -59,7 +62,7 @@
       </form>
     </div>
   </div>
-  <div class="col-lg-7">
+  <div class="col-lg-7{{ ' order-1 order-lg-2' if staff }}">
     {% if offers %}
     <div class="card p-3 mb-3 border-success">
       <h6><i class="bi bi-bell"></i> Slots offered to you</h6>
