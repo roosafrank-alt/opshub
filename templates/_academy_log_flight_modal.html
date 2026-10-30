@@ -1,0 +1,60 @@
+{#- The Log a flight popup, shared by the Logbook and Stats pages (needs can_log, ac_features, log_today). #}
+{% if can_log %}
+<div class="modal fade" id="logFlightModal" tabindex="-1" aria-labelledby="logFlightTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-fullscreen-sm-down">
+    <form method="post" action="{{ url_for('pilotlog.log_flight') }}" class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="logFlightTitle"><i class="bi bi-journal-plus"></i> Log a flight</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <style>
+          .ld-sec { border:1px solid #dbe3ee; border-left:5px solid var(--sc,#3b82f6); border-radius:10px; background:#f7f9fc; padding:.7rem .8rem .8rem; margin-top:.75rem; }
+          .ld-sec > h6 { margin:0 0 .55rem; font-weight:800; font-size:.78rem; letter-spacing:.07em; text-transform:uppercase; color:var(--sc,#3b82f6); }
+          .ld-sec .form-control { background:#fff; }
+        </style>
+        {% macro lf(name, label, cols, kind='hrs', ph='', req=False) %}
+          <div class="{{ cols }}"><label class="form-label small fw-semibold mb-1" for="lf-f-{{ name }}">{{ label }}</label>
+            <input id="lf-f-{{ name }}" name="{{ name }}" class="form-control form-control-sm" {{ 'required' if req }} placeholder="{{ ph }}"
+              {% if kind == 'hrs' %}type="number" step="0.1" min="0"{% elif kind == 'int' %}type="number" step="1" min="0"{% elif kind == 'date' %}type="date" value="{{ log_today }}"{% else %}type="text"{{ ' autocapitalize="characters"'|safe if kind == 'caps' }}{% endif %}></div>
+        {% endmacro %}
+        <div class="small text-muted">For flights the school didn't bill (another plane, another school). School flights appear on their own.</div>
+        <div class="ld-sec" style="--sc:#3b82f6"><h6><i class="bi bi-airplane"></i> The flight</h6>
+          <div class="row g-2">{{ lf('entry_date','Date *','col-6 col-md-3','date',req=True) }}{{ lf('tail','Tail number','col-6 col-md-3','caps') }}{{ lf('make_model','Make / model','col-12 col-md-6','text','Cessna 172S') }}</div>
+        </div>
+        <div class="ld-sec" style="--sc:#14b8a6"><h6><i class="bi bi-signpost-split"></i> Route</h6>
+          <div class="row g-2">{{ lf('route_from','From','col-6 col-md-3','caps','N89') }}{{ lf('route_to','To / via','col-6 col-md-3','caps','KPOU') }}{{ lf('route','Route (optional)','col-12 col-md-6','text') }}
+            {{ lf('distance_nm','Distance (nm)','col-6 col-md-3','int','auto') }}<div class="col-6 col-md-9 small text-muted align-self-end pb-1">Left blank, the distance is worked out from the route.</div></div>
+        </div>
+        <div class="ld-sec" style="--sc:#0ea5a4"><h6><i class="bi bi-clock-history"></i> Flight time (hours)</h6>
+          <div class="row g-2">{{ lf('total','Total *','col-6 col-md-3',req=True) }}{{ lf('dual','Dual received','col-6 col-md-3') }}{{ lf('solo','Solo','col-6 col-md-3') }}{{ lf('pic','PIC','col-6 col-md-3') }}
+            {{ lf('sic','SIC','col-6 col-md-3') }}{{ lf('dual_given','As instructor','col-6 col-md-3') }}{{ lf('xc','Cross-country','col-6 col-md-3') }}{{ lf('xc50','XC over 50 NM','col-6 col-md-3') }}
+            {{ lf('night','Night','col-6 col-md-3') }}{{ lf('sim_flight','Simulator / FTD','col-6 col-md-3') }}</div>
+        </div>
+        <div class="ld-sec" style="--sc:#8b5cf6"><h6><i class="bi bi-cloud-fog2"></i> Instrument</h6>
+          <div class="row g-2">{{ lf('actual_inst','Actual','col-6 col-md-3') }}{{ lf('sim_inst','Simulated (hood)','col-6 col-md-3') }}{{ lf('approaches','Approaches','col-6 col-md-3','int') }}
+            {{ lf('approach_detail','Approach type & location','col-12','text','ILS 27, KPOU') }}</div>
+        </div>
+        <div class="ld-sec" style="--sc:#f59e0b"><h6><i class="bi bi-arrow-down-circle"></i> Landings</h6>
+          <div class="row g-2">{{ lf('day_ldg','Day','col-4','int') }}{{ lf('night_ldg','Night','col-4','int') }}{{ lf('night_fs','Night full-stop','col-4','int') }}</div>
+        </div>
+        <div class="ld-sec" style="--sc:#ec4899"><h6><i class="bi bi-person-badge"></i> Aircraft, instructor &amp; remarks</h6>
+          <div class="row g-2">{{ lf('cat_class','Category & class','col-12','text','Airplane single-engine land') }}</div>
+          <div class="d-flex flex-wrap gap-3 mt-2">
+            {% for code, label in ac_features %}
+            <div class="form-check"><input class="form-check-input" type="checkbox" name="ac_features" value="{{ code }}" id="lf-{{ code }}"><label class="form-check-label small" for="lf-{{ code }}">{{ label }}</label></div>
+            {% endfor %}
+          </div>
+          <div class="row g-2 mt-1">{{ lf('instructor_name','Instructor (if any)','col-12 col-md-4','text') }}{{ lf('remarks','Remarks / maneuvers','col-12 col-md-8','text') }}</div>
+        </div>
+        <div class="form-text mt-2">Hours can't be more than the total time. Entries you log yourself show as logged by you, not instructor-signed.</div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button type="submit" class="btn btn-success fw-bold"><i class="bi bi-check-lg"></i> Save flight</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% if request.args.get('log') %}<script>document.addEventListener('DOMContentLoaded', function(){ var m = document.getElementById('logFlightModal'); if (m && window.bootstrap) { new bootstrap.Modal(m).show(); } });</script>{% endif %}
+{% endif %}

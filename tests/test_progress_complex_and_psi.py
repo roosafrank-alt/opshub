@@ -98,6 +98,15 @@ class LogAFlightTest(OpsHubTestCase):
         self.assertIn("Log a flight", html)
         self.assertIn('id="logFlightModal"', html)
 
+    def test_big_button_and_popup_also_on_stats(self):
+        html = self.login("flight_student").get("/academy/stats").get_data(as_text=True)
+        self.assertIn('id="log-flight-btn"', html)
+        self.assertIn('id="logFlightModal"', html)
+
+    def test_stats_has_no_log_button_for_staff_viewing_a_student(self):
+        html = self.login("flight_admin").get(f"/academy/stats?student_id={self.sid}").get_data(as_text=True)
+        self.assertNotIn('id="log-flight-btn"', html)
+
     def test_log_a_flight_saves_capped_entry(self):
         c = self.login("flight_student")
         r = c.post("/academy/logbook/new", data={"entry_date": "2026-10-20", "tail": "n123ab", "make_model": "Cessna 172", "route_from": "N89",

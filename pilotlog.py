@@ -1337,6 +1337,7 @@ def stats():
     st = compute_stats(conn, entries) if student else None
     conn.close()
     return render_template("academy_stats.html", student=student, students=students, st=st, range_key=key,
+                           can_log=_can_import(student), ac_features=AC_FEATURES, log_today=date.today().isoformat(),
                            range_label=label, start=start or "", end=end or "", staff=_is_staff(),
                            tab="logbook", subtab="stats")
 

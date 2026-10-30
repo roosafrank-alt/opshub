@@ -4,6 +4,11 @@
 {% if not student %}
 <div class="card academy-card p-4">No student profile is linked to your account, so there are no stats to show.</div>
 {% else %}
+{% if can_log %}
+<button type="button" class="btn btn-success btn-lg w-100 fw-bold mb-3 py-3" data-bs-toggle="modal" data-bs-target="#logFlightModal" id="log-flight-btn">
+  <i class="bi bi-plus-circle-fill"></i> Log a flight
+</button>
+{% endif %}
 <div class="card academy-card lb-hero lb-h-stats p-3 mb-3">
   <h4 class="mb-1"><i class="bi bi-graph-up"></i> Stats</h4>
   <div class="small text-muted mb-2">{{ student.name }} · {{ range_label }}{% if start or end %} ({{ start or 'start' }} to {{ end or 'today' }}){% endif %}</div>
@@ -49,4 +54,5 @@
 </div>
 {% endif %}
 {% endif %}
+{% include "_academy_log_flight_modal.html" %}
 {% endblock %}
