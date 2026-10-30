@@ -316,12 +316,13 @@
             <small class="ms-auto text-muted text-nowrap">{{ t.created_at|usdate_short }}</small>
           </div>
           {% if _bits %}<div class="small text-muted">{{ _bits|join(' · ') }}</div>{% endif %}
+          {% if t.tag and t.type in ('in','out') %}<div class="small"><a href="{{ url_for('static', filename='uploads/' + t.tag) }}" target="_blank" class="text-success text-decoration-none"><i class="bi bi-camera"></i> 8130-3</a></div>{% endif %}
         </div>
         {% endfor %}
       </div>
       <div class="table-responsive d-none d-sm-block">
         <table class="table table-sm" data-change="SHOP-25">
-          <thead><tr><th>When</th><th>Type</th><th>Qty</th><th>Project</th><th>Area</th><th>By</th><th>Added Via</th><th>Note</th></tr></thead>
+          <thead><tr><th>When</th><th>Type</th><th>Qty</th><th>Project</th><th>Area</th><th>By</th><th>Added Via</th><th>Note</th><th>Paperwork</th></tr></thead>
           <tbody>
             {% for t in tx %}
             <tr>
@@ -343,10 +344,12 @@
                 {% else %}<small class="text-muted">-</small>{% endif %}
               </td>
               <td data-label="Note" class="stack-full">{{ t.note or '-' }}</td>
+              <td data-label="Paperwork">{% if t.tag and t.type in ('in','out') %}<a href="{{ url_for('static', filename='uploads/' + t.tag) }}" target="_blank" class="text-success text-decoration-none text-nowrap"><i class="bi bi-camera"></i> 8130-3</a>{% if t.type == 'in' %} <small class="text-muted">photo</small>{% endif %}{% else %}<small class="text-muted">-</small>{% endif %}</td>
             </tr>
             {% endfor %}
           </tbody>
         </table>
+        {% if tx|selectattr('tag')|list %}<div class="small text-muted"><i class="bi bi-info-circle"></i> Tag photo taken when the box was received; it follows each part onto the job.</div>{% endif %}
       </div>
       {% else %}
       <p class="text-muted">No transactions yet.</p>

@@ -3294,7 +3294,9 @@ def part_detail(part_id):
     if not part:
         conn.close()
         abort(404)
-    tx = conn.execute("""SELECT t.*, pr.name as project_name FROM transactions t
+    tx = conn.execute("""SELECT t.*, pr.name as project_name,
+                          (SELECT t2.tag_photo FROM transactions t2 WHERE t2.part_id = t.part_id
+                                 AND t2.tag_photo IS NOT NULL AND t2.id <= t.id ORDER BY t2.id DESC LIMIT 1) AS tag FROM transactions t
                           LEFT JOIN projects pr ON pr.id = t.project_id
                           WHERE t.part_id = ? ORDER BY t.created_at DESC, t.id DESC LIMIT 50""",
                        (part_id,)).fetchall()
@@ -4497,6 +4499,8 @@ def project_detail(project_id):
     usage_rows = conn.execute("""
         SELECT p.id as part_id, p.name, p.barcode, p.unit, p.unit_cost,
                t.section as section,
+               (SELECT t2.tag_photo FROM transactions t2 WHERE t2.part_id = p.id
+                 AND t2.tag_photo IS NOT NULL ORDER BY t2.id DESC LIMIT 1) as tag,
                SUM(CASE WHEN t.type='out' THEN t.qty ELSE -t.qty END) as qty_used
         FROM transactions t JOIN parts p ON p.id = t.part_id
         WHERE t.project_id = ?
@@ -4587,7 +4591,10 @@ def project_detail(project_id):
                                                     kv[1]["confirm_requested_at"] is not None,
                                                     kv[1]["completed_at"] or kv[1]["confirm_requested_at"] or "", kv[0])))
 
-    tx = conn.execute("""SELECT t.*, p.name as part_name, p.barcode as part_barcode FROM transactions t
+    tx = conn.execute("""SELECT t.*, p.name as part_name, p.barcode as part_barcode,
+                          (SELECT t2.tag_photo FROM transactions t2 WHERE t2.part_id = t.part_id
+                            AND t2.tag_photo IS NOT NULL AND t2.id <= t.id ORDER BY t2.id DESC LIMIT 1) AS tag
+                          FROM transactions t
                           JOIN parts p ON p.id = t.part_id
                           WHERE t.project_id = ? ORDER BY t.created_at DESC, t.id DESC""",
                        (project_id,)).fetchall()
@@ -7785,9 +7792,21 @@ def order_receive(order_id):
     # 'received' adds stock. Stops a double-click / Back-button resubmit / two
     # people receiving the same box from adding the quantity twice, and stops
     # a cancelled order from being received.
+    tag_photo = None
+    tag_file = request.files.get("tag_photo")
+    if tag_file and tag_file.filename and allowed_image(tag_file.filename):
+        tag_file.stream.seek(0, 2)
+        size = tag_file.stream.tell()
+        tag_file.stream.seek(0)
+        if size:
+            try:
+                tag_photo = save_upload(tag_file)
+            except OSError:
+                app.logger.exception("Release tag photo save failed for order %s", order_id)
+                flash("Couldn't save the tag photo (storage?) - the order was still received.", "warning")
     claimed = conn.execute(
-        "UPDATE orders SET status='received', received_date=? WHERE id=? AND status NOT IN ('received', 'cancelled')",
-        (now_iso(), order_id)).rowcount
+        "UPDATE orders SET status='received', received_date=?, tag_photo=? WHERE id=? AND status NOT IN ('received', 'cancelled')",
+        (now_iso(), tag_photo, order_id)).rowcount
     if not claimed:
         conn.close()
         flash(f"Order #{order_id} is already {order['status']} - stock was not changed.", "warning")
@@ -7810,9 +7829,9 @@ def order_receive(order_id):
 
     conn.execute("UPDATE parts SET qty_on_hand = qty_on_hand + ?, updated_at = ? WHERE id = ?",
                  (order["qty_ordered"], now_iso(), part_id))
-    conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, source, created_at)
-                     VALUES (?, NULL, 'in', ?, ?, 'assigned', ?)""",
-                 (part_id, order["qty_ordered"], f"Received order #{order_id}", now_iso()))
+    conn.execute("""INSERT INTO transactions (part_id, project_id, type, qty, note, source, tag_photo, created_at)
+                     VALUES (?, NULL, 'in', ?, ?, 'assigned', ?, ?)""",
+                 (part_id, order["qty_ordered"], f"Received order #{order_id}", tag_photo, now_iso()))
     if order["wishlist_id"]:
         # Ordered for a job's part request: mark it arrived so whoever asked
         # is told (shop home) and the job stops showing "Waiting on parts".

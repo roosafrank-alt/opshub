@@ -219,6 +219,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     performed_by TEXT,
     section TEXT, -- sub-area within the project, e.g. "Brakes", "Engine" - free text, scoped per project
     source TEXT, -- how this transaction was entered: 'camera_scan' | 'usb_scanner' | 'assigned' (manual)
+    tag_photo TEXT, -- release tag photo from the order received (on 'in' rows)
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_transactions_project_section ON transactions(project_id, section);
@@ -397,6 +398,7 @@ CREATE TABLE IF NOT EXISTS orders (
     expected_date TEXT,
     received_date TEXT,
     note TEXT,
+    tag_photo TEXT, -- release tag (8130-3 / CoC) photo snapped at Received
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 

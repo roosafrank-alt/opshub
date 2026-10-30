@@ -455,6 +455,15 @@ def _migrate(conn):
             conn.execute(ddl)
             conn.commit()
 
+    # Release tag (8130-3 / CoC) photo snapped when an order is marked Received.
+    if "tag_photo" not in tx_cols:
+        conn.execute("ALTER TABLE transactions ADD COLUMN tag_photo TEXT")
+        conn.commit()
+    order_cols = [r["name"] for r in conn.execute("PRAGMA table_info(orders)").fetchall()]
+    if "tag_photo" not in order_cols:
+        conn.execute("ALTER TABLE orders ADD COLUMN tag_photo TEXT")
+        conn.commit()
+
     # Transactions: how each one was entered (camera scan / USB scanner / manually assigned).
     if "source" not in tx_cols:
         conn.execute("ALTER TABLE transactions ADD COLUMN source TEXT")
