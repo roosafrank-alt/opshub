@@ -10,6 +10,16 @@
    matters more than that guard. #}
 {% block viewport %}<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5">{% endblock %}
 {% block content %}
+{#- Just booked on a phone (?new=ids&date=): open that day's Day view so the
+   new lesson is readable; wider screens stay on Month. #}
+<script>
+(function () {
+  var q = new URLSearchParams(window.location.search);
+  if (q.get('view') !== 'month' || !q.get('new') || !q.get('date') || window.innerWidth >= 576) return;
+  q.set('view', 'day'); q.delete('year'); q.delete('month');
+  window.location.replace(window.location.pathname + '?' + q.toString());
+})();
+</script>
 {#- The pilot badge CSS is injected once here (not inside _schedule_live.html,
    which the live-refresh poll below swaps wholesale) so it survives every
    poll instead of needing to be re-added each time. #}

@@ -5877,7 +5877,8 @@ def schedule_new():
             else:
                 flash("Flight scheduled.", "success")
             return redirect(url_for("flight.schedule_calendar", view="month", year=scheduled_date[:4],
-                                    month=int(scheduled_date[5:7]), new=new_booking.lastrowid))
+                                    month=int(scheduled_date[5:7]), date=scheduled_date,
+                                    new=new_booking.lastrowid))
 
         # Recurring booking - each occurrence is checked for conflicts on
         # its own date; a conflicting occurrence is skipped (not fatal to
@@ -5944,7 +5945,7 @@ def schedule_new():
             return redirect(url_for("flight.schedule_calendar", view="custom", start=skip_dates[0],
                                     end=skip_dates[-1], highlight=skip_ids, why=skip_why))
         first = occurrence_dates[0]
-        return redirect(url_for("flight.schedule_calendar", view="month", year=first[:4], month=int(first[5:7]),
+        return redirect(url_for("flight.schedule_calendar", view="month", year=first[:4], month=int(first[5:7]), date=first,
                                 new=",".join(str(i) for i in created_ids)))
     conn.close()
     return render_template("flight/schedule_form.html", form=None, **form_kwargs)
