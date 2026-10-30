@@ -431,6 +431,8 @@
   }
   /* Fit to screen (Day / Week): the hour grid is sized by script to the visible height. */
   /* Fit to screen (Month): script zooms the grid; scrolling snaps one week at a time. */
+  /* TV: the key keeps its plane / instructor colours; the long explanations drop out so the month and the key share the screen. */
+  html.tv-mode .tv-hide { display: none; }
   .sch-fit-month { scroll-snap-type: y proximity; }
   .sch-fit-month .calendar-table tbody tr { scroll-snap-align: start; scroll-margin-top: 4px; }
   .sch-fit .day-timeline-hours, .sch-fit .day-timeline-track { height: var(--sch-fit-h, 560px) !important; }
@@ -456,12 +458,58 @@
   var de = document.documentElement;
   // Stay on today's week while the page settles (fonts, icons, resize); the first touch, wheel or key press hands scrolling back to the person.
   ['wheel', 'touchstart', 'keydown'].forEach(function (n) { window.addEventListener(n, function () { firstFit = false; }, { passive: true, once: true }); });
+  // TV mode, Month: draw the hour lines inside each day closer together so every
+  // week row gets an equal share of the TV's height. Bookings stay at their times
+  // (positions scale with the lines) and keep their normal one-line text size.
+  function tvCompress(tbl, rows) {
+    var tls = tbl.querySelectorAll('.calendar-timeline-gutter');
+    Array.prototype.forEach.call(tls, function (tl) {
+      var els = tl.querySelectorAll('.calendar-time-line, .month-lane-block');
+      if (!tl.dataset.oh) {
+        tl.dataset.oh = parseFloat(tl.style.height) || tl.offsetHeight;
+        Array.prototype.forEach.call(els, function (el) { el.dataset.ot = parseFloat(el.style.top) || 0; if (el.dataset.ot !== undefined && el.classList.contains('month-lane-block')) el.dataset.oht = parseFloat(el.style.height) || el.offsetHeight; });
+      }
+      tl.style.height = tl.dataset.oh + 'px';
+      Array.prototype.forEach.call(tl.querySelectorAll('.calendar-time-label'), function (lab) { lab.style.visibility = ''; });
+      Array.prototype.forEach.call(els, function (el) { el.style.top = el.dataset.ot + 'px'; if (el.dataset.oht) { el.style.height = el.dataset.oht + 'px'; el.style.minHeight = ''; } });
+    });
+    if (!document.documentElement.classList.contains('tv-mode') || !rows.length || !tls.length) return;
+    var tl0 = tls[0], head = tbl.querySelector('thead');
+    var rowH = rows[0].offsetHeight, overhead = 0, i;
+    for (i = 0; i < rows.length; i++) { var t = rows[i].querySelector('.calendar-timeline-gutter'); if (t) { overhead = rows[i].offsetHeight - t.offsetHeight; break; } }
+    var pageBox = document.querySelector('.container-fluid.py-3');
+    if (pageBox) pageBox.style.zoom = '';  // measure at full size; the TV fit below re-applies it only if still needed
+    var top = tbl.getBoundingClientRect().top + window.scrollY;
+    // Whatever sits under the grid (the key) has to fit too.
+    var below = pageBox ? Math.max(0, pageBox.getBoundingClientRect().bottom - tbl.getBoundingClientRect().bottom) : 0;
+    var avail = window.innerHeight - 16 - top - below - (head ? head.offsetHeight : 0);
+    var target = avail / rows.length - overhead;
+    var oh = parseFloat(tl0.dataset.oh);
+    if (!(target > 40) || target >= oh) return;
+    var k = target / oh;
+    Array.prototype.forEach.call(tls, function (tl) {
+      tl.style.height = (parseFloat(tl.dataset.oh) * k) + 'px';
+      Array.prototype.forEach.call(tl.querySelectorAll('.calendar-time-line, .month-lane-block'), function (el) {
+        el.style.top = (parseFloat(el.dataset.ot) * k) + 'px';
+        if (el.dataset.oht) { el.style.height = Math.max(parseFloat(el.dataset.oht) * k, 11) + 'px'; el.style.minHeight = '11px'; }
+      });
+    });    // Hour labels would pile up on each other at this spacing: keep every Nth.
+    Array.prototype.forEach.call(tls, function (tl) {
+      var ls = tl.querySelectorAll('.calendar-time-line');
+      if (ls.length < 2) return;
+      var gap = parseFloat(ls[1].dataset.ot) * k - parseFloat(ls[0].dataset.ot) * k, n = Math.max(1, Math.ceil(10 / Math.max(gap, 1)));
+      Array.prototype.forEach.call(ls, function (l, i) { var lab = l.querySelector('.calendar-time-label'); if (lab) lab.style.visibility = (i % n === 0) ? '' : 'hidden'; });
+    });
+    window.dispatchEvent(new Event('tvrefit'));  // let the page-level TV fit re-measure
+    return true;
+  }
   function fitMonth(fit) {
     var tbl = document.querySelector('.calendar-table');
     if (!tbl || tbl.closest('.row')) return;  // not the big month grid
     var rows = tbl.querySelectorAll('tbody tr');
     de.classList.remove('sch-fit-month');
     tbl.style.zoom = '';
+    var tvDone = tvCompress(tbl, rows);
     if (!fit || !rows.length) return;
     // Week at the top of the screen right now, to keep it in view after the resize.
     var cur = rows[0], i;
@@ -489,9 +537,11 @@
       var zAll = (window.innerHeight - 16 - pinned - (head ? head.offsetHeight : 0)) / (tall * rows.length);
       if (zAll >= 0.45) { z = Math.min(1, zAll); cur = rows[0]; }
     }
+    if (tvDone) { z = 1; cur = rows[0]; }  // TV: already squeezed to fit, so no page zoom and stay at the top
     // Zoom shrinks the table's own width too, so no width change is needed: it keeps filling the screen (all 7 days, no sideways scroll).
     if (z < 1) tbl.style.zoom = z;
     de.classList.add('sch-fit-month');
+    if (tvDone) { window.scrollTo(0, 0); return; }
     cur.scrollIntoView({ behavior: 'instant', block: 'start' });
     // Put the week just under the pinned bars so its dates are visible right away.
     var dy = cur.getBoundingClientRect().top - pinned - 4;

@@ -208,6 +208,7 @@ if ('serviceWorker' in navigator) {
   }
   var timer, obs = window.MutationObserver ? new MutationObserver(function () { clearTimeout(timer); timer = setTimeout(fit, 150); }) : null;
   window.addEventListener('resize', fit);
+  window.addEventListener('tvrefit', fit);
   window.addEventListener('load', fit);
   document.addEventListener('click', function (e) {
     var t = e.target.closest && e.target.closest('[data-tv-toggle]');
