@@ -115,6 +115,23 @@ class GroundLessonsTest(OpsHubTestCase):
         self.assertIn("&lt;i&gt;A&lt;/i&gt;", html)
         self.assertIn("gsl-bucket", html)
 
+    def test_questions_in_a_row_share_one_chart(self):
+        """A chart used by several questions in a row is shown once, tap-to-enlarge; the rest point back to it."""
+        fa = {"file": "a.jpg", "caption": "ca", "alt": "a", "res": "2", "page": 5, "source": "CUG"}
+        fb = dict(fa, file="b.jpg")
+        qs = [(1, {"q": "q1", "fig": fa, "options": ["x"]}), (2, {"q": "q2", "fig": fa, "options": ["x"]}),
+              (3, {"q": "q3", "fig": fa, "options": ["x"]}), (4, {"q": "q4", "fig": fb, "options": ["x"]}),
+              (5, {"q": "q5", "options": ["x"]})]
+        with self.app.test_request_context():
+            from flask import render_template_string
+            html = render_template_string(
+                '{% import "flight/_gsl_macros.html" as g %}{{ g.qgroup(qs, "Quick check") }}', qs=qs)
+        self.assertEqual(html.count("a.jpg"), 1)
+        self.assertEqual(html.count("b.jpg"), 1)
+        self.assertIn("Chart for questions 1-3", html)
+        self.assertEqual(html.count("Uses the chart above"), 3)
+        self.assertEqual(html.count("Tap the chart to see it full screen"), 2)
+
     def test_calc_and_decide_games_render_and_join_the_final_check(self):
         """GS-MORE-PLAY: type-the-number and step-by-step decision games."""
         acts = [

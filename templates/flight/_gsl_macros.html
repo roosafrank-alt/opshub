@@ -136,10 +136,25 @@
 <div class="gsl-panel gsl-playpanel gsl-play-item gsl-qgroup {{ extra_class }}" data-final="{{ 1 if final else 0 }}" data-done="{{ 1 if (qs and ns.done == qs|length) else 0 }}" data-first="{{ ns.first }}" data-count="{{ qs|length }}"><span class="gsl-playtag">{{ label }}</span>
   <div class="gsl-body">
   {% for n, q in qs %}
+  {#- Questions in a row that use the same figure share it: shown once above the first, the rest say "Uses the chart above". -#}
+  {% set same_prev = loop.previtem and loop.previtem[1].fig and q.fig and loop.previtem[1].fig.file == q.fig.file %}
+  {% set oi = loop.index %}
+  {% set run = namespace(stems=[gs_rich(q.q)], last=(n if number_through else oi), more=true) %}
+  {% if q.fig and not same_prev %}
+    {% for m, qq in qs[oi:] %}{% if run.more and qq.fig and qq.fig.file == q.fig.file %}{% set run.stems = run.stems + [gs_rich(qq.q)] %}{% set run.last = (m if number_through else oi + loop.index) %}{% else %}{% set run.more = false %}{% endif %}{% endfor %}
+  {% endif %}
+  {% set shared = q.fig and (same_prev or run.stems|length > 1) %}
+  {% if q.fig and not same_prev %}
+  <figure class="gsl-fig gsl-qfig" data-zoom="1" role="button" tabindex="0" aria-label="Open the chart full screen">
+    {% if shared %}<div class="gsl-figtitle">Chart for questions {{ n if number_through else oi }}{% if run.last != (n if number_through else oi) %}-{{ run.last }}{% endif %}</div>{% endif %}
+    <img src="{{ url_for('static', filename='lessons/' ~ q.fig.file) }}" alt="{{ q.fig.alt or q.fig.caption }}" loading="lazy">
+    <figcaption>{{ q.fig.caption }} · <a href="{{ gs_cite_url(q.fig.res, q.fig.page) }}">{{ q.fig.source }}</a></figcaption>
+    <div class="gsl-figtap"><i class="bi bi-search"></i> Tap the chart to see it full screen</div>
+    <div class="gsl-figqs" hidden>{% for st in run.stems %}<p>{{ st }}</p>{% endfor %}</div></figure>
+  {% endif %}
   <div class="gsl-q" data-n="{{ n }}">
     <div class="gsl-stem">{{ n if number_through else loop.index }}. {{ gs_rich(q.q) }}</div>
-    {% if q.fig %}<figure class="gsl-fig gsl-qfig"><img src="{{ url_for('static', filename='lessons/' ~ q.fig.file) }}" alt="{{ q.fig.alt or q.fig.caption }}" loading="lazy">
-      <figcaption>{{ q.fig.caption }} · <a href="{{ gs_cite_url(q.fig.res, q.fig.page) }}">{{ q.fig.source }}</a></figcaption></figure>{% endif %}
+    {% if shared %}<div class="gsl-figuses">Uses the chart above</div>{% endif %}
     <div class="gsl-opts">{% for o in q.options %}<button type="button" data-j="{{ loop.index0 }}">{{ gs_rich(o) }}</button>{% endfor %}</div>
     <div class="gsl-qwhy" hidden>{{ gs_rich(q.why) }}</div>
   </div>

@@ -82,6 +82,25 @@
     window.gslGateUpdate = update;
   }
 
+  // ---------- charts: tap to see one full screen, with the question(s) along the bottom
+  function openZoom(fig) {
+    var img = fig.querySelector('img'), qs = fig.querySelector('.gsl-figqs');
+    var box = document.createElement('div'); box.className = 'gsl-zoom'; box.setAttribute('role', 'dialog');
+    var x = document.createElement('button'); x.type = 'button'; x.className = 'gsl-zoom-x'; x.setAttribute('aria-label', 'Close'); x.textContent = '\u2715';
+    var pan = document.createElement('div'); pan.className = 'gsl-zoom-pan';
+    var big = document.createElement('img'); big.src = img.src; big.alt = img.alt; pan.appendChild(big);
+    box.appendChild(x); box.appendChild(pan);
+    if (qs) { var q = document.createElement('div'); q.className = 'gsl-zoom-q'; q.innerHTML = qs.innerHTML; box.appendChild(q); }
+    function close() { document.removeEventListener('keydown', onKey); box.remove(); fig.focus(); }
+    function onKey(e) { if (e.key === 'Escape') close(); }
+    x.addEventListener('click', close); document.addEventListener('keydown', onKey);
+    document.body.appendChild(box); x.focus();
+  }
+  root.querySelectorAll('.gsl-qfig[data-zoom]').forEach(function (fig) {
+    fig.addEventListener('click', function (e) { if (!e.target.closest('a')) openZoom(fig); });
+    fig.addEventListener('keydown', function (e) { if ((e.key === 'Enter' || e.key === ' ') && !e.target.closest('a')) { e.preventDefault(); openZoom(fig); } });
+  });
+
   // ---------- quick checks
   root.querySelectorAll('.gsl-qgroup').forEach(function (g) {
     var final = g.getAttribute('data-final') === '1';
