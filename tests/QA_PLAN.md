@@ -72,7 +72,7 @@ Shop / inventory
 - [x] Project lifecycle: new, intake, edit, status, trash/restore/purge, renumber after delete
 - [x] Project sub-areas: add, rename (history follows), complete, then inspector confirm or send back
 - [x] Squawks: new, acknowledge, assign, repair, worker acknowledge (both `kind`s)
-- [ ] Assets: new, quick new, edit, hours update (can hours go backwards?), trash/restore/purge
+- [x] Assets: new, quick new, edit, hours update, trash/restore/purge (hours going backwards is allowed today; not treated as a bug)
 - [ ] Maintenance items: new, edit, complete, due/overdue math around hours and dates
 - [ ] Logbook entries: create, edit, print, starter templates
 - [x] Photos: upload (bad file types, huge files), set cover, delete
@@ -125,3 +125,7 @@ Health check (live vs queued, identical, no regressions): same ~26 clock/network
 ## Oct 29 note
 
 Health check (live vs queued, identical, no regressions): same 26 clock/network-dependent failures as Oct 25-27 (run with the system python that has Flask). Project lifecycle area finished (`test_project_new_edit_intake.py`: job form, edit, intake skip/save/verify, roles, missing and trashed jobs). New: a made-up start date such as "not-a-date" is saved on a job instead of refused (card `qa-project-bad-dates-saved`).
+
+## Oct 30 note
+
+Health check (live vs queued, identical, no regressions): same 26-27 clock/network-dependent failures as before (Flask lives only in /usr/bin/python3 on the cloud box). Assets area finished (`test_assets_bad_input.py`): New Aircraft form accepts infinite or negative hours and rental rate (card `qa-new-aircraft-bad-hours-saved`); a tail number that differs only by letter case is accepted as a new aircraft (card `qa-aircraft-tail-case-duplicate`).
