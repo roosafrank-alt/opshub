@@ -56,7 +56,6 @@ class NewAircraftNumbersTest(OpsHubTestCase):
         self.post_new(tag="  N901  ")
         self.assertIsNotNone(self.q1("SELECT 1 FROM assets WHERE tag='N901'"))
 
-    @open_finding("qa-aircraft-tail-case-duplicate")
     def test_same_tail_in_different_case_is_a_duplicate(self):
         self.make_asset("N777")
         self.login("shop_admin")

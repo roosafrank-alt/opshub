@@ -5672,7 +5672,7 @@ def asset_new():
             flash("Tail / serial number is required.", "danger")
             return render_template("asset_form.html", asset=None)
         conn = get_db()
-        existing = conn.execute("SELECT id FROM assets WHERE tag = ?", (tag,)).fetchone()
+        existing = conn.execute("SELECT id FROM assets WHERE tag = ? COLLATE NOCASE", (tag,)).fetchone()
         if existing:
             flash(f"An aircraft with tail number '{tag}' already exists.", "danger")
             conn.close()
@@ -5735,7 +5735,7 @@ def asset_quick_new():
     if not tag:
         return jsonify({"error": "Enter a tail / serial number."}), 400
     conn = get_db()
-    existing = conn.execute("SELECT id FROM assets WHERE tag = ?", (tag,)).fetchone()
+    existing = conn.execute("SELECT id FROM assets WHERE tag = ? COLLATE NOCASE", (tag,)).fetchone()
     if existing:
         conn.close()
         return jsonify({"error": f"An aircraft with tail number '{tag}' already exists."}), 400
@@ -5903,7 +5903,7 @@ def asset_promote_own_plane(asset_id):
         conn.close()
         flash("Enter the plane's N-number to add it to the fleet.", "danger")
         return redirect(url_for("asset_detail", asset_id=asset_id))
-    conflict = conn.execute("SELECT id FROM assets WHERE tag = ? AND id != ?", (n_number, asset_id)).fetchone()
+    conflict = conn.execute("SELECT id FROM assets WHERE tag = ? COLLATE NOCASE AND id != ?", (n_number, asset_id)).fetchone()
     if conflict:
         conn.close()
         flash(f"{n_number} is already used by another plane in the fleet.", "danger")
@@ -6499,7 +6499,7 @@ def asset_edit(asset_id):
             flash("Tail / serial number is required.", "danger")
             conn.close()
             return render_template("asset_form.html", asset=asset)
-        clash = conn.execute("SELECT id FROM assets WHERE tag = ? AND id != ?", (tag, asset_id)).fetchone()
+        clash = conn.execute("SELECT id FROM assets WHERE tag = ? COLLATE NOCASE AND id != ?", (tag, asset_id)).fetchone()
         if clash:
             flash(f"Another aircraft already uses tail number '{tag}'.", "danger")
             conn.close()
