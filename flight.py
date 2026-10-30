@@ -3987,14 +3987,25 @@ def planes_list():
     return render_template("flight/planes.html", planes=planes, hundred=hundred)
 
 
+def _plane_color_ctx(asset_id):
+    """Colours already taken, for the Schedule & solo box on Edit Plane."""
+    conn = get_db()
+    try:
+        return dict(used_colors=_used_colors_for_plane(conn, asset_id),
+                    used_solo_colors=_used_solo_colors_for_plane(conn, asset_id),
+                    schedule_colors=SCHEDULE_COLORS)
+    finally:
+        conn.close()
+
+
 @flight_bp.route("/planes/<int:asset_id>/edit", methods=["GET", "POST"])
 @admin_required
 def plane_edit(asset_id):
     """SCHOOL-27: Fly with Kate!'s own small plane form (tail number, name,
     make/model, "used by Flight School") - saves the same aircraft record
     the Maintenance side edits, but Save comes back to Planes instead of
-    leaving the admin in Winds Aloft. Color and solo rules stay on the
-    Schedule & Solo settings page (plane_rate_edit). Simulators keep their own form."""
+    leaving the admin in Winds Aloft. Schedule colour and solo rules are in the
+    "Schedule & solo" box at the bottom. Simulators keep their own form."""
     conn = get_db()
     plane = conn.execute("SELECT * FROM assets WHERE id = ? AND deleted_at IS NULL", (asset_id,)).fetchone()
     if not plane:
@@ -4013,23 +4024,53 @@ def plane_edit(asset_id):
         if not tag:
             flash("Tail number is required.", "danger")
             conn.close()
-            return render_template("flight/plane_form.html", plane=plane, form=request.form, ac_features=pilotlog.AC_FEATURES)
+            return render_template("flight/plane_form.html", plane=plane, form=request.form, ac_features=pilotlog.AC_FEATURES, **_plane_color_ctx(asset_id))
         dup = conn.execute("SELECT id FROM assets WHERE tag = ? AND id != ? AND deleted_at IS NULL", (tag, asset_id)).fetchone()
         if dup:
             flash(f"There is already an aircraft with the tail number {tag}.", "danger")
             conn.close()
-            return render_template("flight/plane_form.html", plane=plane, form=request.form, ac_features=pilotlog.AC_FEATURES)
+            return render_template("flight/plane_form.html", plane=plane, form=request.form, ac_features=pilotlog.AC_FEATURES, **_plane_color_ctx(asset_id))
+        # The "Schedule & solo" box (only shown while the plane is used by the school).
+        sched = None
+        if request.form.get("sched_box"):
+            color = request.form.get("color", "").strip() or None
+            if color and color not in SCHEDULE_COLORS:
+                color = None
+            solo_color = request.form.get("solo_color", "").strip() or None
+            if solo_color and solo_color not in SCHEDULE_COLORS:
+                solo_color = None
+            problem = None
+            if color and color in _used_colors_for_plane(conn, asset_id):
+                problem = "That color is already taken by an instructor or another plane - pick a different one."
+            elif solo_color and solo_color in _used_solo_colors_for_plane(conn, asset_id):
+                problem = "That Solo Color is already taken by another plane - pick a different one."
+            if problem:
+                flash(problem, "danger")
+                conn.close()
+                return render_template("flight/plane_form.html", plane=plane, form=request.form, ac_features=pilotlog.AC_FEATURES, **_plane_color_ctx(asset_id))
+            sched = (color, solo_color, 1 if request.form.get("solo_allowed") else 0)
         features = pilotlog.clean_features(request.form.getlist("ac_features"))
         # Changing a plane's features starts today: flights already flown keep what they had.
         since = date.today().isoformat() if features != (plane["ac_features"] or None) else plane["ac_features_since"]
         conn.execute("UPDATE assets SET tag = ?, name = ?, make = ?, model = ?, is_flight_asset = ?, school_listed = MAX(school_listed, ?), ac_features = ?, ac_features_since = ?, updated_at = ? WHERE id = ?",
                      (tag, name or tag, make, model, is_flight_asset, is_flight_asset, features, since, now_iso(), asset_id))
+        extra = ""
+        if sched:
+            color, solo_color, solo_allowed = sched
+            parts = []
+            if (color != (plane["schedule_color"] or None)) or (solo_color != (plane["solo_color"] or None)):
+                parts.append("colors updated")
+            if bool(solo_allowed) != bool(plane["solo_allowed"]):
+                parts.append("solo flights now allowed" if solo_allowed else "solo flights no longer allowed")
+            conn.execute("UPDATE assets SET schedule_color = ?, solo_color = ?, solo_allowed = ? WHERE id = ?",
+                         (color, solo_color, solo_allowed, asset_id))
+            extra = (" " + " and ".join(parts).capitalize() + ".") if parts else ""
         conn.commit()
         conn.close()
-        flash(f"{tag} saved." + ("" if is_flight_asset else f" {tag} is no longer used by the flight school (off the Schedule), but stays on the Planes list so you can turn it back on."), "success")
+        flash(f"{tag} saved." + extra + ("" if is_flight_asset else f" {tag} is no longer used by the flight school (off the Schedule), but stays on the Planes list so you can turn it back on."), "success")
         return redirect(url_for("flight.planes_list"))
     conn.close()
-    return render_template("flight/plane_form.html", plane=plane, form=None, ac_features=pilotlog.AC_FEATURES)
+    return render_template("flight/plane_form.html", plane=plane, form=None, ac_features=pilotlog.AC_FEATURES, **_plane_color_ctx(asset_id))
 
 
 @flight_bp.route("/planes/simulator/new", methods=["GET", "POST"])
@@ -4157,56 +4198,9 @@ def simulator_edit(asset_id):
 @flight_bp.route("/planes/<int:asset_id>/rate", methods=["GET", "POST"])
 @admin_required
 def plane_rate_edit(asset_id):
-    """A plane's Schedule & Solo settings (schedule color, solo color, solo
-    flights allowed), set here by an admin on the Flight School side. Planes no longer have a rental rate - what a student pays for the
-    plane is their own Plane Rate on the Students page."""
-    conn = get_db()
-    plane = conn.execute(
-        "SELECT * FROM assets WHERE id = ? AND deleted_at IS NULL AND is_flight_asset = 1", (asset_id,)
-    ).fetchone()
-    if not plane:
-        conn.close()
-        flash("Plane not found.", "danger")
-        return redirect(url_for("flight.planes_list"))
-    if request.method == "POST":
-        color = request.form.get("color", "").strip() or None
-        if color and color not in SCHEDULE_COLORS:
-            color = None
-        if color and color in _used_colors_for_plane(conn, asset_id):
-            flash("That color is already taken by an instructor or another plane - pick a different one.", "danger")
-            conn.close()
-            return redirect(url_for("flight.plane_rate_edit", asset_id=asset_id))
-        solo_color = request.form.get("solo_color", "").strip() or None
-        if solo_color and solo_color not in SCHEDULE_COLORS:
-            solo_color = None
-        if solo_color and solo_color in _used_solo_colors_for_plane(conn, asset_id):
-            flash("That Solo Color is already taken by another plane - pick a different one.", "danger")
-            conn.close()
-            return redirect(url_for("flight.plane_rate_edit", asset_id=asset_id))
-        solo_allowed = 1 if request.form.get("solo_allowed") else 0
-        # SCHOOL-24: the message says what actually changed (colour and/or
-        # the solo setting) instead of always "Color updated".
-        colors_changed = (color != (plane["schedule_color"] or None)) or (solo_color != (plane["solo_color"] or None))
-        solo_changed = bool(solo_allowed) != bool(plane["solo_allowed"])
-        conn.execute("UPDATE assets SET schedule_color = ?, solo_color = ?, solo_allowed = ?, updated_at = ? WHERE id = ?",
-                     (color, solo_color, solo_allowed, now_iso(), asset_id))
-        conn.commit()
-        conn.close()
-        parts = []
-        if colors_changed:
-            parts.append("colors updated")
-        if solo_changed:
-            parts.append("solo flights now allowed" if solo_allowed else "solo flights no longer allowed")
-        if parts:
-            flash(f"{plane['tag']}: " + " and ".join(parts) + ".", "success")
-        else:
-            flash(f"{plane['tag']}: nothing changed.", "info")
-        return redirect(url_for("flight.planes_list"))
-    used_colors = _used_colors_for_plane(conn, asset_id)
-    used_solo_colors = _used_solo_colors_for_plane(conn, asset_id)
-    conn.close()
-    return render_template("flight/plane_rate_form.html", plane=plane, used_colors=used_colors,
-                           used_solo_colors=used_solo_colors, schedule_colors=SCHEDULE_COLORS)
+    """Old Schedule & Solo settings address: those settings now live on Edit Plane,
+    so old links and bookmarks forward there."""
+    return redirect(url_for("flight.plane_edit", asset_id=asset_id))
 
 
 @flight_bp.route("/settings/school", methods=["GET", "POST"])

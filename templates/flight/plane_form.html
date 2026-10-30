@@ -3,7 +3,7 @@
 {% block content %}
 {#- SCHOOL-27: Fly with Kate!'s own small plane form. Saves the same
    aircraft record Winds Aloft's Maintenance form edits, but Save brings
-   the admin back to Planes. Color and solo rules live on the Schedule &amp; Solo settings page. #}
+   the admin back to Planes. Schedule colour and solo rules are in the Schedule &amp; solo box. #}
 {% set F = form %}
 <div class="row justify-content-center">
 <div class="col-lg-5">
@@ -43,7 +43,62 @@
       <input type="checkbox" class="form-check-input" name="is_flight_asset" id="is-flight-asset" {{ 'checked' if (F.get('is_flight_asset') if F is not none else plane.is_flight_asset) }}>
       <label class="form-check-label" for="is-flight-asset">Used by Flight School <span class="text-muted small">(untick to take it off the Planes list and the Schedule)</span></label>
     </div>
-    <p class="small text-muted">Schedule color and solo rules: <a href="{{ url_for('flight.plane_rate_edit', asset_id=plane.id) }}">Schedule &amp; Solo settings</a>.
+    {% if plane.is_flight_asset %}
+    {% set _sc = (F.get('color') if F is not none else plane.schedule_color) or '' %}
+    {% set _soc = (F.get('solo_color') if F is not none else plane.solo_color) or '' %}
+    {% set _sa = (F.get('solo_allowed') if F is not none else plane.solo_allowed) %}
+    <div class="border rounded p-3 mb-3" data-change="ONE-EDIT">
+      <input type="hidden" name="sched_box" value="1">
+      <div class="fw-bold mb-2"><i class="bi bi-palette"></i> Schedule &amp; solo</div>
+    <div class="mb-3">
+      <label class="form-label d-block">Schedule Color</label>
+      <input type="hidden" name="color" id="color-input" value="{{ _sc or '' }}">
+      <div class="d-flex flex-wrap gap-2" id="color-swatches">
+        {% for c in schedule_colors %}
+        {% set taken = c in (used_colors or []) %}
+        <div class="color-swatch{{ ' color-swatch-taken' if taken }}"
+             data-color="{{ c }}"
+             title="{{ 'Already used by an instructor or another plane' if taken else c }}"
+             style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:{{ 'not-allowed' if taken else 'pointer' }};opacity:{{ '0.25' if taken else '1' }};border:3px solid {{ '#212529' if _sc == c else 'transparent' }};"></div>
+        {% endfor %}
+        <div class="color-swatch"
+             data-color=""
+             title="No color"
+             style="width:32px;height:32px;border-radius:6px;background:#fff;cursor:pointer;border:3px dashed {{ '#212529' if not _sc else '#adb5bd' }};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#6c757d;">&times;</div>
+      </div>
+      <div class="d-flex align-items-center gap-2 mt-2 small">
+        <span class="text-muted">Preview:</span>
+        <span id="color-preview" class="px-2 rounded fw-bold" style="background:{{ _sc or '#868e96' }};color:#fff;">{{ plane.tag }}</span>
+        <span id="color-preview-solo" class="px-2 rounded fw-bold">{{ plane.tag }} solo</span>
+      </div>
+      <div class="form-text">This is the block color for {{ plane.tag }} on the Schedule (the instructor shows as a stripe on the left). Grayed-out colors belong to an instructor or another plane.</div>
+    </div>
+    <div class="mb-3 form-check">
+      <input type="checkbox" class="form-check-input" name="solo_allowed" id="solo-allowed-check" {{ 'checked' if _sa }}>
+      <label class="form-check-label" for="solo-allowed-check">Solo flights allowed</label>
+      <div class="form-text">Unchecked, {{ plane.tag }} can't be booked solo - the Solo checkbox on new bookings is disabled for this plane.</div>
+    </div>
+    <div class="mb-3">
+      <label class="form-label d-block">Solo Color</label>
+      <input type="hidden" name="solo_color" id="solo-color-input" value="{{ _soc or '' }}">
+      <div class="d-flex flex-wrap gap-2" id="solo-color-swatches">
+        {% for c in schedule_colors %}
+        {% set solo_taken = c in (used_solo_colors or []) %}
+        <div class="color-swatch{{ ' color-swatch-taken' if solo_taken }}"
+             data-color="{{ c }}"
+             title="{{ 'Already used by another plane' if solo_taken else c }}"
+             style="width:32px;height:32px;border-radius:6px;background:{{ c }};cursor:{{ 'not-allowed' if solo_taken else 'pointer' }};opacity:{{ '0.25' if solo_taken else '1' }};border:3px solid {{ '#212529' if _soc == c else 'transparent' }};"></div>
+        {% endfor %}
+        <div class="color-swatch"
+             data-color=""
+             title="Auto (neon version of the Schedule Color)"
+             style="width:32px;height:32px;border-radius:6px;background:#fff;cursor:pointer;border:3px dashed {{ '#212529' if not _soc else '#adb5bd' }};display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#6c757d;">&times;</div>
+      </div>
+      <div class="form-text">What solo bookings for {{ plane.tag }} show instead of the block color above. Leave unset to keep the automatic neon version. Grayed-out colors are already used by another plane's Solo Color.</div>
+    </div>
+    </div>
+    {% endif %}
+    <p class="small text-muted">
       {% if flight_admin or session.get('shop_role') in ('admin', 'tech') %}Maintenance: <a href="{{ url_for('asset_detail', asset_id=plane.id) }}">open in Winds Aloft</a>.{% endif %}</p>
     <input type="hidden" name="return_to" value="{{ form_back(url_for('flight.planes_list')) }}">
     <div class="d-flex gap-2" data-change="DESIGN-8">
@@ -54,4 +109,57 @@
 </div>
 </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  var input = document.getElementById('color-input');
+  if (!input) return;
+  var swatches = document.querySelectorAll('#color-swatches .color-swatch');
+  var soloInput = document.getElementById('solo-color-input');
+  var soloSwatches = document.querySelectorAll('#solo-color-swatches .color-swatch');
+  var preview = document.getElementById('color-preview');
+  var previewSolo = document.getElementById('color-preview-solo');
+  // Same "neon" rule as flight.py _neon_color: same hue, full saturation, 55% lightness.
+  function neon(hex) {
+    var h = (hex || '#868e96').replace('#', '');
+    var r = parseInt(h.substr(0, 2), 16) / 255, g = parseInt(h.substr(2, 2), 16) / 255, b = parseInt(h.substr(4, 2), 16) / 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min, hue = 0, l = (max + min) / 2;
+    var s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+    if (d !== 0) {
+      if (max === r) hue = ((g - b) / d) % 6; else if (max === g) hue = (b - r) / d + 2; else hue = (r - g) / d + 4;
+      hue *= 60; if (hue < 0) hue += 360;
+    }
+    if (s < 0.08) hue = 90;
+    return 'hsl(' + hue + ', 100%, 55%)';
+  }
+  function paint() {
+    var hex = input.value;
+    preview.style.background = hex || '#868e96';
+    previewSolo.style.background = soloInput.value || neon(hex);
+    previewSolo.style.color = '#111';
+    previewSolo.style.boxShadow = 'inset 0 0 6px rgba(255,255,255,.75)';
+  }
+  paint();
+  swatches.forEach(function (sw) {
+    sw.addEventListener('click', function () {
+      if (sw.classList.contains('color-swatch-taken')) return;
+      input.value = sw.getAttribute('data-color');
+      swatches.forEach(function (s) { s.style.border = s.getAttribute('data-color') ? '3px solid transparent' : '3px dashed #adb5bd'; });
+      sw.style.border = sw.getAttribute('data-color') ? '3px solid #212529' : '3px dashed #212529';
+      paint();
+    });
+  });
+  soloSwatches.forEach(function (sw) {
+    sw.addEventListener('click', function () {
+      if (sw.classList.contains('color-swatch-taken')) return;
+      soloInput.value = sw.getAttribute('data-color');
+      soloSwatches.forEach(function (s) { s.style.border = s.getAttribute('data-color') ? '3px solid transparent' : '3px dashed #adb5bd'; });
+      sw.style.border = sw.getAttribute('data-color') ? '3px solid #212529' : '3px dashed #212529';
+      paint();
+    });
+  });
+})();
+</script>
 {% endblock %}

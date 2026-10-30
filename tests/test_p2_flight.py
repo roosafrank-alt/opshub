@@ -43,27 +43,33 @@ class FinderPrefillTest(P2Base):
 class ScheduleAndSoloSettingsTest(P2Base):
     def save(self, **data):
         c = self.login("master")
-        c.post(f"/flight/planes/{self.plane}/rate", data=data)
+        data.setdefault("tag", "N20267S")
+        data["sched_box"] = "1"
+        data.setdefault("is_flight_asset", "on")
+        c.post(f"/flight/planes/{self.plane}/edit", data=data)
         with c.session_transaction() as s:
             return [m for _cat, m in s.get("_flashes", [])]
 
-    def test_button_and_heading_use_the_new_name(self):  # SCHOOL-24
+    def test_one_edit_holds_the_schedule_and_solo_box(self):  # ONE-EDIT
         c = self.login("master")
-        self.assertIn("Schedule &amp; Solo settings", c.get("/flight/planes").get_data(as_text=True))
-        page = c.get(f"/flight/planes/{self.plane}/rate").get_data(as_text=True)
-        self.assertIn("Schedule &amp; Solo settings: N20267S", page)
-        self.assertNotIn("Edit Plane", page)
+        self.assertNotIn("Schedule &amp; Solo settings", c.get("/flight/planes").get_data(as_text=True))
+        page = c.get(f"/flight/planes/{self.plane}/edit").get_data(as_text=True)
+        self.assertIn("Schedule &amp; solo", page)
+        self.assertIn("Solo flights allowed", page)
+        r = c.get(f"/flight/planes/{self.plane}/rate")
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(r.headers["Location"].endswith(f"/flight/planes/{self.plane}/edit"))
 
     def test_message_says_what_changed(self):  # SCHOOL-24
         self.exec("UPDATE assets SET solo_allowed = 1, schedule_color = NULL, solo_color = NULL WHERE id = ?", (self.plane,))
         msgs = self.save(solo_allowed="on", color=flight.SCHEDULE_COLORS[0])
-        self.assertEqual(msgs, ["N20267S: colors updated."])
+        self.assertEqual(msgs, ["N20267S saved. Colors updated."])
         msgs = self.save(color=flight.SCHEDULE_COLORS[0])  # solo box unticked now
-        self.assertEqual(msgs, ["N20267S: solo flights no longer allowed."])
+        self.assertEqual(msgs, ["N20267S saved. Solo flights no longer allowed."])
         msgs = self.save(solo_allowed="on", color=flight.SCHEDULE_COLORS[1])
-        self.assertEqual(msgs, ["N20267S: colors updated and solo flights now allowed."])
+        self.assertEqual(msgs, ["N20267S saved. Colors updated and solo flights now allowed."])
         msgs = self.save(solo_allowed="on", color=flight.SCHEDULE_COLORS[1])
-        self.assertEqual(msgs, ["N20267S: nothing changed."])
+        self.assertEqual(msgs, ["N20267S saved."])
 
 
 class DateWordsTest(OpsHubTestCase):
@@ -111,7 +117,7 @@ class DeleteWordsTest(P2Base):
 class FormFooterTest(P2Base):
     def test_save_comes_before_cancel_and_cancel_goes_back(self):  # DESIGN-8
         c = self.login("master")
-        page = c.get(f"/flight/planes/{self.plane}/rate",
+        page = c.get(f"/flight/planes/{self.plane}/edit",
                      headers={"Referer": "http://localhost/flight/planes"}).get_data(as_text=True)
         self.assertLess(page.index('type="submit" class="btn btn-primary fw-bold">Save'), page.index(">Cancel</a>"))
         self.assertIn('href="/flight/planes" class="btn btn-outline-secondary">Cancel', page)
