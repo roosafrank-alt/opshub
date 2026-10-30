@@ -362,6 +362,18 @@ class WordingTest(FlyBase):
         active = self.login("cfi").get("/flight/log/active").get_data(as_text=True)
         self.assertIn("Log a Past Session", active)
 
+    def test_log_form_from_booked_lesson_names_the_lesson(self):
+        from datetime import date
+        q = f"?asset_id={self.plane}&student_id={self.student}&scheduled_flight_id=7"
+        today = self.login("cfi").get("/flight/log/new" + q + "&flight_date=" + date.today().isoformat()).get_data(as_text=True)
+        self.assertIn("Log today&#39;s lesson", today.replace("'", "&#39;"))
+        self.assertNotIn("Log a Past Session", today)
+        other = self.login("cfi").get("/flight/log/new" + q + "&flight_date=2026-10-26").get_data(as_text=True)
+        self.assertIn("Log lesson for Mon, Oct 26", other)
+        # With no booking behind it, the form keeps the "Log a Past Session" title.
+        plain = self.login("cfi").get(f"/flight/log/new?asset_id={self.plane}&student_id={self.student}").get_data(as_text=True)
+        self.assertNotIn("Log today", plain)
+
     def test_modal_shows_balance_hold_in_words(self):  # FLY-14
         html = self.login("cfi").get("/flight/schedule").get_data(as_text=True)
         self.assertIn("Pending - Balance Hold (student owes more than the school", html)

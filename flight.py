@@ -9573,6 +9573,16 @@ def log_new():
         "scheduled_flight_id": request.args.get("scheduled_flight_id", ""),
         "own_plane": bool(asset_row and asset_row["is_owner_placeholder"]),
     }
+    # Opened from a booked lesson (Log Flight on Your Next Lesson / the schedule): the heading names that
+    # lesson instead of the back-filling "Log a Past Session" title.
+    prefill["title"] = ""
+    if prefill["scheduled_flight_id"]:
+        try:
+            d = datetime.strptime(prefill["flight_date"], "%Y-%m-%d").date()
+            prefill["title"] = ("Log today's lesson" if d == date.today()
+                                else "Log lesson for " + d.strftime("%a, %b ") + str(d.day))
+        except ValueError:
+            prefill["title"] = "Log this lesson"
     conn.close()
     return render_template("flight/log_new.html", form=None, prefill=prefill, **form_kwargs)
 
