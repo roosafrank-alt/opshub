@@ -166,7 +166,7 @@
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Instructor{% if self_service %} <span class="text-muted small">(preferred - or leave as Any)</span>{% endif %}</label>
-        <select name="cfi_id" id="cfi-select" class="form-select">
+        <select name="cfi_id" id="cfi-select" class="form-select" data-me="{{ current_cfi_id if current_cfi_id else '' }}">
           {% if self_service %}
           <option value="">-- Any instructor --</option>
           {% else %}
@@ -931,7 +931,14 @@
     // Staff booking (the first choice is "Unassigned (assign later)"): leave the instructor unassigned
     // instead of copying the student's last instructor. A student's own request still gets the usual one.
     var staffBooking = cs && cs.options.length && /Unassigned/.test(cs.options[0].text);
-    if (cs && staffBooking && !u.solo) { cs.value = ''; cs.dispatchEvent(new Event('change')); bits.push('<strong>Instructor unassigned</strong>'); }
+    // Logging a finished session: it can't be "assigned later" (it saves under the logged-in CFI), so stay on you.
+    var cc = document.getElementById('complete-check'), logging = !!(cc && cc.checked);
+    var meId = cs && cs.getAttribute('data-me');
+    if (cs && staffBooking && logging && !u.solo) {
+      if (!cs.value && meId) { cs.value = String(meId); cs.dispatchEvent(new Event('change')); }
+      if (cs.value && cs.selectedIndex > 0) bits.push('<strong>Instructor: ' + (cs.value === String(meId) ? 'you (' : '') + cs.options[cs.selectedIndex].text.replace(/[<&]/g, '') + (cs.value === String(meId) ? ')' : '') + '</strong>');
+    }
+    else if (cs && staffBooking && !u.solo) { cs.value = ''; cs.dispatchEvent(new Event('change')); bits.push('<strong>Instructor unassigned</strong>'); }
     else if (cs && u.cfi_id && !u.solo) {
       cs.value = String(u.cfi_id); cs.dispatchEvent(new Event('change'));
       if (cs.selectedIndex > 0) bits.push('<strong>' + cs.options[cs.selectedIndex].text + '</strong>');
@@ -1403,6 +1410,12 @@
     dateBox.addEventListener('change', syncDate);
   }
   completeCheck.addEventListener('change', function () { sync(); syncDate(); });
+  // Switching to "log a past session" puts you on the Instructor box (it can't be assigned later).
+  completeCheck.addEventListener('change', function () {
+    var cs = document.getElementById('cfi-select'), me = cs && cs.getAttribute('data-me');
+    var solo = document.getElementById('solo-check');
+    if (completeCheck.checked && cs && me && !cs.value && !(solo && solo.checked)) { cs.value = String(me); cs.dispatchEvent(new Event('change')); }
+  });
   sync();
   syncDate();
   // Picking a plane fills in its current Hobbs/Tach as the start readings -
