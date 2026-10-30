@@ -55,6 +55,26 @@ class DashSectionHeadersTest(OpsHubTestCase):
         html = self.login("cfi").get("/flight/dashboard").get_data(as_text=True)
         self.assertIn("None booked", html)
 
+    def test_student_with_nothing_booked_has_no_upcoming_box_but_a_calendar_link(self):
+        html = self.login("flight_student").get("/flight/dashboard").get_data(as_text=True)
+        self.assertIn("Nothing booked for you coming up", html)
+        self.assertIn("See the full calendar", html)
+        self.assertNotIn("None booked", html)
+        self.assertNotIn("Nothing else on the books yet", html)
+        self.assertNotIn('data-collapse="upcoming"', html)
+
+    def test_student_with_a_booking_still_sees_the_upcoming_box(self):
+        d1 = (date.today() + timedelta(days=2)).isoformat()
+        conn = db.get_db()
+        sid = conn.execute("SELECT id FROM students WHERE user_id = ?", (self.users["flight_student"]["id"],)).fetchone()["id"]
+        seed_row(conn, "scheduled_flights", asset_id=self.asset, student_id=sid,
+                cfi_id=self.cfi, scheduled_date=d1, scheduled_time="09:00", duration_hours=1.5,
+                status="scheduled", created_at=db.now_iso())
+        conn.commit()
+        conn.close()
+        html = self.login("flight_student").get("/flight/dashboard").get_data(as_text=True)
+        self.assertIn('data-collapse="upcoming"', html)
+
     def test_upcoming_day_heading_shows_weekday_and_month_day_on_phone(self):
         d1 = (date.today() + timedelta(days=1))
         conn = db.get_db()
