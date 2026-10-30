@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ 'Edit Aircraft' if asset else 'Add Aircraft' }} · Winds Aloft{% endblock %}
 {% block content %}
+{% set _v = asset or form_values or {} %}
 <div class="row justify-content-center">
 <div class="col-lg-7">
 <div class="card p-4">
@@ -8,36 +9,36 @@
   <form method="post">
     <div class="mb-3">
       <label class="form-label">Tail / Serial Number *</label>
-      <input type="text" name="tag" class="form-control" value="{{ asset.tag or '' }}" required autofocus placeholder="e.g. N12345">
+      <input type="text" name="tag" class="form-control" value="{{ _v.tag or '' }}" required autofocus placeholder="e.g. N12345">
     </div>
     <div class="mb-3">
       <label class="form-label">Display Name <span class="text-muted small">(optional, defaults to the tag)</span></label>
-      <input type="text" name="name" class="form-control" value="{{ asset.name or '' }}" placeholder="e.g. Cessna 172 - N12345">
+      <input type="text" name="name" class="form-control" value="{{ _v.name or '' }}" placeholder="e.g. Cessna 172 - N12345">
     </div>
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Make</label>
-        <input type="text" name="make" class="form-control" value="{{ asset.make or '' }}" placeholder="e.g. Cessna">
+        <input type="text" name="make" class="form-control" value="{{ _v.make or '' }}" placeholder="e.g. Cessna">
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Model</label>
-        <input type="text" name="model" class="form-control" value="{{ asset.model or '' }}" placeholder="e.g. 172">
+        <input type="text" name="model" class="form-control" value="{{ _v.model or '' }}" placeholder="e.g. 172">
       </div>
     </div>
     <div class="row">
       <div class="col-md-4 mb-3">
         <label class="form-label">Year</label>
-        <input type="text" name="year" class="form-control" value="{{ asset.year or '' }}" placeholder="e.g. 1998">
+        <input type="text" name="year" class="form-control" value="{{ _v.year or '' }}" placeholder="e.g. 1998">
       </div>
       <div class="col-md-8 mb-3">
         <label class="form-label">Serial Number</label>
-        <input type="text" name="serial_number" class="form-control" value="{{ asset.serial_number or '' }}" placeholder="e.g. 17280123">
+        <input type="text" name="serial_number" class="form-control" value="{{ _v.serial_number or '' }}" placeholder="e.g. 17280123">
       </div>
     </div>
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Owner</label>
-        <input type="text" name="owner" class="form-control" value="{{ asset.owner or '' }}" placeholder="e.g. Fly with Kate LLC">
+        <input type="text" name="owner" class="form-control" value="{{ _v.owner or '' }}" placeholder="e.g. Fly with Kate LLC">
       </div>
       <div class="col-md-6 mb-3">
         <div class="form-check mt-4">
@@ -60,7 +61,7 @@
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">ICAO24 / Mode S Hex <span class="text-muted small">(optional - enables live ADS-B tracking)</span></label>
-        <input type="text" name="icao24_hex" class="form-control text-uppercase" maxlength="6" placeholder="e.g. A12345" value="{{ asset.icao24_hex or '' }}">
+        <input type="text" name="icao24_hex" class="form-control text-uppercase" maxlength="6" placeholder="e.g. A12345" value="{{ _v.icao24_hex or '' }}">
         <div class="form-text">Look this up on the FAA registry or an ADS-B site by tail number. Leave blank if you don't want this plane to show on the Active Flight live map.</div>
         <div class="form-check mt-2">
           <input type="checkbox" class="form-check-input" name="show_on_map" id="show-on-map-check"
@@ -74,40 +75,40 @@
     <div class="row">
       <div class="col-md-4 mb-2">
         <label class="form-label">Engine Make</label>
-        <input type="text" name="engine_make" class="form-control" value="{{ asset.engine_make or '' }}" placeholder="e.g. Lycoming">
+        <input type="text" name="engine_make" class="form-control" value="{{ _v.engine_make or '' }}" placeholder="e.g. Lycoming">
       </div>
       <div class="col-md-4 mb-2">
         <label class="form-label">Engine Model</label>
-        <input type="text" name="engine_model" class="form-control" value="{{ asset.engine_model or '' }}" placeholder="e.g. O-320-D2J">
+        <input type="text" name="engine_model" class="form-control" value="{{ _v.engine_model or '' }}" placeholder="e.g. O-320-D2J">
       </div>
       <div class="col-md-4 mb-3">
         <label class="form-label">Engine Serial</label>
-        <input type="text" name="engine_serial" class="form-control" value="{{ asset.engine_serial or '' }}" placeholder="e.g. L-12345-27A">
+        <input type="text" name="engine_serial" class="form-control" value="{{ _v.engine_serial or '' }}" placeholder="e.g. L-12345-27A">
       </div>
     </div>
     <div class="row">
       <div class="col-md-4 mb-2">
         <label class="form-label">Propeller Make</label>
-        <input type="text" name="prop_make" class="form-control" value="{{ asset.prop_make or '' }}" placeholder="e.g. McCauley">
+        <input type="text" name="prop_make" class="form-control" value="{{ _v.prop_make or '' }}" placeholder="e.g. McCauley">
       </div>
       <div class="col-md-4 mb-2">
         <label class="form-label">Propeller Model</label>
-        <input type="text" name="prop_model" class="form-control" value="{{ asset.prop_model or '' }}" placeholder="e.g. 1C160/DTM7557">
+        <input type="text" name="prop_model" class="form-control" value="{{ _v.prop_model or '' }}" placeholder="e.g. 1C160/DTM7557">
       </div>
       <div class="col-md-4 mb-3">
         <label class="form-label">Propeller Serial</label>
-        <input type="text" name="prop_serial" class="form-control" value="{{ asset.prop_serial or '' }}" placeholder="e.g. 123456">
+        <input type="text" name="prop_serial" class="form-control" value="{{ _v.prop_serial or '' }}" placeholder="e.g. 123456">
       </div>
     </div>
     {% if not asset %}
     <div class="row">
       <div class="col-md-6 mb-3">
         <label class="form-label">Starting Hobbs Reading <span class="text-muted small">(optional)</span></label>
-        <input type="number" step="any" name="hobbs_hours" class="form-control" placeholder="e.g. 4521.3">
+        <input type="number" step="any" name="hobbs_hours" class="form-control" value="{{ _v.hobbs_hours or '' }}" placeholder="e.g. 4521.3">
       </div>
       <div class="col-md-6 mb-3">
         <label class="form-label">Starting Tach Reading <span class="text-muted small">(optional)</span></label>
-        <input type="number" step="any" name="tach_hours" class="form-control" placeholder="e.g. 4498.6">
+        <input type="number" step="any" name="tach_hours" class="form-control" value="{{ _v.tach_hours or '' }}" placeholder="e.g. 4498.6">
       </div>
     </div>
     {% endif %}
@@ -116,25 +117,25 @@
       <div class="row g-2">
         <div class="col-6 col-md-3">
           <label class="form-label small mb-0">Oil Type</label>
-          <input type="text" name="maint_oil_type" class="form-control form-control-sm" placeholder="e.g. Aeroshell 15W-50" value="{{ asset.maint_oil_type or '' }}">
+          <input type="text" name="maint_oil_type" class="form-control form-control-sm" placeholder="e.g. Aeroshell 15W-50" value="{{ _v.maint_oil_type or '' }}">
         </div>
         <div class="col-6 col-md-3">
           <label class="form-label small mb-0">Tire PSI - Nose</label>
-          <input type="text" name="maint_tire_nose" class="form-control form-control-sm" placeholder="e.g. 30" value="{{ asset.maint_tire_nose or '' }}">
+          <input type="text" name="maint_tire_nose" class="form-control form-control-sm" placeholder="e.g. 30" value="{{ _v.maint_tire_nose or '' }}">
         </div>
         <div class="col-6 col-md-3">
           <label class="form-label small mb-0">Tire PSI - Mains</label>
-          <input type="text" name="maint_tire_mains" class="form-control form-control-sm" placeholder="e.g. 24" value="{{ asset.maint_tire_mains or '' }}">
+          <input type="text" name="maint_tire_mains" class="form-control form-control-sm" placeholder="e.g. 24" value="{{ _v.maint_tire_mains or '' }}">
         </div>
         <div class="col-6 col-md-3">
           <label class="form-label small mb-0">Other</label>
-          <input type="text" name="maint_other" class="form-control form-control-sm" placeholder="e.g. anything else" value="{{ asset.maint_other or '' }}">
+          <input type="text" name="maint_other" class="form-control form-control-sm" placeholder="e.g. anything else" value="{{ _v.maint_other or '' }}">
         </div>
       </div>
     </div>
     <div class="mb-3">
       <label class="form-label">Notes</label>
-      <textarea name="notes" class="form-control" rows="4" placeholder="Anything else worth keeping on file for this plane">{{ asset.notes or '' }}</textarea>
+      <textarea name="notes" class="form-control" rows="4" placeholder="Anything else worth keeping on file for this plane">{{ _v.notes or '' }}</textarea>
     </div>
     <div class="d-flex gap-2" data-change="DESIGN-8">
       <button type="submit" class="btn btn-dark fw-bold" data-change="DESIGN-1">{{ 'Save Changes' if asset else 'Add Aircraft' }}</button>

@@ -5647,8 +5647,16 @@ def asset_new():
             flash(f"An aircraft with tail number '{tag}' already exists.", "danger")
             conn.close()
             return render_template("asset_form.html", asset=None)
+        # Same rule as the Update hours box: blank is fine, but a negative or impossible number
+        # (-5, inf, nan) is refused with a short message and the form keeps what was typed.
         hobbs_hours = _parse_float(request.form.get("hobbs_hours"))
         tach_hours = _parse_float(request.form.get("tach_hours"))
+        rental_rate = _parse_float(request.form.get("rental_rate"))
+        for val, label in ((hobbs_hours, "Hobbs reading"), (tach_hours, "Tach reading"), (rental_rate, "rental rate")):
+            if val is not None and not (math.isfinite(val) and val >= 0):
+                conn.close()
+                flash(f"Enter a valid {label} (a number, 0 or more).", "danger")
+                return render_template("asset_form.html", asset=None, form_values=request.form)
         is_flight_asset = 1 if request.form.get("is_flight_asset") else 0
         show_on_map = 1 if request.form.get("show_on_map") else 0
         cur = conn.execute("""INSERT INTO assets (tag, name, make, model, serial_number, year, owner,
@@ -5667,7 +5675,7 @@ def asset_new():
                              request.form.get("engine_make", "").strip(), request.form.get("engine_model", "").strip(),
                              request.form.get("engine_serial", "").strip(), request.form.get("prop_make", "").strip(),
                              request.form.get("prop_model", "").strip(), request.form.get("prop_serial", "").strip(),
-                             _parse_float(request.form.get("rental_rate")), is_flight_asset,
+                             rental_rate, is_flight_asset,
                              request.form.get("icao24_hex", "").strip().upper() or None, show_on_map,
                              request.form.get("notes", "").strip(),
                              request.form.get("maint_oil_type", "").strip() or None,
