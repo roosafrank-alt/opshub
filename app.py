@@ -23,7 +23,7 @@ from db import (get_db, init_db, user_shop_roles, user_flight_roles, clean_roles
                  MAINT_CATEGORY_COLORS, MAINT_CATEGORY_LABELS, found_item_messages)
 import dashboard_cache
 import request_timing
-from flight import flight_bp, _flight_hours, check_session_alerts, run_balance_hold_release_check, hundred_hr_status, apply_course_grants
+from flight import flight_bp, sync_squawk_grounding, _flight_hours, check_session_alerts, run_balance_hold_release_check, hundred_hr_status, apply_course_grants
 from logbook import logbook_bp
 from pilotlog import pilotlog_bp
 from customer import customer_bp, _owned_asset_ids, _project_bill
@@ -1221,7 +1221,7 @@ _FLIGHT_SQUAWK_COLS = """'flight' as kind, f.id as squawk_id, a.id as asset_id, 
                f.squawk_sent_back_note as sent_back_note,
                f.squawk_reopened_at as reopened_at, f.squawk_reopened_by as reopened_by,
                f.squawk_est_hours as est_hours, f.squawk_est_cost as est_cost,
-               f.squawk_est_parts as est_parts, a.shop_rate as shop_rate"""
+               f.squawk_est_parts as est_parts, a.shop_rate as shop_rate, 0 as grounds_plane"""
 _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.tag as asset_tag,
                a.name as asset_name, q.reported_at as event_date, NULL as student_name,
                NULL as cfi_name, q.reported_by as reported_by, q.notes as notes,
@@ -1235,7 +1235,7 @@ _QUICK_SQUAWK_COLS = """'quick' as kind, q.id as squawk_id, a.id as asset_id, a.
                q.sent_back_note as sent_back_note,
                q.reopened_at as reopened_at, q.reopened_by as reopened_by,
                q.est_hours as est_hours, q.est_cost as est_cost,
-               q.est_parts as est_parts, a.shop_rate as shop_rate"""
+               q.est_parts as est_parts, a.shop_rate as shop_rate, q.grounds_plane as grounds_plane"""
 
 # Reported -> Assigned -> Working -> Inspection -> Done - the same five
 # steps and order the step pills show everywhere a squawk appears (see
@@ -1507,6 +1507,10 @@ def squawks_list():
     """).fetchall()
     assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
     assignable_workers = get_assignable_workers(conn)
+    # Booked lessons flagged on Alerts because a "Not safe to fly" squawk grounded their plane.
+    flagged_by_plane = {r["asset_id"]: r["c"] for r in conn.execute(
+        """SELECT asset_id, COUNT(*) c FROM scheduled_flights WHERE status = 'scheduled' AND needs_review = 1
+           AND review_reason LIKE 'Plane grounded for maintenance%' GROUP BY asset_id""").fetchall()}
     conn.close()
 
     # One list at a time, filtered by step, instead of 3 stacked lists that
@@ -1529,7 +1533,7 @@ def squawks_list():
 
     return render_template("squawks.html", step_counts=step_counts, current_step=current_step,
                            squawks_for_step=buckets[current_step],
-                           assets=assets, assignable_workers=assignable_workers,
+                           assets=assets, assignable_workers=assignable_workers, flagged_by_plane=flagged_by_plane,
                            show_report_form=request.args.get("report") == "1")
 
 
@@ -1556,11 +1560,17 @@ def squawk_quick_new():
         conn.close()
         flash("That plane is in the trash.", "danger")
         return redirect(url_for("squawks_list"))
-    conn.execute("INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at) VALUES (?, ?, ?, ?)",
-                 (asset_id, notes, session.get("user_name"), now_iso()))
+    grounds = 1 if request.form.get("grounds_plane") else 0
+    conn.execute("INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at, grounds_plane) VALUES (?, ?, ?, ?, ?)",
+                 (asset_id, notes, session.get("user_name"), now_iso(), grounds))
     conn.commit()
+    flagged = sync_squawk_grounding(conn, asset_id, session.get("user_name")) if grounds else 0
     conn.close()
-    flash("Squawk reported - it's on the Squawks page as New.", "success")
+    if grounds:
+        flash("Squawk reported and the plane is grounded - it can't be booked until this is signed off."
+              + (f" {flagged} booked lesson{'s' if flagged != 1 else ''} flagged on Alerts to move." if flagged else ""), "warning")
+    else:
+        flash("Squawk reported - it's on the Squawks page as New.", "success")
     return redirect(url_for("squawks_list"))
 
 
@@ -1874,6 +1884,10 @@ def squawk_repair_confirm(kind, squawk_id):
     else:
         conn.execute(confirm_sql, (now_iso(), session.get("user_name"), squawk_id))
         flash("Squawk marked repaired.", "success")
+        if kind == "quick":
+            _sq = conn.execute("SELECT asset_id FROM plane_squawks WHERE id = ?", (squawk_id,)).fetchone()
+            if _sq:
+                sync_squawk_grounding(conn, _sq["asset_id"], session.get("user_name"))
     conn.commit()
     conn.close()
     return redirect(request.referrer or url_for("squawks_list"))
@@ -1914,6 +1928,10 @@ def squawk_reopen(kind, squawk_id):
         flash("This squawk isn't signed off, so there is nothing to reopen.", "warning")
         return redirect(request.referrer or url_for("squawks_list"))
     conn.execute(reopen_sql, (now_iso(), session.get("user_name"), squawk_id))
+    if kind == "quick":
+        _sq = conn.execute("SELECT asset_id FROM plane_squawks WHERE id = ?", (squawk_id,)).fetchone()
+        if _sq:
+            sync_squawk_grounding(conn, _sq["asset_id"], session.get("user_name"))
     conn.commit()
     conn.close()
     flash("Squawk reopened - it's back at New.", "success")
@@ -2408,6 +2426,9 @@ def _propagate_section_confirm(conn, section, by):
             conn.execute("""UPDATE plane_squawks SET repaired_at = ?, repaired_by = ?,
                             repair_confirm_requested_at = NULL, repair_confirm_requested_by = NULL
                             WHERE id = ?""", (now_iso(), by, sid))
+            _sq = conn.execute("SELECT asset_id FROM plane_squawks WHERE id = ?", (sid,)).fetchone()
+            if _sq:
+                sync_squawk_grounding(conn, _sq["asset_id"], by)
     elif section["linked_todo_id"]:
         conn.execute("UPDATE plane_todos SET done = 1, completed_at = ?, confirmed_by = ? WHERE id = ?",
                      (now_iso(), by, section["linked_todo_id"]))
@@ -6014,11 +6035,17 @@ def asset_squawk_new(asset_id):
         conn.close()
         flash("That plane is in the trash.", "danger")
         return redirect(url_for("asset_detail", asset_id=asset_id))
-    conn.execute("INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at) VALUES (?, ?, ?, ?)",
-                 (asset_id, notes, session.get("user_name"), now_iso()))
+    grounds = 1 if request.form.get("grounds_plane") else 0
+    conn.execute("INSERT INTO plane_squawks (asset_id, notes, reported_by, reported_at, grounds_plane) VALUES (?, ?, ?, ?, ?)",
+                 (asset_id, notes, session.get("user_name"), now_iso(), grounds))
     conn.commit()
+    flagged = sync_squawk_grounding(conn, asset_id, session.get("user_name")) if grounds else 0
     conn.close()
-    flash("Squawk reported - it's on the Squawks page as New.", "success")
+    if grounds:
+        flash("Squawk reported and the plane is grounded - it can't be booked until this is signed off."
+              + (f" {flagged} booked lesson{'s' if flagged != 1 else ''} flagged on Alerts to move." if flagged else ""), "warning")
+    else:
+        flash("Squawk reported - it's on the Squawks page as New.", "success")
     return redirect(url_for("asset_detail", asset_id=asset_id))
 
 

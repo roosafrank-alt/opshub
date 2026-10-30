@@ -2858,6 +2858,10 @@ def _migrate(conn):
     quick_cols_sent_back = [r["name"] for r in conn.execute("PRAGMA table_info(plane_squawks)").fetchall()]
     if "sent_back_note" not in quick_cols_sent_back:
         conn.execute("ALTER TABLE plane_squawks ADD COLUMN sent_back_note TEXT")
+    # "Not safe to fly" tick: a squawk that grounds its plane until signed off.
+    quick_cols_grounds = [r["name"] for r in conn.execute("PRAGMA table_info(plane_squawks)").fetchall()]
+    if "grounds_plane" not in quick_cols_grounds:
+        conn.execute("ALTER TABLE plane_squawks ADD COLUMN grounds_plane INTEGER NOT NULL DEFAULT 0")
         conn.commit()
 
     # JOBS-08: "Reopen" on a signed-off squawk puts it back at New and keeps a

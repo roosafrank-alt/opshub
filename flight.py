@@ -7068,6 +7068,7 @@ def report_resolve(report_id):
         conn.execute("""UPDATE plane_squawks SET repaired_at = ?, repaired_by = ?, repair_confirm_requested_at = NULL,
                         repair_confirm_requested_by = NULL WHERE id = ?""", (now_iso(), who, row["squawk_id"]))
         msg += f" Squawk #{row['squawk_id']} closed in Maintenance too."
+        sync_squawk_grounding(conn, conn.execute("SELECT asset_id FROM plane_squawks WHERE id = ?", (row["squawk_id"],)).fetchone()["asset_id"], who)
     conn.commit()
     conn.close()
     flash(msg, "success")
@@ -11617,6 +11618,9 @@ def grounded_problem(conn, asset_id, on_date):
         return None
     if not a or not a["grounded_at"] or (on_date and on_date < date.today().isoformat()):
         return None
+    if (a["grounded_reason"] or "").startswith(SQUAWK_GROUND_PREFIX):
+        return (f"{a['tag']} is grounded: {a['grounded_reason']}. "
+                f"It can't be booked until that squawk is signed off.")
     return (f"{a['tag']} is down for maintenance ({a['grounded_reason'] or 'grounded by an admin'}) "
             f"and can't be booked until an admin returns it to service.")
 
@@ -11680,6 +11684,44 @@ def hundred_hr_admin_rows(conn):
     return rows
 
 
+def ground_plane(conn, asset_id, reason, who):
+    """Grounds a plane (down for maintenance) and flags its upcoming bookings
+    in Needs a Look. Shared by the Planes Ground button and a squawk ticked
+    'Not safe to fly'. Returns how many bookings were flagged."""
+    conn.execute("UPDATE assets SET grounded_at = ?, grounded_by = ?, grounded_reason = ? WHERE id = ?",
+                 (now_iso(), who, reason, asset_id))
+    flagged = conn.execute("""UPDATE scheduled_flights SET needs_review = 1, review_reason = ?,
+                              needs_review_acknowledged_at = NULL, needs_review_acknowledged_by = NULL
+                              WHERE asset_id = ? AND status = 'scheduled' AND scheduled_date >= ?""",
+                           (f"{GROUNDED_REVIEW_PREFIX} ({reason}) - move this booking to another plane or date",
+                            asset_id, date.today().isoformat())).rowcount
+    conn.commit()
+    _sync_flight_alerts(conn, who)
+    return flagged
+
+
+SQUAWK_GROUND_PREFIX = "Not safe to fly (squawk)"
+
+
+def sync_squawk_grounding(conn, asset_id, who):
+    """Keeps a plane's Ground in step with its open 'Not safe to fly' squawks:
+    any open one grounds it (the same Ground the Planes page uses, so bookings
+    are flagged and blocked); when the last one is signed off the plane
+    returns to service, but only if the squawk grounded it - a plane an admin
+    grounded for any other reason stays down. Returns bookings flagged."""
+    a = conn.execute("SELECT grounded_at, grounded_reason FROM assets WHERE id = ?", (asset_id,)).fetchone()
+    if not a:
+        return 0
+    open_ones = conn.execute("SELECT notes FROM plane_squawks WHERE asset_id = ? AND grounds_plane = 1 "
+                             "AND repaired_at IS NULL ORDER BY id", (asset_id,)).fetchall()
+    if open_ones and not a["grounded_at"]:
+        note = " ".join((open_ones[0]["notes"] or "").split())[:70]
+        return ground_plane(conn, asset_id, f"{SQUAWK_GROUND_PREFIX}: {note}", who)
+    if not open_ones and a["grounded_at"] and (a["grounded_reason"] or "").startswith(SQUAWK_GROUND_PREFIX):
+        return_plane_to_service(conn, asset_id, who)
+    return 0
+
+
 @flight_bp.route("/planes/<int:asset_id>/ground", methods=["POST"])
 @admin_required
 def plane_ground(asset_id):
@@ -11692,15 +11734,7 @@ def plane_ground(asset_id):
     # on Alerts both post here) - blank falls back to "grounded by an admin".
     reason = (request.form.get("reason") or "").strip()[:120] or (
         "100-hour inspection" if request.form.get("from_100hr") else "grounded by an admin")
-    conn.execute("UPDATE assets SET grounded_at = ?, grounded_by = ?, grounded_reason = ? WHERE id = ?",
-                 (now_iso(), session.get("user_name"), reason, asset_id))
-    flagged = conn.execute("""UPDATE scheduled_flights SET needs_review = 1, review_reason = ?,
-                              needs_review_acknowledged_at = NULL, needs_review_acknowledged_by = NULL
-                              WHERE asset_id = ? AND status = 'scheduled' AND scheduled_date >= ?""",
-                           (f"{GROUNDED_REVIEW_PREFIX} ({reason}) - move this booking to another plane or date",
-                            asset_id, date.today().isoformat())).rowcount
-    conn.commit()
-    _sync_flight_alerts(conn, session.get("user_name"))
+    flagged = ground_plane(conn, asset_id, reason, session.get("user_name"))
     conn.close()
     flash(f"{a['tag']} grounded - down for maintenance. " +
           (f"{flagged} upcoming booking{'s' if flagged != 1 else ''} flagged in Needs a Look to move." if flagged

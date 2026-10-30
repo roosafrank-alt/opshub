@@ -453,7 +453,8 @@ CREATE TABLE IF NOT EXISTS plane_squawks (
     worker_acknowledged_at TEXT, -- when that tech confirmed they've seen the assignment
     worker_acknowledged_by TEXT, -- that tech's name, for display
     repair_confirm_requested_at TEXT, -- set when someone marks it repaired; stays pending until an Inspector/admin confirms (repaired_at)
-    repair_confirm_requested_by TEXT -- who marked it repaired, awaiting confirmation
+    repair_confirm_requested_by TEXT, -- who marked it repaired, awaiting confirmation
+    grounds_plane INTEGER NOT NULL DEFAULT 0 -- 'Not safe to fly': plane stays grounded until this is signed off
 );
 CREATE INDEX IF NOT EXISTS idx_plane_squawks_asset ON plane_squawks(asset_id);
 

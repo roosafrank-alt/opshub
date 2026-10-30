@@ -30,10 +30,16 @@
       {% endfor %}
     </select>
   </div>
-  <div class="col-12 col-md-7">
+  <div class="col-12 col-md-9">
     <input type="text" name="notes" class="form-control form-control-sm" placeholder="What's wrong?" aria-label="What's wrong?" required>
   </div>
-  <div class="col-12 col-md-2">
+  <div class="col-12">
+    <div class="form-check mb-0">
+      <input class="form-check-input" type="checkbox" name="grounds_plane" value="1" id="grounds-plane">
+      <label class="form-check-label fw-bold text-danger" for="grounds-plane"><i class="bi bi-slash-circle"></i> Not safe to fly: ground this plane until it is signed off</label>
+    </div>
+  </div>
+  <div class="col-12 col-md-3">
     <button class="btn btn-danger btn-sm fw-bold w-100" data-change="JOBS-29"><i class="bi bi-send-fill"></i> Send squawk</button>
   </div>
 </form>
@@ -92,10 +98,14 @@
   <div class="card p-3 mb-4 border-{{ step_colors[current_step] }}">
     {% for sq in squawks_for_step %}
     <div class="d-flex flex-column gap-1 p-2 mb-2 border rounded bg-{{ step_colors[current_step] }}-subtle border-{{ step_colors[current_step] }}-subtle squawk-item">
-      <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong>{% if sq.asset_name and sq.asset_name != sq.asset_tag %} &middot; {{ sq.asset_name }}{% endif %} &middot; {{ sq.event_date|usdate }} &middot;
+      <div><strong><a href="{{ url_for('asset_detail', asset_id=sq.asset_id) }}">{{ sq.asset_tag }}</a></strong>{% if sq.grounds_plane %} <span class="badge text-bg-danger"><i class="bi bi-slash-circle"></i> Grounded</span>{% endif %}{% if sq.asset_name and sq.asset_name != sq.asset_tag %} &middot; {{ sq.asset_name }}{% endif %} &middot; {{ sq.event_date|usdate }} &middot;
         {% if sq.kind == 'quick' %}reported by {{ sq.reported_by or 'staff' }}
         {% else %}flown by {{ sq.student_name }}{% if sq.cfi_name %} with {{ sq.cfi_name }}{% else %} (solo){% endif %}{% endif %}</div>
       <div class="pre-wrap-text">{{ sq.notes or '(no details given)' }}</div>
+      {% if sq.grounds_plane %}
+      {% set n_flagged = flagged_by_plane.get(sq.asset_id, 0) %}
+      <div class="small fw-bold text-danger"><i class="bi bi-slash-circle"></i> {{ sq.asset_tag }} can't be booked until this is signed off.{% if n_flagged %} {{ n_flagged }} booked lesson{{ 's' if n_flagged != 1 }} flagged on Alerts to move. <a href="{{ url_for('flight.alerts_list') }}">See them</a>{% endif %}</div>
+      {% endif %}
       {{ squawk_reopened_line(sq) }}
       {{ squawk_assigned_line(sq) }}
       {{ squawk_estimate(sq, can_assign_squawks) }}
