@@ -2337,6 +2337,7 @@ def _dashboard_context(conn, cfi, student):
                 medical_alerts=medical_alerts,
                 unconfirmed_flights=unconfirmed_flights, recently_cancelled_flights=recently_cancelled_flights,
                 next_lesson=next_lesson, log_lesson=log_lesson, last_flight_ago=last_flight_ago,
+                usual_offer=(_student_usual_offer(conn, student) if (student and not cfi) else None),
                 solo_currency=solo_currency,
                 solo_currency_days=solo_currency["interval_days"] if solo_currency else DEFAULT_SOLO_CURRENCY_DAYS,
                 today_flights=today_flights, today_flights_total=today_flights_total,
@@ -5620,7 +5621,7 @@ def schedule_finder():
                            all_cfis=all_cfis, results=results, finder_buckets=FINDER_TIME_BUCKETS, today=today)
 
 
-def _usual_lessons(conn, planes):
+def _usual_lessons(conn, planes, student_id=None):
     """Each student's 'usual lesson', worked out from their last 3 booked
     lessons (no schema change): the most common plane, instructor, and
     time of day, plus the latest length. Used by the booking form to fill
@@ -5630,7 +5631,9 @@ def _usual_lessons(conn, planes):
     rows = conn.execute(
         "SELECT student_id, asset_id, cfi_id, solo, scheduled_time, duration_hours FROM scheduled_flights "
         "WHERE status IN ('scheduled', 'in_progress', 'completed', 'balance_hold') "
-        "ORDER BY scheduled_date DESC, COALESCE(scheduled_time, '') DESC, id DESC").fetchall()
+        + ("AND student_id = ? " if student_id else "") +
+        "ORDER BY scheduled_date DESC, COALESCE(scheduled_time, '') DESC, id DESC",
+        ((student_id,) if student_id else ())).fetchall()
     per = {}
     for r in rows:
         lst = per.setdefault(r["student_id"], [])
@@ -5654,6 +5657,42 @@ def _usual_lessons(conn, planes):
             "hours": next((r["duration_hours"] for r in lst if r["duration_hours"]), None),
         }
     return out
+
+
+def _student_usual_offer(conn, student, days=14):
+    """The "Book your usual" card on a student's dashboard: the first day in
+    the next two weeks when their usual plane, instructor and time of day
+    (see _usual_lessons) are all free, so one tap requests it. None when
+    they have no usual lesson yet (or it was solo), or nothing is open."""
+    planes = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_flight_asset = 1 AND is_owner_placeholder = 0").fetchall()
+    u = _usual_lessons(conn, planes, student["id"]).get(str(student["id"]))
+    if not u or not u["asset_id"] or not u["time"] or u["solo"] or not u["cfi_id"]:
+        return None
+    plane = next((p for p in planes if p["id"] == u["asset_id"]), None)
+    cfi = conn.execute("SELECT * FROM cfis WHERE id = ? AND active = 1 AND is_station = 0", (u["cfi_id"],)).fetchone()
+    if not plane or not cfi:
+        return None
+    hours = u["hours"] or DEFAULT_SCHEDULE_BLOCK_HOURS
+    busy = {r["scheduled_date"] for r in conn.execute(
+        "SELECT scheduled_date FROM scheduled_flights WHERE student_id = ? AND status IN ('scheduled', 'balance_hold', 'pending_approval')",
+        (student["id"],)).fetchall()}
+    now_dt = datetime.now()
+    for i in range(0, days + 1):
+        d = now_dt.date() + timedelta(days=i)
+        ds = d.strftime("%Y-%m-%d")
+        if ds in busy or _past_booking_error(ds, u["time"]):
+            continue
+        if grounded_problem(conn, plane["id"], ds) or _cfi_medical_problem(conn, cfi["id"], ds):
+            continue
+        if _scheduling_conflicts(conn, plane["id"], cfi["id"], student["id"], ds, u["time"], hours):
+            continue
+        w = _time_window(u["time"], hours)
+        end = _format_time_12h(f"{(w[1] // 60) % 24:02d}:{w[1] % 60:02d}") if w else ""
+        hrs = f"{hours:g}"
+        return {"date": ds, "time": u["time"], "asset_id": plane["id"], "cfi_id": cfi["id"], "hours": u["hours"],
+                "label": f"{d.strftime('%a, %b')} {d.day} \u00b7 {_format_time_12h(u['time'])}\u2013{end}",
+                "detail": f"{plane['tag']} \u00b7 {cfi['name']} \u00b7 {hrs} hr, same as your last lessons"}
+    return None
 
 
 @flight_bp.route("/schedule/new", methods=["GET", "POST"])

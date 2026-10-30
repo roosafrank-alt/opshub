@@ -807,6 +807,28 @@
 </div>
 {% endif %}
 
+{% if usual_offer %}
+{#- Idea feat-book-usual: the student's usual plane, instructor and time on
+   the next day all three are free - one tap requests it (same request as
+   Request a Flight, so the instructor still approves it). #}
+<div class="card p-3 mb-3 border-success" id="book-usual" data-change="feat-book-usual">
+  <div class="text-uppercase small fw-bold text-success"><i class="bi bi-arrow-repeat"></i> Book your usual</div>
+  <div class="fs-5 fw-bold lh-sm mt-1">{{ usual_offer.label }}</div>
+  <div class="text-muted">{{ usual_offer.detail }}</div>
+  <div class="d-flex gap-2 mt-2">
+    <form method="post" action="{{ url_for('flight.schedule_new') }}" class="flex-fill mb-0">
+      <input type="hidden" name="asset_id" value="{{ usual_offer.asset_id }}">
+      <input type="hidden" name="cfi_id" value="{{ usual_offer.cfi_id }}">
+      <input type="hidden" name="scheduled_date" value="{{ usual_offer.date }}">
+      <input type="hidden" name="scheduled_time" value="{{ usual_offer.time }}">
+      {% if usual_offer.hours is not none %}<input type="hidden" name="duration_hours" value="{{ usual_offer.hours }}">{% endif %}
+      <button class="btn btn-success fw-bold w-100"><i class="bi bi-check-lg"></i> Book it</button>
+    </form>
+    <a href="{{ url_for('flight.schedule_new', date=usual_offer.date, time=usual_offer.time, asset_id=usual_offer.asset_id, cfi_id=usual_offer.cfi_id) }}" class="btn btn-outline-secondary flex-fill">Other times</a>
+  </div>
+</div>
+{% endif %}
+
 {#
   Merged schedule: today's board (status-aware, CFI/admin only) followed by
   each future day that has a booking, as rows of small clickable "chips" -
