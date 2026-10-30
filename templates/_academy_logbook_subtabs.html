@@ -3,7 +3,7 @@
    Totalizer page) wins over ``tab`` for the highlight. #}
 {% set _tab = subtab if subtab is defined else (tab if tab is defined else 'logbook') %}
 {% set _sid = student.id if (staff is defined and staff and student) else None %}
-<ul class="nav nav-pills academy-subtabs mb-3 gap-1">
+<ul class="nav nav-pills academy-subtabs d-none d-md-flex mb-3 gap-1">
   <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'stats' }}" href="{{ url_for('pilotlog.stats', student_id=_sid) }}"><i class="bi bi-graph-up"></i> Stats</a></li>
   <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'logbook' }}" href="{{ url_for('pilotlog.logbook') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
   <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'progress' }}" href="{{ url_for('pilotlog.progress') }}"><i class="bi bi-bar-chart-steps"></i> Progress</a></li>
@@ -11,6 +11,21 @@
   <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'map' }}" href="{{ url_for('pilotlog.airport_map') }}"><i class="bi bi-map"></i> Map</a></li>
   <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'endorsements' }}" href="{{ url_for('endorse.student_tab', student_id=_sid) }}" data-change="ENDORSE"><i class="bi bi-patch-check"></i> Endorsements</a></li>
   <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'tests' }}" href="{{ url_for('pilotlog.knowledge_tests', student_id=_sid) }}"><i class="bi bi-file-earmark-check"></i> Knowledge tests</a></li>
+</ul>
+{% set _more = {'aircraft':'Aircraft','map':'Map','endorsements':'Endorsements','tests':'Knowledge tests'} %}
+<ul class="nav nav-pills academy-subtabs academy-subtabs-phone d-md-none flex-nowrap mb-3 gap-1">
+  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'stats' }}" href="{{ url_for('pilotlog.stats', student_id=_sid) }}"><i class="bi bi-graph-up"></i> Stats</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'logbook' }}" href="{{ url_for('pilotlog.logbook') }}"><i class="bi bi-journal-text"></i> Logbook</a></li>
+  <li class="nav-item"><a class="nav-link {{ 'active' if _tab == 'progress' }}" href="{{ url_for('pilotlog.progress') }}"><i class="bi bi-bar-chart-steps"></i> Progress</a></li>
+  <li class="nav-item dropdown">
+    <a class="nav-link dropdown-toggle {{ 'active' if _tab in _more }}" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-three-dots"></i> {{ _more[_tab] if _tab in _more else 'More' }}</a>
+    <ul class="dropdown-menu dropdown-menu-end">
+      <li><a class="dropdown-item {{ 'active' if _tab == 'aircraft' }}" href="{{ url_for('pilotlog.aircraft_totals', student_id=_sid) }}"><i class="bi bi-airplane-engines"></i> Aircraft</a></li>
+      <li><a class="dropdown-item {{ 'active' if _tab == 'map' }}" href="{{ url_for('pilotlog.airport_map') }}"><i class="bi bi-map"></i> Map</a></li>
+      <li><a class="dropdown-item {{ 'active' if _tab == 'endorsements' }}" href="{{ url_for('endorse.student_tab', student_id=_sid) }}" data-change="ENDORSE"><i class="bi bi-patch-check"></i> Endorsements</a></li>
+      <li><a class="dropdown-item {{ 'active' if _tab == 'tests' }}" href="{{ url_for('pilotlog.knowledge_tests', student_id=_sid) }}"><i class="bi bi-file-earmark-check"></i> Knowledge tests</a></li>
+    </ul>
+  </li>
 </ul>
 <style>
   .academy-subtabs .nav-link { color:#fff; border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.07); font-weight:600; }
@@ -20,4 +35,8 @@
   .academy-subtabs .nav-link.active i { color:#fff; }
   .academy-subtabs li:nth-child(1){--h:#14b8a6} .academy-subtabs li:nth-child(2){--h:#3b82f6} .academy-subtabs li:nth-child(3){--h:#22c55e}
   .academy-subtabs li:nth-child(4){--h:#f59e0b} .academy-subtabs li:nth-child(5){--h:#a855f7} .academy-subtabs li:nth-child(6){--h:#ec4899} .academy-subtabs li:nth-child(7){--h:#ef4444}
+  .academy-subtabs-phone .nav-link { padding:.4rem .5rem; font-size:.85rem; white-space:nowrap; }
+  .academy-subtabs-phone .nav-item:not(.dropdown) { flex:1 1 auto; text-align:center; }
+  .academy-subtabs-phone .dropdown-item i { margin-right:.5rem; }
+  .academy-subtabs-phone .dropdown-menu .dropdown-item.active { background:#14213d; color:#fff; }
 </style>
