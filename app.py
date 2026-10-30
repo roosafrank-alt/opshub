@@ -3634,6 +3634,18 @@ def projects_parts_used():
 
 
 
+def _job_dates_bad():
+    """True when the job form's start or 'Through' date is typed but isn't a real date."""
+    for f in ("scheduled_date", "scheduled_end_date"):
+        d = request.form.get(f, "").strip()
+        if d:
+            try:
+                date.fromisoformat(d)
+            except ValueError:
+                return True
+    return False
+
+
 def _promised_from_form():
     """('Promised back' date or None, 'Show to owner' 0/1) from the job form.
     The owner switch only counts when there is a date; it is off unless ticked."""
@@ -3830,6 +3842,16 @@ def project_new():
             conn.close()
             return render_template("project_form.html", project=None, assets=assets, quick_types=quick_types,
                                    optional_areas_by_type=optional_areas_by_type, preselect_name=name)
+        # QA fix qa-project-bad-dates-saved: a start/through date that isn't a
+        # real date is refused with a message instead of being saved.
+        if _job_dates_bad():
+            flash("Please enter a real date for the start and end dates (like 2026-11-05).", "danger")
+            assets = conn.execute("SELECT * FROM assets WHERE deleted_at IS NULL AND is_simulator = 0 AND is_owner_placeholder = 0 ORDER BY tag").fetchall()
+            quick_types, optional_areas_by_type = _quick_type_form_context(conn)
+            conn.close()
+            return render_template("project_form.html", project=None, assets=assets, quick_types=quick_types,
+                                   optional_areas_by_type=optional_areas_by_type, preselect_name=name,
+                                   preselect_asset_id=asset_id, preselect_date=request.form.get("scheduled_date", "").strip())
         scheduled_date = request.form.get("scheduled_date", "").strip() or None
         scheduled_end_date = request.form.get("scheduled_end_date", "").strip() or None
         # JOBS-39: a start date with no "Through" gets that job type's default
@@ -3960,6 +3982,14 @@ def project_edit(project_id):
                         promised_date=request.form.get("promised_date", "").strip() or None,
                         promised_show_owner=1 if request.form.get("promised_show_owner") else 0,
                         asset_id=None)
+            conn.close()
+            return render_template("project_form.html", project=kept, assets=assets, quick_types=quick_types)
+        # QA fix qa-project-bad-dates-saved: see project_new.
+        if _job_dates_bad():
+            flash("Please enter a real date for the start and end dates (like 2026-11-05).", "danger")
+            quick_types = _all_quick_types(conn)
+            kept = dict(project)
+            kept.update(name=name, description=request.form.get("description", "").strip(), asset_id=asset_id)
             conn.close()
             return render_template("project_form.html", project=kept, assets=assets, quick_types=quick_types)
         scheduled_date = request.form.get("scheduled_date", "").strip() or None
