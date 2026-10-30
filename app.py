@@ -4408,6 +4408,78 @@ def _job_part_requests(conn, project_id):
     return out
 
 
+def _last_job_parts(conn, project):
+    """The parts the plane's last job of the same kind used, each with how many
+    are on the shelf now. 'Same kind' = shares a Quick Type word (Annual, 100
+    Hour...) in its name/description, else the same name. Returns
+    (previous project row or None, list of dicts). A part is 'short' when the
+    shelf holds fewer than last time used and no open request is already on
+    this job for it."""
+    if not project["asset_id"]:
+        return None, []
+    text = f"{project['name']} {project['description'] or ''}"
+    kinds = set(_quick_types_in_text(conn, text))
+    prev = None
+    for c in conn.execute(
+            "SELECT * FROM projects WHERE asset_id = ? AND id != ? AND deleted_at IS NULL "
+            "AND created_at <= ? ORDER BY created_at DESC, id DESC",
+            (project["asset_id"], project["id"], project["created_at"] or now_iso())).fetchall():
+        same = (kinds & set(_quick_types_in_text(conn, f"{c['name']} {c['description'] or ''}"))) \
+            if kinds else (c["name"].strip().lower() == project["name"].strip().lower())
+        if same and conn.execute("SELECT 1 FROM transactions WHERE project_id = ? AND type = 'out'",
+                                 (c["id"],)).fetchone():
+            prev = c
+            break
+    if not prev:
+        return None, []
+    rows = conn.execute(
+        """SELECT p.id, p.name, p.part_number, p.unit, p.qty_on_hand, SUM(t.qty) AS used
+           FROM transactions t JOIN parts p ON p.id = t.part_id
+           WHERE t.project_id = ? AND t.type = 'out' AND p.retired_at IS NULL
+           GROUP BY p.id ORDER BY p.name""", (prev["id"],)).fetchall()
+    asked = {r["part_id"] for r in conn.execute(
+        "SELECT part_id FROM order_wishlist WHERE project_id = ? AND status IN ('open','ordered') "
+        "AND part_id IS NOT NULL", (project["id"],)).fetchall()}
+    out = []
+    for r in rows:
+        d = dict(r)
+        d["short"] = r["qty_on_hand"] < r["used"]
+        d["asked"] = r["id"] in asked
+        out.append(d)
+    return prev, out
+
+
+@app.route("/projects/<int:project_id>/order-short", methods=["POST"])
+@shop_role_required('admin', 'tech', 'apprentice', 'inspector')
+def project_order_short(project_id):
+    """'Order what's short': puts every short part from the last same-kind job
+    on the To order list in one tap, linked to this job."""
+    conn = get_db()
+    project = conn.execute("SELECT * FROM projects WHERE id = ? AND deleted_at IS NULL", (project_id,)).fetchone()
+    if not project:
+        conn.close()
+        abort(404)
+    if apprentice_blocked_from_project(conn, project_id):
+        conn.close()
+        return _apprentice_no_task_redirect()
+    _prev, items = _last_job_parts(conn, project)
+    n = 0
+    for it in items:
+        if it["short"] and not it["asked"]:
+            need = it["used"] - it["qty_on_hand"]
+            conn.execute(
+                "INSERT INTO order_wishlist (description, part_id, urgency, notes, requested_by, requested_by_id, project_id, created_at) "
+                "VALUES (?, ?, 'needed_now', ?, ?, ?, ?, ?)",
+                (it["name"], it["id"], f"Short by {need:g} {it['unit'] or ''} for {project['code']}".strip(),
+                 session.get("user_name"), session.get("user_id"), project_id, now_iso()))
+            n += 1
+    conn.commit()
+    conn.close()
+    flash(f"Asked the office for {n} short part{'s' if n != 1 else ''}." if n else "Nothing short to order.",
+          "success" if n else "info")
+    return redirect(url_for("project_detail", project_id=project_id))
+
+
 @app.route("/projects/<int:project_id>/part-request", methods=["POST"])
 @shop_role_required('admin', 'tech', 'apprentice', 'inspector')
 def project_part_request(project_id):
@@ -4605,6 +4677,7 @@ def project_detail(project_id):
     open_orders = conn.execute("SELECT * FROM orders WHERE project_id = ? AND status = 'pending' "
                                "AND wishlist_id IS NULL ORDER BY ordered_date", (project_id,)).fetchall()
     part_requests = _job_part_requests(conn, project_id)
+    last_job, last_job_parts = _last_job_parts(conn, project)
     waiting_on_parts = bool(open_orders) or any(r["step"] != "arrived" for r in part_requests)
 
     labor_sessions = conn.execute("""
@@ -4706,7 +4779,7 @@ def project_detail(project_id):
     return render_template("project_detail.html", project=project, usage_by_section=usage_by_section, quick_types=quick_types,
                            task_people=task_people, project_maint_items=project_maint_items,
                            total_cost=total_cost, tx=tx, all_parts=all_parts, photos=photos, open_orders=open_orders,
-                           part_requests=part_requests, waiting_on_parts=waiting_on_parts,
+                           part_requests=part_requests, waiting_on_parts=waiting_on_parts, last_job=last_job, last_job_parts=last_job_parts,
                            labor_sessions=labor_sessions, labor_total_cost=labor_total_cost,
                            labor_total_hours=labor_total_hours, known_sections=known_sections, intake=intake,
                            found_items=found_items, declined_last_visit=declined_last_visit, found_has_owner=has_owner, unpaid_amount=unpaid_amount,

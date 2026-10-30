@@ -776,6 +776,31 @@
           <button class="btn btn-dark fw-bold text-nowrap" data-change="DESIGN-1">Ask</button>
         </div>
       </form>
+      {% if last_job_parts and project.status in ('active', 'on_hold') %}
+      {% set short_n = last_job_parts|selectattr('short')|rejectattr('asked')|list|length %}
+      <div class="border rounded p-2 my-2" id="last-job-parts">
+        <div class="small fw-bold mb-1"><i class="bi bi-clock-history"></i> Last {{ last_job.name }} ({{ last_job.created_at|usdate }}) used:</div>
+        <table class="table table-sm mb-2 small">
+          <thead><tr><th>Part</th><th class="text-end">Used</th><th class="text-end">On shelf</th></tr></thead>
+          <tbody>
+          {% for it in last_job_parts %}
+          <tr><td>{{ it.name }}{% if it.part_number %} <span class="text-muted">{{ it.part_number }}</span>{% endif %}</td>
+            <td class="text-end">{{ '%g'|format(it.used) }}</td>
+            <td class="text-end"><span class="badge {{ 'bg-danger' if it.qty_on_hand <= 0 else ('bg-warning text-dark' if it.short else 'bg-success') }}">{{ '%g'|format(it.qty_on_hand) }}</span>{% if it.asked %} <small class="text-muted">asked</small>{% endif %}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        <div class="d-flex gap-2 flex-wrap d-print-none">
+          {% if short_n %}
+          <form method="post" action="{{ url_for('project_order_short', project_id=project.id) }}">
+            <button class="btn btn-dark btn-sm fw-bold"><i class="bi bi-cart"></i> Order the {{ short_n }} short</button>
+          </form>
+          {% endif %}
+          <button type="button" class="btn btn-outline-secondary btn-sm" onclick="document.body.classList.add('print-last-job');window.print();document.body.classList.remove('print-last-job')">Print pull list</button>
+        </div>
+      </div>
+      <style>@media print{body.print-last-job *{visibility:hidden}body.print-last-job #last-job-parts,body.print-last-job #last-job-parts *{visibility:visible}body.print-last-job #last-job-parts{position:absolute;left:0;top:0;width:100%}}</style>
+      {% endif %}
       {% if part_requests or open_orders %}
       <ul class="list-group list-group-flush">
         {% for r in part_requests %}
