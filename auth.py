@@ -58,6 +58,7 @@ def log_in_user(user_row, remember=True):
     _set_academy_flags(user_row)
     session["tour_seen_shop"] = bool(user_row["tour_seen_shop"])
     session["tour_seen_flight"] = bool(user_row["tour_seen_flight"])
+    session["tour_seen_academy"] = bool(user_row["tour_seen_academy"])
 
     conn = get_db()
     sync_flight_ids(conn, user_row)
@@ -739,6 +740,7 @@ def _fill_session(user_row, customer_row):
         _set_academy_flags(user_row)
         session["tour_seen_shop"] = bool(user_row["tour_seen_shop"])
         session["tour_seen_flight"] = bool(user_row["tour_seen_flight"])
+        session["tour_seen_academy"] = bool(user_row["tour_seen_academy"])
         conn = get_db()
         sync_flight_ids(conn, user_row)
         conn.close()
