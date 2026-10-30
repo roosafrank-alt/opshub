@@ -415,7 +415,7 @@ class DiscrepancyTest(OpsHubTestCase):
         self.assertIsNone(self.section()["confirm_requested_at"])
 
     def confirm(self):
-        self.login("inspector").post(f"/projects/{self.pid}/sections/{self.sid}/confirm")
+        self.login("inspector").post(f"/projects/{self.pid}/sections/{self.sid}/confirm", data={"action": "ready_and_confirm"})
         self.assertIsNotNone(self.section()["completed_at"])
 
     def test_jobs_13_a_tech_cannot_undo_an_inspectors_sign_off(self):

@@ -108,9 +108,19 @@ class ProjectSectionsTest(OpsHubTestCase):
         c.post(self.url("confirm"), data=dict(action="confirm"))
         self.assertEqual(self.row()["completed_at"], "2020-01-01T00:00:00")
 
-    @open_finding("qa-section-confirm-unrequested")
     def test_confirm_requires_that_it_was_marked_ready(self):
         self.login("inspector").post(self.url("confirm"), data=dict(action="confirm"))
+        self.assertIsNone(self.row()["completed_at"])
+
+    def test_inspector_can_mark_ready_and_confirm_in_one_tap(self):
+        self.login("inspector").post(self.url("confirm"), data=dict(action="ready_and_confirm"))
+        r = self.row()
+        self.assertIsNotNone(r["completed_at"])
+        self.assertEqual(r["confirm_requested_at"], r["completed_at"])
+        self.assertEqual(r["confirm_requested_by"], r["completed_by"])
+
+    def test_tech_cannot_mark_ready_and_confirm(self):
+        self.login("tech").post(self.url("confirm"), data=dict(action="ready_and_confirm"))
         self.assertIsNone(self.row()["completed_at"])
 
     def test_trashed_job_sections_are_read_only(self):

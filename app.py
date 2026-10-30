@@ -2676,13 +2676,23 @@ def project_section_confirm(project_id, section_id):
     blocked = _deleted_job_block(conn, project_id)
     if blocked:
         return blocked
-    section = conn.execute("""SELECT id, linked_squawk_kind, linked_squawk_id, linked_todo_id, completed_at
+    section = conn.execute("""SELECT id, linked_squawk_kind, linked_squawk_id, linked_todo_id, completed_at,
+                                     confirm_requested_at
                               FROM project_sections WHERE id = ? AND project_id = ?""",
                            (section_id, project_id)).fetchone()
     if not section:
         conn.close()
         abort(404)
     by = session.get("user_name")
+    action = request.form.get("action")
+    if action not in ("send_back", "ready_and_confirm") and not section["completed_at"] \
+            and not section["confirm_requested_at"]:
+        # Nobody marked it ready, so there is nothing to sign off yet.
+        conn.close()
+        flash("Not ready yet - nobody has marked this one ready. Use 'Mark ready and confirm' to do both in one tap.", "warning")
+        if request.form.get("return_to") == "dashboard":
+            return redirect(url_for("dashboard"))
+        return redirect(url_for("project_detail", project_id=project_id))
     if request.form.get("action") != "send_back" and section["completed_at"]:
         # Already signed off: a second Confirm keeps the first sign-off.
         conn.close()
@@ -2697,10 +2707,19 @@ def project_section_confirm(project_id, section_id):
         _propagate_section_send_back(conn, section, by)
         flash("Sent back - unmarked as ready.", "warning")
     else:
-        conn.execute("UPDATE project_sections SET completed_at = ?, completed_by = ? WHERE id = ?",
-                     (now_iso(), by, section_id))
-        _propagate_section_confirm(conn, section, by)
-        flash("Confirmed complete.", "success")
+        if action == "ready_and_confirm" and not section["confirm_requested_at"]:
+            # Inspector/admin who did the work: record both steps, same time.
+            ts = now_iso()
+            conn.execute("""UPDATE project_sections SET confirm_requested_at = ?, confirm_requested_by = ?,
+                             completed_at = ?, completed_by = ? WHERE id = ?""", (ts, by, ts, by, section_id))
+            _propagate_section_check(conn, section, by)
+            _propagate_section_confirm(conn, section, by)
+            flash("Marked ready and confirmed.", "success")
+        else:
+            conn.execute("UPDATE project_sections SET completed_at = ?, completed_by = ? WHERE id = ?",
+                         (now_iso(), by, section_id))
+            _propagate_section_confirm(conn, section, by)
+            flash("Confirmed complete.", "success")
     conn.commit()
     conn.close()
     # SHOP-48: the dashboard's Awaiting Confirmation box sends return_to so
