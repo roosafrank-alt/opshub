@@ -15,20 +15,112 @@
     }).then(function (r) { return r.json(); });
   }
 
-  // Label-on-figure games: badges sit in the side margin, never on the chart text. Spread badges that
-  // would overlap (same side, closer than 7% of the figure height) and move their leader lines with them.
-  document.querySelectorAll('.gsl-label-img').forEach(function (box) {
-    ['l', 'r'].forEach(function (edge) {
-      var pins = Array.prototype.slice.call(box.querySelectorAll('.gsl-pin[data-edge="' + edge + '"]'));
-      pins.sort(function (a, b) { return parseFloat(a.getAttribute('data-y')) - parseFloat(b.getAttribute('data-y')); });
-      var last = -100;
-      pins.forEach(function (pn) {
-        var y = Math.max(parseFloat(pn.getAttribute('data-y')), last + 7);
-        last = y; pn.style.top = y + '%';
-        var ln = box.querySelector('.gsl-leaders line[data-k="' + pn.getAttribute('data-k') + '"]');
-        if (ln) ln.setAttribute('y1', y);
-      });
+  // Label-on-figure games: badges sit in the side margins, never on the chart text. A leader line runs from
+  // each badge to a dot on the exact spot. The side and the order of the badges are searched so no line
+  // crosses another line or runs through another dot.
+  function layoutLabels(box) {
+    var img = box.querySelector('img');
+    var W = box.clientWidth, H = box.clientHeight;
+    if (!W || !H) return;
+    var pins = Array.prototype.slice.call(box.querySelectorAll('.gsl-pin'));
+    var n = pins.length;
+    if (!n) return;
+    var dots = pins.map(function (p) {
+      var k = p.getAttribute('data-k');
+      var d = box.querySelector('.gsl-dot[data-k="' + k + '"]');
+      return { x: parseFloat(d.style.left) / 100 * W, y: parseFloat(d.style.top) / 100 * H };
     });
+    var GAP = 36, EDGE = 0.06 * W;
+    function bx(side) { return side ? W + EDGE : -EDGE; }
+    function segHit(a, b, c, d) {
+      function o(p, q, r) { return (q.x - p.x) * (r.y - p.y) - (q.y - p.y) * (r.x - p.x); }
+      return o(a, b, c) * o(a, b, d) < 0 && o(c, d, a) * o(c, d, b) < 0;
+    }
+    function dist(pt, a, b) {
+      var dx = b.x - a.x, dy = b.y - a.y, t = ((pt.x - a.x) * dx + (pt.y - a.y) * dy) / (dx * dx + dy * dy || 1);
+      t = Math.max(0, Math.min(1, t));
+      var cx = a.x + t * dx, cy = a.y + t * dy;
+      return Math.sqrt((pt.x - cx) * (pt.x - cx) + (pt.y - cy) * (pt.y - cy));
+    }
+    function cost(sides, ys) {
+      var segs = dots.map(function (d, i) { return [{ x: bx(sides[i]), y: ys[i] }, d]; });
+      var c = 0;
+      for (var i = 0; i < n; i++) {
+        c += Math.abs(ys[i] - dots[i].y) * 0.02;
+        for (var j = 0; j < n; j++) {
+          if (i === j) continue;
+          if (i < j && segHit(segs[i][0], segs[i][1], segs[j][0], segs[j][1])) c += 1000;
+          if (dist(dots[j], segs[i][0], segs[i][1]) < 12) c += 1000;
+        }
+      }
+      return c;
+    }
+    function slotsFor(idx, shift) {   // idx: pin numbers on one side; returns evenly legal badge heights
+      var order = idx.slice().sort(function (a, b) { return dots[a].y - dots[b].y; });
+      var ys = [], last = -1e9;
+      order.forEach(function (i) { var y = Math.max(dots[i].y + shift, last + GAP); ys.push(y); last = y; });
+      var over = last - (H - 14);      // keep the stack inside the figure
+      if (over > 0) ys = ys.map(function (y) { return y - over; });
+      var top = 14 - ys[0];
+      if (top > 0) ys = ys.map(function (y) { return y + top; });
+      return ys;
+    }
+    function perms(a) {
+      if (a.length <= 1) return [a];
+      var out = [];
+      a.forEach(function (x, i) {
+        perms(a.slice(0, i).concat(a.slice(i + 1))).forEach(function (r) { out.push([x].concat(r)); });
+      });
+      return out;
+    }
+    var best = null;
+    if (n <= 8) {
+      for (var mask = 0; mask < (1 << n) && !(best && best.c < 8); mask++) {
+        var sides = [], L = [], R = [], bad = false;
+        for (var i = 0; i < n; i++) { var sd = (mask >> i) & 1; sides.push(sd); if ((sd === 1 && dots[i].x < W * 0.3) || (sd === 0 && dots[i].x > W * 0.7)) bad = true; (sd ? R : L).push(i); }
+        if (bad) continue;
+        var pl = perms(L), pr = perms(R);
+        if (pl.length * pr.length > 3000) continue;
+        [0, -45, 45, -100, 100].forEach(function (shL) {
+          [0, -45, 45, -100, 100].forEach(function (shR) {
+            var slL = slotsFor(L, shL), slR = slotsFor(R, shR);
+            pl.forEach(function (a) {
+              pr.forEach(function (b) {
+                var ys = [];
+                a.forEach(function (p, k) { ys[p] = slL[k]; });
+                b.forEach(function (p, k) { ys[p] = slR[k]; });
+                var c = cost(sides, ys);
+                if (!best || c < best.c) best = { c: c, sides: sides.slice(), ys: ys.slice() };
+              });
+            });
+          });
+        });
+      }
+    }
+    if (!best) {
+      var s0 = dots.map(function (d) { return d.x < W / 2 ? 0 : 1; }), ys0 = [];
+      [0, 1].forEach(function (sd) {
+        var idx = []; s0.forEach(function (v, i) { if (v === sd) idx.push(i); });
+        var order = idx.slice().sort(function (a, b) { return dots[a].y - dots[b].y; });
+        slotsFor(idx, 0).forEach(function (y, k) { ys0[order[k]] = y; });
+      });
+      best = { sides: s0, ys: ys0 };
+    }
+    pins.forEach(function (p, i) {
+      var k = p.getAttribute('data-k');
+      p.style.left = (bx(best.sides[i]) / W * 100) + '%';
+      p.style.top = (best.ys[i] / H * 100) + '%';
+      var ln = box.querySelector('.gsl-leaders line[data-k="' + k + '"]');
+      if (ln) {
+        ln.setAttribute('x1', bx(best.sides[i]) / W * 100); ln.setAttribute('y1', best.ys[i] / H * 100);
+      }
+    });
+  }
+  document.querySelectorAll('.gsl-label-img').forEach(function (box) {
+    var img = box.querySelector('img');
+    var run = function () { layoutLabels(box); };
+    if (img.complete && img.naturalWidth) run(); else img.addEventListener('load', run);
+    window.addEventListener('resize', run);
   });
 
   // ---------- saved progress: finished games and quizzes show as completed, with a Retake button.
