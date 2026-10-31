@@ -67,7 +67,6 @@ class ProjectNewTest(OpsHubTestCase):
         p = self.q1("SELECT * FROM projects WHERE name='One day'")
         self.assertEqual(p["scheduled_end_date"], "2026-11-10")
 
-    @open_finding("qa-project-bad-dates-saved")
     def test_a_made_up_start_date_is_not_saved(self):
         self.login("shop_admin")
         self.client.post("/projects/new", data=dict(name="Bad date", scheduled_date="not-a-date"))
@@ -154,7 +153,6 @@ class ProjectEditTest(OpsHubTestCase):
         self.client.post(f"/projects/{self.pid}/edit", data=dict(name="Original job"))
         self.assertIsNone(self.row()["scheduled_date"])
 
-    @open_finding("qa-project-bad-dates-saved")
     def test_edit_does_not_save_a_made_up_date(self):
         self.login("shop_admin")
         self.client.post(f"/projects/{self.pid}/edit", data=dict(name="Original job", scheduled_date="31/31/2026"))

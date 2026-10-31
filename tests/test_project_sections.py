@@ -108,7 +108,6 @@ class ProjectSectionsTest(OpsHubTestCase):
         c.post(self.url("confirm"), data=dict(action="confirm"))
         self.assertEqual(self.row()["completed_at"], "2020-01-01T00:00:00")
 
-    @open_finding("qa-section-confirm-unrequested")
     def test_confirm_requires_that_it_was_marked_ready(self):
         self.login("inspector").post(self.url("confirm"), data=dict(action="confirm"))
         self.assertIsNone(self.row()["completed_at"])

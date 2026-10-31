@@ -73,7 +73,7 @@ Shop / inventory
 - [x] Project sub-areas: add, rename (history follows), complete, then inspector confirm or send back
 - [x] Squawks: new, acknowledge, assign, repair, worker acknowledge (both `kind`s)
 - [x] Assets: new, quick new, edit, hours update, trash/restore/purge (hours going backwards is allowed today; not treated as a bug)
-- [ ] Maintenance items: new, edit, complete, due/overdue math around hours and dates
+- [x] Maintenance items: new, edit, complete, due/overdue math around hours and dates (`test_maintenance_items.py`, no bugs found)
 - [ ] Logbook entries: create, edit, print, starter templates
 - [x] Photos: upload (bad file types, huge files), set cover, delete
 - [ ] Trash page: empty trash, restore conflicts
@@ -129,3 +129,7 @@ Health check (live vs queued, identical, no regressions): same 26 clock/network-
 ## Oct 30 note
 
 Health check (live vs queued, identical, no regressions): same 26-27 clock/network-dependent failures as before (Flask lives only in /usr/bin/python3 on the cloud box). Assets area finished (`test_assets_bad_input.py`): New Aircraft form accepts infinite or negative hours and rental rate (card `qa-new-aircraft-bad-hours-saved`); a tail number that differs only by letter case is accepted as a new aircraft (card `qa-aircraft-tail-case-duplicate`).
+
+## Oct 31 note
+
+Health check (live vs queued, identical, no regressions): 2186 tests, same clock/network-dependent failures (about 40 incl. several new ones, run with Flask installed into a temp folder). Fixes that went live: `qa-aircraft-tail-case-duplicate`, `qa-new-aircraft-bad-hours-saved`, `qa-project-bad-dates-saved`, `qa-section-confirm-unrequested`; their markers are removed. Maintenance items area covered (`test_maintenance_items.py`): add, edit, complete, remove, roles, missing/removed items, junk numbers, due/overdue maths. No bugs found. (A whole-number days box truncates 1.5 to 1 on purpose; not treated as a bug.)

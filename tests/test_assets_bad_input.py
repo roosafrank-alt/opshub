@@ -23,7 +23,6 @@ class NewAircraftNumbersTest(OpsHubTestCase):
         self.assertEqual(r.status_code, 302)
         self.assertIsNone(self.row()["hobbs_hours"])
 
-    @open_finding("qa-new-aircraft-bad-hours-saved")
     def test_nan_infinite_or_negative_hours_are_not_saved(self):
         for bad in ("nan", "inf", "-5"):
             self.q1("SELECT 1")
@@ -36,7 +35,6 @@ class NewAircraftNumbersTest(OpsHubTestCase):
                 v = r[col]
                 self.assertTrue(v is None or (math.isfinite(v) and v >= 0), (bad, col, v))
 
-    @open_finding("qa-new-aircraft-bad-hours-saved")
     def test_nan_or_negative_rental_rate_is_not_saved(self):
         for bad in ("nan", "inf", "-100"):
             self.exec("DELETE FROM assets WHERE tag='N900'")
@@ -51,7 +49,6 @@ class NewAircraftNumbersTest(OpsHubTestCase):
         self.post_new(tag="  N901  ")
         self.assertIsNotNone(self.q1("SELECT 1 FROM assets WHERE tag='N901'"))
 
-    @open_finding("qa-aircraft-tail-case-duplicate")
     def test_same_tail_in_different_case_is_a_duplicate(self):
         self.make_asset("N777")
         self.login("shop_admin")
