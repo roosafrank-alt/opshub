@@ -2652,6 +2652,10 @@ def _migrate(conn):
     for col in ("grounded_at", "grounded_by", "grounded_reason"):
         if col not in asset_cols_ground:
             conn.execute(f"ALTER TABLE assets ADD COLUMN {col} TEXT")
+    # The shop job opened from a grounded plane's "Open shop job" button
+    # (QA feat-grounded-open-job); cleared when the plane returns to service.
+    if "grounded_project_id" not in asset_cols_ground:
+        conn.execute("ALTER TABLE assets ADD COLUMN grounded_project_id INTEGER")
     conn.commit()
 
     # Optional shelf-life expiration date per part (QA feat-shelf-life-expiry).

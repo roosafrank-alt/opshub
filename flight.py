@@ -3983,8 +3983,17 @@ def planes_list():
         for p in planes:
             if hundred.get(p["id"]) and not p["is_simulator"]:
                 hundred[p["id"]]["due"] = hundred_hr_projection(conn, p, hundred[p["id"]])
+    # The shop job opened from a grounded plane's "Open shop job" button, so
+    # the row can show it (and "Return to service" once it's completed).
+    jobs = {}
+    for p in planes:
+        if p["grounded_at"] and p["grounded_project_id"]:
+            j = conn.execute("SELECT id, code, status FROM projects WHERE id = ? AND deleted_at IS NULL",
+                             (p["grounded_project_id"],)).fetchone()
+            if j:
+                jobs[p["id"]] = j
     conn.close()
-    return render_template("flight/planes.html", planes=planes, hundred=hundred)
+    return render_template("flight/planes.html", planes=planes, hundred=hundred, jobs=jobs)
 
 
 def _plane_color_ctx(asset_id):
@@ -11688,7 +11697,7 @@ def ground_plane(conn, asset_id, reason, who):
     """Grounds a plane (down for maintenance) and flags its upcoming bookings
     in Needs a Look. Shared by the Planes Ground button and a squawk ticked
     'Not safe to fly'. Returns how many bookings were flagged."""
-    conn.execute("UPDATE assets SET grounded_at = ?, grounded_by = ?, grounded_reason = ? WHERE id = ?",
+    conn.execute("UPDATE assets SET grounded_at = ?, grounded_by = ?, grounded_reason = ?, grounded_project_id = NULL WHERE id = ?",
                  (now_iso(), who, reason, asset_id))
     flagged = conn.execute("""UPDATE scheduled_flights SET needs_review = 1, review_reason = ?,
                               needs_review_acknowledged_at = NULL, needs_review_acknowledged_by = NULL
@@ -11799,13 +11808,48 @@ def schedule_move_plane(scheduled_id):
 
 
 def return_plane_to_service(conn, asset_id, who=None):
-    conn.execute("UPDATE assets SET grounded_at = NULL, grounded_by = NULL, grounded_reason = NULL WHERE id = ?", (asset_id,))
+    conn.execute("UPDATE assets SET grounded_at = NULL, grounded_by = NULL, grounded_reason = NULL, grounded_project_id = NULL WHERE id = ?", (asset_id,))
     conn.execute("""UPDATE scheduled_flights SET needs_review = 0, review_reason = NULL,
                     needs_review_acknowledged_at = NULL, needs_review_acknowledged_by = NULL
                     WHERE asset_id = ? AND status = 'scheduled' AND review_reason LIKE ?""",
                  (asset_id, GROUNDED_REVIEW_PREFIX + "%"))
     conn.commit()
     _sync_flight_alerts(conn, who)
+
+
+@flight_bp.route("/planes/<int:asset_id>/open-job", methods=["POST"])
+@admin_required
+def plane_open_job(asset_id):
+    """One tap from a grounded plane: opens a shop job for it (named from the
+    reason it was grounded, so nothing is retyped) and links the two. The plane
+    stays Down when the job is completed; Return to service is pressed by hand
+    (a finished job may still need a test flight)."""
+    from db import gen_project_code
+    conn = get_db()
+    a = conn.execute("SELECT * FROM assets WHERE id = ? AND deleted_at IS NULL", (asset_id,)).fetchone()
+    if not a or not a["grounded_at"]:
+        conn.close()
+        flash("That plane isn't grounded, so there's no job to open.", "warning")
+        return redirect(url_for("flight.planes_list"))
+    if a["grounded_project_id"]:
+        j = conn.execute("SELECT id FROM projects WHERE id = ? AND deleted_at IS NULL", (a["grounded_project_id"],)).fetchone()
+        if j:
+            conn.close()
+            return redirect(url_for("project_detail", project_id=j["id"]))
+    reason = " ".join((a["grounded_reason"] or "grounded by an admin").split())
+    if reason.startswith(SQUAWK_GROUND_PREFIX):
+        reason = reason[len(SQUAWK_GROUND_PREFIX):].lstrip(": ") or "squawk"
+    name = f"{a['tag']}: {reason}"[:120]
+    cur = conn.execute("INSERT INTO projects (code, name, description, status, asset_id, created_at) "
+                       "VALUES (?, ?, ?, 'active', ?, ?)",
+                       (gen_project_code(conn), name, f"Grounded: {a['grounded_reason'] or 'grounded by an admin'}",
+                        asset_id, now_iso()))
+    conn.execute("UPDATE projects SET intake_status = 'pending' WHERE id = ?", (cur.lastrowid,))
+    conn.execute("UPDATE assets SET grounded_project_id = ? WHERE id = ?", (cur.lastrowid, asset_id))
+    conn.commit()
+    conn.close()
+    flash(f"Shop job opened for {a['tag']}. The plane stays down until you press Return to service on Planes.", "success")
+    return redirect(url_for("project_detail", project_id=cur.lastrowid))
 
 
 @flight_bp.route("/planes/<int:asset_id>/return-to-service", methods=["POST"])

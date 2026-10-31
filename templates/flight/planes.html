@@ -49,9 +49,20 @@
                on the row, same confirm text as the 100-hour box on Alerts. #}
             {% if p.is_flight_asset %}
             {% if p.grounded_at %}
-            <form method="post" action="{{ url_for('flight.plane_return_to_service', asset_id=p.id) }}" class="d-inline" data-confirm="Return {{ p.tag }} to service? It can be booked again." data-confirm-title="Return to service" data-confirm-ok="Yes, back in service" data-confirm-style="success">
-              <button class="btn btn-outline-success btn-sm fw-bold" data-change="SCHOOL-26"><i class="bi bi-check2-circle"></i> Return to service</button>
+            {#- QA feat-grounded-open-job: one tap opens the shop job; the plane stays Down after the job is completed until Return to service is pressed (a test flight may be needed). #}
+            {% set job = jobs.get(p.id) %}
+            {% if not job %}
+            <form method="post" action="{{ url_for('flight.plane_open_job', asset_id=p.id) }}" class="d-inline">
+              <button class="btn btn-outline-primary btn-sm fw-bold" data-change="GROUND-JOB"><i class="bi bi-wrench-adjustable"></i> Open shop job</button>
             </form>
+            {% else %}
+            <a href="{{ url_for('project_detail', project_id=job.id) }}" class="btn btn-outline-primary btn-sm" data-change="GROUND-JOB"><i class="bi bi-wrench-adjustable"></i> Job {{ job.code }}{% if job.status == 'completed' %} done{% endif %}</a>
+            {% endif %}
+            {% set job_done = job and job.status == 'completed' %}
+            <form method="post" action="{{ url_for('flight.plane_return_to_service', asset_id=p.id) }}" class="d-inline" data-confirm="Return {{ p.tag }} to service? It can be booked again.{% if job and not job_done %} Its shop job {{ job.code }} isn't completed yet.{% endif %}" data-confirm-title="Return to service" data-confirm-ok="Yes, back in service" data-confirm-style="success">
+              <button class="btn {{ 'btn-success' if job_done else 'btn-outline-success' }} btn-sm fw-bold" data-change="SCHOOL-26"><i class="bi bi-check2-circle"></i> Return to service</button>
+            </form>
+            {% if job_done %}<div class="small text-success mt-1" data-change="GROUND-JOB">Job complete. Press Return to service after the test flight.</div>{% endif %}
             {% else %}
             <button type="button" class="btn btn-outline-danger btn-sm ground-toggle" data-change="SCHOOL-26" data-target="ground-form-{{ p.id }}"><i class="bi bi-slash-circle"></i> Ground</button>
             <form method="post" action="{{ url_for('flight.plane_ground', asset_id=p.id) }}" class="d-none mt-1 d-flex gap-1 align-items-center ground-form" id="ground-form-{{ p.id }}" data-confirm="Ground {{ p.tag }}? It shows as Down for maintenance, new bookings are blocked and its upcoming bookings get flagged to move." data-confirm-title="Ground plane" data-confirm-ok="Yes, ground it" data-confirm-style="danger">
