@@ -15,6 +15,22 @@
     }).then(function (r) { return r.json(); });
   }
 
+  // Label-on-figure games: badges sit in the side margin, never on the chart text. Spread badges that
+  // would overlap (same side, closer than 7% of the figure height) and move their leader lines with them.
+  document.querySelectorAll('.gsl-label-img').forEach(function (box) {
+    ['l', 'r'].forEach(function (edge) {
+      var pins = Array.prototype.slice.call(box.querySelectorAll('.gsl-pin[data-edge="' + edge + '"]'));
+      pins.sort(function (a, b) { return parseFloat(a.getAttribute('data-y')) - parseFloat(b.getAttribute('data-y')); });
+      var last = -100;
+      pins.forEach(function (pn) {
+        var y = Math.max(parseFloat(pn.getAttribute('data-y')), last + 7);
+        last = y; pn.style.top = y + '%';
+        var ln = box.querySelector('.gsl-leaders line[data-k="' + pn.getAttribute('data-k') + '"]');
+        if (ln) ln.setAttribute('y1', y);
+      });
+    });
+  });
+
   // ---------- saved progress: finished games and quizzes show as completed, with a Retake button.
   // Retake reloads the page with a one-time flag so the item comes back fresh and playable.
   function retakeKey(el) {

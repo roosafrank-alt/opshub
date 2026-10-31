@@ -67,8 +67,10 @@
   {% elif a.type == 'label' and L.figures and L.figures.get(a.figure) %}
     {% set f = L.figures[a.figure] %}
     <div class="gsl-pairing gsl-label" data-total="{{ a.pins|length }}">
-      <div class="gsl-label-img"><img src="{{ url_for('static', filename='lessons/' ~ f.file) }}" alt="{{ f.alt or f.caption }}" loading="lazy">
-        {% for p in a.pins %}<button type="button" class="gsl-pin" data-side="l" data-k="{{ loop.index0 }}" style="left:{{ p.x }}%;top:{{ p.y }}%">{{ loop.index }}</button>{% endfor %}</div>
+      <div class="gsl-label-wrap"><div class="gsl-label-img"><img src="{{ url_for('static', filename='lessons/' ~ f.file) }}" alt="{{ f.alt or f.caption }}" loading="lazy">
+        <svg class="gsl-leaders" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">{% for p in a.pins %}<line data-k="{{ loop.index0 }}" x1="{{ -6 if p.x < 50 else 106 }}" y1="{{ p.y }}" x2="{{ p.x }}" y2="{{ p.y }}"/>{% endfor %}</svg>
+        {% for p in a.pins %}<span class="gsl-dot" style="left:{{ p.x }}%;top:{{ p.y }}%"></span>{% endfor %}
+        {% for p in a.pins %}<button type="button" class="gsl-pin" data-side="l" data-k="{{ loop.index0 }}" data-edge="{{ 'l' if p.x < 50 else 'r' }}" data-y="{{ p.y }}" style="left:{{ -6 if p.x < 50 else 106 }}%;top:{{ p.y }}%">{{ loop.index }}</button>{% endfor %}</div></div>
       <div class="gsl-bank" data-shuffle="1">{% for p in a.pins %}<button type="button" class="gsl-tile" data-drag="1" data-side="r" data-k="{{ loop.index0 }}"><span class="gsl-grip" aria-hidden="true"><i class="bi bi-grip-vertical"></i></span><span class="gsl-tile-t">{{ gs_rich(p.label) }}</span></button>{% endfor %}</div>
     </div>
 
