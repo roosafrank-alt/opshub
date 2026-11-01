@@ -178,6 +178,17 @@
         </select>
         {% if not self_service %}
         <a href="#" id="add-break-link" target="_blank" class="small d-none"><i class="bi bi-calendar-x"></i> Add a break for this instructor</a>
+        {#- QA feat-cfi-8hr-limit: STAFF ONLY (this block never renders in the
+           student's self-service form). Grey hours line + yellow heads-up;
+           nothing is blocked. #}
+        <div id="cfi-hours-line" class="form-text d-none" data-change="feat-cfi-8hr-limit"></div>
+        <div id="cfi-hours-warn" class="alert alert-warning py-2 px-3 mt-2 mb-0 d-none">
+          <div id="cfi-hours-warn-text" class="small fw-semibold"></div>
+          <div class="d-flex gap-2 mt-2">
+            <button type="button" class="btn btn-outline-secondary btn-sm" id="cfi-hours-pick">Pick another instructor</button>
+            <button type="button" class="btn btn-warning btn-sm" id="cfi-hours-anyway">Book anyway</button>
+          </div>
+        </div>
         {% endif %}
       </div>
       <div class="col-md-6 mb-3">
@@ -512,6 +523,42 @@
 {% endblock %}
 
 {% block scripts %}
+{% if not self_service %}
+<script>
+// QA feat-cfi-8hr-limit (staff only): hours of flying in the last 24 hrs under the Instructor picker.
+(function () {
+  var sel = document.getElementById('cfi-select'), line = document.getElementById('cfi-hours-line');
+  if (!sel || !line) return;
+  var warn = document.getElementById('cfi-hours-warn'), wtext = document.getElementById('cfi-hours-warn-text');
+  var dateEl = document.querySelector('input[name="scheduled_date"]'), timeEl = document.getElementById('time-input'),
+      durEl = document.querySelector('input[name="duration_hours"]'), solo = document.getElementById('solo-check');
+  var dismissed = '', timer = null;
+  function refresh() {
+    clearTimeout(timer);
+    timer = setTimeout(function () {
+      if (!sel.value || !dateEl.value || (solo && solo.checked)) { line.classList.add('d-none'); warn.classList.add('d-none'); return; }
+      var q = new URLSearchParams({cfi_id: sel.value, date: dateEl.value, time: timeEl ? timeEl.value : '', hours: durEl ? durEl.value : '',
+                                   exclude: {{ (sched.id if sched else '')|tojson }} });
+      fetch('{{ url_for("flight.schedule_cfi_hours") }}?' + q.toString(), {credentials: 'same-origin'})
+        .then(function (r) { return r.ok ? r.json() : {}; })
+        .then(function (d) {
+          if (!d.line) { line.classList.add('d-none'); warn.classList.add('d-none'); return; }
+          line.textContent = d.line; line.classList.remove('d-none');
+          var key = q.toString();
+          if (d.warning && dismissed !== key) { wtext.textContent = d.warning; warn.classList.remove('d-none'); }
+          else warn.classList.add('d-none');
+          warn.dataset.key = key;
+        }).catch(function () {});
+    }, 250);
+  }
+  [sel, dateEl, timeEl, durEl, solo].forEach(function (el) { if (el) { el.addEventListener('change', refresh); el.addEventListener('input', refresh); } });
+  document.getElementById('cfi-hours-anyway').addEventListener('click', function () { dismissed = warn.dataset.key || ''; warn.classList.add('d-none'); });
+  document.getElementById('cfi-hours-pick').addEventListener('click', function () { sel.focus(); sel.scrollIntoView({block: 'center'}); });
+  refresh();
+})();
+</script>
+{% endif %}
+
 {% if normal_hours %}
 <div class="modal" id="reqOnlyModal" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content">

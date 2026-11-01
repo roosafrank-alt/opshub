@@ -537,6 +537,70 @@ def tsa_gate_needed(student_id):
         conn.close()
 
 
+CFI_MAX_FLIGHT_HOURS_24 = 8.0  # 14 CFR 61.195(a): at most 8 hours of flight training in any 24 hours
+
+
+def _cfi_flying_load(conn, cfi_id, scheduled_date, scheduled_time, hours, exclude_id=None):
+    """QA feat-cfi-8hr-limit: how much flying this instructor already has in
+    the 24 hours before a flight starting at scheduled_date/scheduled_time
+    (and in the 24 hours from its start), against the 8 hour limit. STAFF
+    ONLY: never call this for anything a student can see.
+
+    Only flying counts - every booking of this instructor that isn't solo.
+    A flight already logged counts its billed Hobbs time; one not flown yet
+    counts its planned length. A flight is counted whole in the window that
+    contains its start time. Returns None when there is nothing to check
+    (no instructor, bad date), else a dict with name, before (hours already
+    in the last 24 hrs), left (8 minus that), new (this flight's hours),
+    over (this flight takes them past 8) and near (not over, but less than
+    one more average lesson would fit afterwards)."""
+    if not cfi_id:
+        return None
+    try:
+        start = datetime.strptime(f"{scheduled_date} {scheduled_time or '09:00'}", "%Y-%m-%d %H:%M")
+    except (ValueError, TypeError):
+        return None
+    new_h = float(hours or DEFAULT_SCHEDULE_BLOCK_HOURS)
+    cfi = conn.execute("SELECT name FROM cfis WHERE id = ?", (cfi_id,)).fetchone()
+    if not cfi:
+        return None
+    lo = (start - timedelta(days=2)).strftime("%Y-%m-%d")
+    hi = (start + timedelta(days=2)).strftime("%Y-%m-%d")
+    rows = conn.execute("""
+        SELECT sf.id, sf.scheduled_date, sf.scheduled_time, sf.duration_hours, f.hobbs_start, f.hobbs_end
+        FROM scheduled_flights sf LEFT JOIN flights f ON f.scheduled_flight_id = sf.id
+        WHERE sf.cfi_id = ? AND sf.solo = 0 AND sf.scheduled_date BETWEEN ? AND ?
+          AND sf.status IN ('scheduled', 'in_progress', 'completed', 'balance_hold')
+    """, (cfi_id, lo, hi)).fetchall()
+    before = after = 0.0
+    seen = set()
+    for r in rows:
+        if exclude_id and r["id"] == int(exclude_id) or r["id"] in seen:
+            continue
+        seen.add(r["id"])
+        dur = None
+        if r["hobbs_start"] is not None and r["hobbs_end"] is not None and r["hobbs_end"] > r["hobbs_start"]:
+            dur = r["hobbs_end"] - r["hobbs_start"]
+        dur = dur if dur else (r["duration_hours"] or DEFAULT_SCHEDULE_BLOCK_HOURS)
+        try:
+            when = datetime.strptime(f"{r['scheduled_date']} {r['scheduled_time'] or '09:00'}", "%Y-%m-%d %H:%M")
+        except ValueError:
+            continue
+        if start - timedelta(hours=24) <= when < start:
+            before += dur
+        elif start <= when < start + timedelta(hours=24):
+            after += dur
+    worst = max(before, after) + new_h
+    left = max(0.0, CFI_MAX_FLIGHT_HOURS_24 - before)
+    over = worst > CFI_MAX_FLIGHT_HOURS_24 + 1e-9
+    near = (not over) and (CFI_MAX_FLIGHT_HOURS_24 - worst) < DEFAULT_SCHEDULE_BLOCK_HOURS
+    fmt = lambda x: f"{x:.1f}".rstrip("0").rstrip(".") if x % 1 else f"{int(x)}"
+    return {"name": cfi["name"], "before": round(before, 2), "left": round(left, 2), "new": new_h, "over": over, "near": near,
+            "line": f"{cfi['name']}: {fmt(round(before, 2))} hrs of flying in the last 24 hrs, {fmt(round(left, 2))} hrs left ({fmt(CFI_MAX_FLIGHT_HOURS_24)} max)",
+            "warning": (f"{cfi['name']} would be over {fmt(CFI_MAX_FLIGHT_HOURS_24)} hours of flying in 24 hours with this flight." if over else
+                        f"{cfi['name']} would have less than {fmt(DEFAULT_SCHEDULE_BLOCK_HOURS)} hours left after this flight, so the next lesson probably would go over {fmt(CFI_MAX_FLIGHT_HOURS_24)}." if near else "")}
+
+
 def _scheduling_conflicts(conn, asset_id, cfi_id, student_id, scheduled_date, scheduled_time, duration_hours, exclude_id=None):
     """Checks the same day's other scheduled (not cancelled) flights for a
     double-booking: the same plane, the same instructor, or the same
@@ -1963,7 +2027,10 @@ def _dashboard_context(conn, cfi, student):
             WHERE sf.status = 'pending_approval'
             ORDER BY sf.scheduled_date, sf.scheduled_time IS NULL, sf.scheduled_time
         """).fetchall()
-        pending_requests = [dict(p, time_label=_format_time_12h(p["scheduled_time"]), day_label=_short_day_label(p["scheduled_date"])) for p in pending_requests]
+        pending_requests = [dict(p, time_label=_format_time_12h(p["scheduled_time"]), day_label=_short_day_label(p["scheduled_date"]),
+                                 cfi_hours_warning=((_cfi_flying_load(conn, p["cfi_id"], p["scheduled_date"], p["scheduled_time"],
+                                                                      p["duration_hours"], exclude_id=p["id"]) or {}).get("warning") or ""))
+                            for p in pending_requests]
         # A student's own request to change one of their already-confirmed
         # bookings (schedule_request_change) - school-wide, same reasoning
         # as pending_requests above. Cleared by rescheduling the booking
@@ -5705,6 +5772,23 @@ def _student_usual_offer(conn, student, days=14):
                 "label": f"{d.strftime('%a, %b')} {d.day} \u00b7 {_format_time_12h(u['time'])}\u2013{end}",
                 "detail": f"{plane['tag']} \u00b7 {cfi['name']} \u00b7 {hrs} hr, same as your last lessons"}
     return None
+
+
+@flight_bp.route("/schedule/cfi-hours")
+@cfi_or_admin_required
+def schedule_cfi_hours():
+    """QA feat-cfi-8hr-limit: JSON for the booking form's grey hours line and
+    yellow heads-up under the Instructor picker. Staff only (a student gets
+    bounced by cfi_or_admin_required) - students never see an instructor's
+    flying hours."""
+    conn = get_db()
+    try:
+        load = _cfi_flying_load(conn, request.args.get("cfi_id") or None, request.args.get("date", ""),
+                                request.args.get("time") or None, _parse_float(request.args.get("hours")),
+                                exclude_id=request.args.get("exclude") or None)
+    finally:
+        conn.close()
+    return jsonify(load or {})
 
 
 @flight_bp.route("/schedule/new", methods=["GET", "POST"])

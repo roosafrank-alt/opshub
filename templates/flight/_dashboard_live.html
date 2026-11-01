@@ -363,6 +363,7 @@
         <div class="fw-bold text-truncate" style="font-size:.92rem;">{{ p.day_label }} &middot; {{ p.time_label or 'Not set' }} &middot; {{ p.plane_tag }}</div>
         <div class="small text-muted text-truncate">{{ p.student_name }} &middot; {% if p.cfi_name %}{{ p.cfi_name }}{% elif p.solo %}solo{% else %}any instructor{% endif %}</div>
         {% if p.private_notes %}<div class="small fst-italic text-truncate" data-change="FLY-06">&ldquo;{{ p.private_notes }}&rdquo;</div>{% endif %}
+        {% if p.cfi_hours_warning %}<div class="small text-warning-emphasis" data-change="feat-cfi-8hr-limit"><i class="bi bi-exclamation-triangle-fill"></i> {{ p.cfi_hours_warning }}</div>{% endif %}
       </div>
       <div class="d-flex gap-1 text-nowrap">
         {% set any_cfi = not p.cfi_name and not p.solo %}
@@ -391,7 +392,7 @@
           <td data-label="Date"><small>{{ p.scheduled_date|usdate }}</small></td>
           <td data-label="Time"><small>{{ p.time_label or 'Not set' }}</small></td>
           <td data-label="Plane">{{ p.plane_tag }}</td>
-          <td data-label="Student">{{ p.student_name }}{% if p.private_notes %}<div class="small fst-italic text-muted" data-change="FLY-06">Note: &ldquo;{{ p.private_notes }}&rdquo;</div>{% endif %}</td>
+          <td data-label="Student">{{ p.student_name }}{% if p.private_notes %}<div class="small fst-italic text-muted" data-change="FLY-06">Note: &ldquo;{{ p.private_notes }}&rdquo;</div>{% endif %}{% if p.cfi_hours_warning %}<div class="small text-warning-emphasis"><i class="bi bi-exclamation-triangle-fill"></i> {{ p.cfi_hours_warning }}</div>{% endif %}</td>
           <td data-label="Requested Instructor">{% if p.cfi_name %}{{ p.cfi_name }}{% elif p.solo %}<span class="badge bg-secondary">Solo</span>{% else %}<span class="badge bg-secondary">Any</span>{% endif %}</td>
           <td data-label="" class="text-end text-nowrap">
             {#- type="button" (not submit, no wrapping <form>) so the shared
