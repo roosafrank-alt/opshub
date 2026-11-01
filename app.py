@@ -2234,8 +2234,10 @@ GENERAL_SHOP_CODE = "GENERAL-SHOP"
 def general_shop_code_page():
     """One shared, printable code for non-project shop time (cleanup,
     meetings, general overhead) - scan it plus a laborer badge, in either
-    order, on the Scan page to clock in/out against no particular project."""
-    return render_template("general_shop_code.html", code=GENERAL_SHOP_CODE)
+    order, on the Scan page to clock in/out against no particular project.
+    Now shown as the first card of Badges & Shop Code (/labor/badges); this
+    old address just forwards there so old links and bookmarks still work."""
+    return redirect(url_for("laborer_badges"))
 
 
 @app.route("/labor/general-code/print-label", methods=["POST"])
@@ -2247,7 +2249,7 @@ def general_shop_code_print_label():
         flash("Label sent to printer.", "success")
     except Exception as e:
         flash(f"Couldn't print label: {e}", "danger")
-    return redirect(url_for("general_shop_code_page"))
+    return redirect(url_for("laborer_badges"))
 
 
 @app.route("/api/lookup/<path:barcode>")
@@ -8226,7 +8228,7 @@ def laborer_badges():
     conn = get_db()
     laborers = conn.execute("SELECT * FROM laborers WHERE active = 1 ORDER BY name").fetchall()
     conn.close()
-    return render_template("laborer_badges.html", laborers=laborers)
+    return render_template("laborer_badges.html", laborers=laborers, shop_code=GENERAL_SHOP_CODE)
 
 
 @app.route("/laborers")

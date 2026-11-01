@@ -1,19 +1,25 @@
 {% extends "base.html" %}
-{% block title %}Print Worker Badges · Winds Aloft{% endblock %}
+{% block title %}Badges &amp; Shop Code · Winds Aloft{% endblock %}
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3 no-print">
-  <h4 class="mb-0">Print Worker Badges</h4>
+  <h4 class="mb-0">Badges &amp; Shop Code</h4>
   <div class="d-flex gap-2">
-    {% if is_master_admin or shop_role == 'admin' %}<a href="{{ url_for('laborers_list') }}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Workers</a>{% endif %}
-    {% if laborers %}<button class="btn btn-outline-secondary fw-bold" onclick="window.print()" data-change="SHOP-35 DESIGN-1"><i class="bi bi-printer"></i> Print page (regular printer)</button>{% endif %}
+    <button class="btn btn-outline-secondary fw-bold" onclick="window.print()" data-change="SHOP-35 DESIGN-1"><i class="bi bi-printer"></i> Print page (regular printer)</button>
   </div>
 </div>
-<p class="text-muted small no-print">Print page (regular printer) prints every badge at once. Print on label printer, under a badge, prints just that one on the shop's label printer. Everyone scans their own badge on the <a href="{{ url_for('scan_page') }}">Scan</a> page to clock in/out.</p>
+<p class="text-muted small no-print">Print page (regular printer) prints the shop code and every badge at once. Print on label printer, under a badge, prints just that one on the shop's label printer. Everyone scans their own badge on the <a href="{{ url_for('scan_page') }}">Scan</a> page to clock in/out.</p>
 
-{% if not laborers %}
-<p class="text-muted">No active workers yet.</p>
-{% else %}
 <div class="d-flex flex-wrap gap-3 justify-content-center">
+  {#- QA feat-badges-shop-code-one-page: the Shop / General Time code is the first card. #}
+  <div class="label-card" style="width: 220px; padding: 16px; border: 2px solid #0d6efd;" data-change="feat-badges-shop-code-one-page">
+    <div class="bold-text">Shop / General Time</div>
+    <div class="text-muted small">cleanup, meetings, any non-project work</div>
+    <div id="general-qr" class="d-flex justify-content-center my-2"></div>
+    <div style="font-size:0.85rem; font-weight:700; letter-spacing:1px;">{{ shop_code }}</div>
+    <form method="post" action="{{ url_for('general_shop_code_print_label') }}" class="no-print mt-2">
+      <button type="submit" class="btn btn-outline-secondary btn-sm w-100" data-change="SHOP-35"><i class="bi bi-printer"></i> Print on label printer</button>
+    </form>
+  </div>
   {% for l in laborers %}
   <div class="label-card" style="width: 220px; padding: 16px;">
     <div class="bold-text">{{ l.name }}</div>
@@ -26,12 +32,13 @@
   </div>
   {% endfor %}
 </div>
-{% endif %}
+{% if not laborers %}<p class="text-muted text-center mt-3">No active workers yet.</p>{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
+new QRCode(document.getElementById('general-qr'), { text: {{ shop_code | tojson }}, width: 140, height: 140, correctLevel: QRCode.CorrectLevel.H });
 document.querySelectorAll('.laborer-qr').forEach(function (el) {
   new QRCode(el, { text: el.getAttribute('data-code'), width: 140, height: 140, correctLevel: QRCode.CorrectLevel.H });
 });
