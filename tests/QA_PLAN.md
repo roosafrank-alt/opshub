@@ -76,7 +76,7 @@ Shop / inventory
 - [x] Maintenance items: new, edit, complete, due/overdue math around hours and dates (`test_maintenance_items.py`, no bugs found)
 - [ ] Logbook entries: create, edit, print, starter templates
 - [x] Photos: upload (bad file types, huge files), set cover, delete
-- [ ] Trash page: empty trash, restore conflicts
+- [x] Trash page: empty trash, restore conflicts (`test_trash.py`, `test_trash_restore_purge_every_link.py`)
 - [ ] Shop billing, shop pay, and stats totals match the underlying transactions and labor
 
 Accounts / admin
@@ -133,3 +133,7 @@ Health check (live vs queued, identical, no regressions): same 26-27 clock/netwo
 ## Oct 31 note
 
 Health check (live vs queued, identical, no regressions): 2186 tests, same clock/network-dependent failures (about 40 incl. several new ones, run with Flask installed into a temp folder). Fixes that went live: `qa-aircraft-tail-case-duplicate`, `qa-new-aircraft-bad-hours-saved`, `qa-project-bad-dates-saved`, `qa-section-confirm-unrequested`; their markers are removed. Maintenance items area covered (`test_maintenance_items.py`): add, edit, complete, remove, roles, missing/removed items, junk numbers, due/overdue maths. No bugs found. (A whole-number days box truncates 1.5 to 1 on purpose; not treated as a bug.)
+
+## Nov 1 note
+
+Health check: 2213 tests; live has 40 failures/errors (the same clock/network-dependent group as Oct 25-31), no unexpected successes. The queued branch has 3 more, all in `test_workers_menu.py` (Workers menu / badge and code buttons): they fail because the queued idea "'Print Worker Badges' and 'General Shop Code' become one 'Badges & Shop Code' page" (commit 835f841) deliberately changes that menu. Not a regression. **Update `test_workers_menu.py` to the new wording once that idea is deployed** (do not change it before, it would fail on live). Trash page area finished: Delete Forever on an aircraft that has a record in every table pointing at aircraft (found from the database itself), Empty trash with such an aircraft, restore edge cases. No bugs found. (Re-trashing an already-deleted job refreshes its deleted time; no auto-purge exists, so treated as harmless.)
