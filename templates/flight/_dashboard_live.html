@@ -126,7 +126,43 @@
     </span>
   </button>
   <div class="dash-collapse-body" data-collapse-body="yourrequests">
-  <div class="table-responsive">
+  {#- QA ux-student-requests-compact: on a phone each request is ONE line
+     ("Sun, Nov 1 · 4:00 PM · N2231Q" bold on the left, status tag on the
+     right); a note, deny reason or offered times sit on a small second
+     line. Desktop keeps the table below. #}
+  <div class="d-sm-none" data-change="ux-student-requests-compact">
+    {% for m in my_requests %}
+    <div class="py-2 {{ 'border-top' if not loop.first }}">
+      <div class="d-flex justify-content-between align-items-start gap-2">
+        <div class="fw-bold">{{ (m.scheduled_date|usdate).rsplit(',', 1)[0] }} &middot; {{ m.time_label or 'Not set' }} &middot; {{ m.plane_tag }}</div>
+        <div class="text-nowrap">
+          {% if m.status == 'pending_approval' %}<span class="badge bg-warning text-dark">Waiting</span>
+          {% elif m.status == 'scheduled' %}<span class="badge bg-info text-dark">Change requested</span>
+          {% else %}<span class="badge bg-danger">Denied</span>
+          <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1 my-request-dismiss-btn" data-dismiss-url="{{ url_for('flight.schedule_dismiss', scheduled_id=m.id) }}" title="Remove from this list"><i class="bi bi-x-lg"></i></button>
+          {% endif %}
+        </div>
+      </div>
+      {% if m.status == 'pending_approval' and m.private_notes %}<div class="text-muted small">Your note to the school: &quot;{{ m.private_notes }}&quot;</div>{% endif %}
+      {% if m.status == 'scheduled' %}
+      {% if m.change_request_note %}<div class="text-muted small">&quot;{{ m.change_request_note }}&quot;</div>{% endif %}
+      <button type="button" class="btn btn-link btn-sm p-0 withdraw-change-btn" data-withdraw-url="{{ url_for('flight.schedule_change_request_withdraw', scheduled_id=m.id) }}" data-confirm="Take back your change request? The school is told you no longer need it." data-confirm-title="Withdraw Request" data-confirm-ok="Yes, withdraw">Withdraw</button>
+      {% elif m.status != 'pending_approval' %}
+      {% if m.deny_reason %}<div class="text-muted small">{{ m.deny_reason }}</div>{% endif %}
+      {% if m.proposed_times_list %}
+      <div class="d-flex flex-wrap gap-1 mt-1">
+        {% for t in m.proposed_times_list %}
+        <button type="button" class="btn btn-outline-success btn-sm accept-proposed-time-btn"
+                data-accept-url="{{ url_for('flight.schedule_accept_proposed_time', scheduled_id=m.id) }}"
+                data-time="{{ t }}">{{ t }}</button>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <div class="table-responsive d-none d-sm-block">
     <table class="table table-sm align-middle mb-0 table-stack">
       <thead><tr><th>Date</th><th>Time</th><th>Plane</th><th>Status</th><th></th></tr></thead>
       <tbody>
