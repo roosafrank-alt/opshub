@@ -281,12 +281,25 @@
     {% if bills or not in_shop %}
     <div class="card p-3 mb-3">
       <h5><i class="bi bi-receipt"></i> Job Costs</h5>
+      {% if owed_total > 0 %}
+      <div class="alert alert-warning d-flex justify-content-between align-items-center flex-wrap gap-2 py-2" data-change="feat-owner-pay-due">
+        <div class="fw-bold fs-5">You owe ${{ '{:,.2f}'.format(owed_total) }}</div>
+        {% if payable_total > 0 %}
+        <button type="button" class="btn btn-primary fw-bold" data-bs-toggle="modal" data-bs-target="#ownerPayModal"><i class="bi bi-credit-card"></i> Pay ${{ '{:,.2f}'.format(payable_total) }}</button>
+        {% else %}
+        <span class="small">Pay from the invoice email the shop sent you.</span>
+        {% endif %}
+      </div>
+      {% endif %}
       {% if bills %}
       {% for b in bills %}
       <div class="py-2 {{ 'border-top' if not loop.first }}" data-change="HUB-12">
         <div class="d-flex justify-content-between">
           <div class="fw-bold">{{ b.project.name }}</div>
-          <div class="fw-bold">${{ '{:,.2f}'.format(b.total) }}</div>
+          <div class="fw-bold">${{ '{:,.2f}'.format(b.total) }}
+            {% if b.pay_status == 'paid' %}<span class="badge bg-success ms-1" data-change="feat-owner-pay-due"><i class="bi bi-check-lg"></i> Paid</span>
+            {% elif b.pay_status == 'invoiced' %}<span class="badge bg-warning text-dark ms-1" data-change="feat-owner-pay-due">Due</span>{% endif %}
+          </div>
         </div>
         <div class="text-muted small">{{ b.project.status|capitalize }}{% if b.project.completed_at %} &middot; completed {{ b.project.completed_at|usdate }}{% endif %}</div>
         {% if b.discrepancies %}
@@ -319,6 +332,31 @@
       {% else %}
       <p class="text-muted small mb-0">No costs on record yet.</p>
       {% endif %}
+    </div>
+    {% endif %}
+
+    {% if payable_total > 0 %}
+    <div class="modal fade" id="ownerPayModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <form method="post" action="{{ url_for('customer.customer_pay', asset_id=asset.id) }}">
+            <div class="modal-header">
+              <h5 class="modal-title"><i class="bi bi-credit-card"></i> Pay with Card <span class="badge bg-secondary ms-1">Simulated</span></h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <p class="mb-3 fs-4 fw-bold">${{ '{:,.2f}'.format(payable_total) }}</p>
+              <p class="small text-muted">Simulated checkout: no real charge happens and any card number works. Every job marked Due turns Paid.</p>
+              <label class="form-label" for="owner-pay-card">Card number</label>
+              <input type="text" id="owner-pay-card" name="card_number" class="form-control" inputmode="numeric" placeholder="4242 4242 4242 4242" required>
+            </div>
+            <div class="modal-footer justify-content-start">
+              <button type="submit" class="btn btn-primary fw-bold btn-sm"><i class="bi bi-lock-fill"></i> Pay now</button>
+              <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
     </div>
     {% endif %}
 

@@ -14,6 +14,8 @@ staff-only. From here they can:
 Admin manages customer accounts and which aircraft they're linked to from
 the regular Manage menu (see /customers routes in app.py).
 """
+import re
+import secrets
 from datetime import date, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, abort, session
 from werkzeug.security import generate_password_hash
@@ -255,13 +257,64 @@ def customer_asset(asset_id):
         grouped, labor, total = _project_bill(conn, j["id"])
         discrepancies = _project_discrepancy_descriptions(conn, j["id"])
         if total > 0 or grouped or labor or discrepancies:
+            status = j["payment_status"] or "not_invoiced"
             bills.append({"project": j, "grouped": grouped, "labor": labor, "total": total,
-                          "discrepancies": discrepancies})
+                          "discrepancies": discrepancies, "pay_status": status})
+    # QA feat-owner-pay-due: what the owner still owes = jobs the shop has
+    # invoiced and nobody has paid. A job with a Wave invoice is paid through
+    # Wave's own link (Wave owns that status), so it shows Due but no Pay button.
+    wave_ids = set()
+    due_ids = [b["project"]["id"] for b in bills if b["pay_status"] == "invoiced"]
+    if due_ids:
+        marks = ",".join("?" * len(due_ids))
+        wave_ids = {r["ref_id"] for r in conn.execute(
+            f"SELECT ref_id FROM wave_invoices WHERE kind = 'project' AND ref_id IN ({marks})", due_ids).fetchall()}
+    for b in bills:
+        b["wave"] = b["project"]["id"] in wave_ids
+    owed_total = round(sum(b["total"] for b in bills if b["pay_status"] == "invoiced"), 2)
+    payable_total = round(sum(b["total"] for b in bills if b["pay_status"] == "invoiced" and not b["wave"]), 2)
     found_items = _found_items_for_asset(conn, asset_id)
     conn.close()
     return render_template("customer_asset.html", customer=cust, asset=asset, reminders=reminders,
                             appointments=appointments, bills=bills, in_shop=in_shop, multi_plane=multi_plane,
-                            found_items=found_items, week_options=_week_options())
+                            found_items=found_items, week_options=_week_options(),
+                            owed_total=owed_total, payable_total=payable_total)
+
+
+@customer_bp.route("/aircraft/<int:asset_id>/pay", methods=["POST"])
+@customer_login_required
+def customer_pay(asset_id):
+    """QA feat-owner-pay-due: the owner pays every invoiced, unpaid job on
+    this plane in one tap. Same simulated Stripe-style card checkout as the
+    flight school's Pay with Card (no real charge); each job marks itself
+    Paid with the card's last 4 digits. Jobs with a Wave invoice are skipped
+    (they are paid from Wave's email link)."""
+    conn = get_db()
+    cust = portal_customer(conn)
+    _require_owned_asset(conn, cust["id"], asset_id)
+    back = url_for("customer.customer_asset", asset_id=asset_id)
+    digits = re.sub(r"\D", "", request.form.get("card_number", ""))
+    if len(digits) < 4:
+        conn.close()
+        flash("Enter a card number.", "danger")
+        return redirect(back)
+    rows = conn.execute("""SELECT id FROM projects WHERE asset_id = ? AND deleted_at IS NULL
+                           AND payment_status = 'invoiced' AND id NOT IN
+                           (SELECT ref_id FROM wave_invoices WHERE kind = 'project')""", (asset_id,)).fetchall()
+    if not rows:
+        conn.close()
+        flash("Nothing to pay right now.", "info")
+        return redirect(back)
+    total = 0.0
+    for r in rows:
+        total += _project_bill(conn, r["id"])[2]
+        conn.execute("""UPDATE projects SET payment_status = 'paid', paid_at = ?, paid_by = ?, paid_method = 'Card',
+                        card_last4 = ?, card_charge_id = ? WHERE id = ? AND payment_status = 'invoiced'""",
+                     (now_iso(), cust["name"], digits[-4:], "sim_ch_" + secrets.token_hex(8), r["id"]))
+    conn.commit()
+    conn.close()
+    flash(f"Paid ${total:,.2f} with card ending {digits[-4:]} (simulated). Thank you!", "success")
+    return redirect(back)
 
 
 def _in_shop_card(conn, project):
