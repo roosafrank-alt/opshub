@@ -5680,6 +5680,15 @@ def _student_usual_offer(conn, student, days=14):
         "SELECT scheduled_date FROM scheduled_flights WHERE student_id = ? AND status IN ('scheduled', 'balance_hold', 'pending_approval')",
         (student["id"],)).fetchall()}
     now_dt = datetime.now()
+    # QA ux-book-usual-when-booked: nothing to offer a student who already has
+    # 2 or more lessons booked or requested from today on (approved and
+    # still-waiting requests both count).
+    ahead = conn.execute(
+        "SELECT COUNT(*) FROM scheduled_flights WHERE student_id = ? AND scheduled_date >= ? "
+        "AND status IN ('scheduled', 'balance_hold', 'pending_approval')",
+        (student["id"], now_dt.strftime("%Y-%m-%d"))).fetchone()[0]
+    if ahead >= 2:
+        return None
     for i in range(0, days + 1):
         d = now_dt.date() + timedelta(days=i)
         ds = d.strftime("%Y-%m-%d")
