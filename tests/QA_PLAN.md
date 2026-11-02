@@ -137,3 +137,7 @@ Health check (live vs queued, identical, no regressions): 2186 tests, same clock
 ## Nov 1 note
 
 Health check: 2213 tests; live has 40 failures/errors (the same clock/network-dependent group as Oct 25-31), no unexpected successes. The queued branch has 3 more, all in `test_workers_menu.py` (Workers menu / badge and code buttons): they fail because the queued idea "'Print Worker Badges' and 'General Shop Code' become one 'Badges & Shop Code' page" (commit 835f841) deliberately changes that menu. Not a regression. **Update `test_workers_menu.py` to the new wording once that idea is deployed** (do not change it before, it would fail on live). Trash page area finished: Delete Forever on an aircraft that has a record in every table pointing at aircraft (found from the database itself), Empty trash with such an aircraft, restore edge cases. No bugs found. (Re-trashing an already-deleted job refreshes its deleted time; no auto-purge exists, so treated as harmless.)
+
+## Nov 2 note
+
+Health check: live 2382 tests, 40 failures/errors (the same clock/network-dependent group as Oct 25-Nov 1), no unexpected successes. Queued: 3 more, again only the `test_workers_menu.py` ones caused by the queued "Badges & Shop Code" idea (not a regression). No new area covered tonight (the full run took about 11 minutes); the next unchecked area is still Logbook entries.
