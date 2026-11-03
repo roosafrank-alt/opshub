@@ -2,15 +2,22 @@
 (FAA-S-8081-9E, built-in) and any course with an FOI Area point to it."""
 import json
 import os
+import tempfile
 
 from harness import OpsHubTestCase
 import db
 import ground_lessons
+import groundschool as gs
 
 GS = "/flight/groundschool"
 
 
 class FoiLinkTest(OpsHubTestCase):
+    def setUp(self):
+        super().setUp()
+        self.addCleanup(setattr, gs, "UPLOAD_DIR", gs.UPLOAD_DIR)
+        gs.UPLOAD_DIR = tempfile.mkdtemp()  # installing copies the CFII PTS into Resources (BUILTIN-DOCS)
+
     def _install(self, code):
         c = self.login("master")
         r = c.post(f"{GS}/builtin/{code}/install")

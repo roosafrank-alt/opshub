@@ -18,7 +18,9 @@ from markupsafe import Markup, escape
 LESSON_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ground_lessons")
 _CACHE = {}
 _CODE_RE = re.compile(r"^([A-Z]{2,3}\.[IVXL]+\.[A-Z]+)\.")
-_CITE_RE = re.compile(r"\[\[(\d+):(\d+)\|([^\]]+)\]\]")
+# [[23:180|IFH 7-19]] cites a Resources row by id. [[FAA-S-ACS-8C:12|IR ACS p 10]] cites it by FAA document
+# number (DOC-CITE), for the ACS/PTS rows whose ids differ from one OpsHub to the next.
+_CITE_RE = re.compile(r"\[\[(\d+|FAA-[A-Za-z0-9-]+):(\d+)\|([^\]]+)\]\]")
 _BOLD_RE = re.compile(r"\*\*([^*]+)\*\*")
 
 
@@ -52,8 +54,61 @@ def load(code):
     return lesson
 
 
+def _norm_doc(s):
+    return re.sub(r"[^A-Z0-9-]", "", (s or "").upper())
+
+
+def _doc_index():
+    """{normalized designation: id} plus [(designation, id, source file)] for the Resources rows,
+    read once per request."""
+    from flask import g, has_app_context
+    if has_app_context() and getattr(g, "_gs_doc_index", None) is not None:
+        return g._gs_doc_index
+    from db import get_db
+    conn = get_db()
+    try:
+        rows = conn.execute(
+            "SELECT r.id, r.designation, (SELECT s.source_url FROM resource_sources s WHERE s.resource_id = r.id "
+            "ORDER BY s.id DESC LIMIT 1) AS url FROM acs_resources r ORDER BY r.id").fetchall()
+    finally:
+        conn.close()
+    idx = ({}, [])
+    for r in rows:
+        d = _norm_doc(r["designation"])
+        if d:
+            idx[0][d] = r["id"]
+        idx[1].append((d, r["id"], (r["url"] or "").rsplit("/", 1)[-1].lower()))
+    if has_app_context():
+        g._gs_doc_index = idx
+    return idx
+
+
+def resolve_resource(ref):
+    """The Resources id a citation points to, or None. A number is the id itself. An FAA document
+    number (DOC-CITE) is looked up: the same number, else the same document at another revision
+    (FAA-S-ACS-8C finds FAA-S-ACS-8D), else the row watching that document's FAA address."""
+    ref = str(ref)
+    if ref.isdigit():
+        return int(ref)
+    want = _norm_doc(ref)
+    exact, rows = _doc_index()
+    if want in exact:
+        return exact[want]
+    base = re.sub(r"[A-Z]$", "", want)
+    same = [rid for d, rid, _u in rows if d and re.fullmatch(re.escape(base) + r"[A-Z]?", d)]
+    if same:
+        return same[-1]
+    import acs_sync
+    url = (acs_sync.default_source_url("", ref) or "").rsplit("/", 1)[-1].lower()
+    hit = [rid for _d, rid, u in rows if url and u == url]
+    return hit[-1] if hit else None
+
+
 def cite_url(res_id, page):
-    return url_for("groundschool.resource_excerpt", resource_id=int(res_id), pages=int(page))
+    rid = resolve_resource(res_id)
+    if rid is None:
+        return None
+    return url_for("groundschool.resource_excerpt", resource_id=rid, pages=int(page))
 
 
 def rich(text):
@@ -61,8 +116,10 @@ def rich(text):
     s = str(escape(text or ""))
 
     def link(m):
-        return ('<a href="%s" class="gsl-cite">%s</a>'
-                % (cite_url(m.group(1), m.group(2)), m.group(3)))
+        url = cite_url(m.group(1), m.group(2))
+        if url is None:  # DOC-CITE: that document isn't in this OpsHub's Resources yet
+            return '<span class="gsl-cite">%s</span>' % m.group(3)
+        return '<a href="%s" class="gsl-cite">%s</a>' % (url, m.group(3))
     s = _CITE_RE.sub(link, s)
     s = _BOLD_RE.sub(r"<b>\1</b>", s)
     return Markup(s)
@@ -284,6 +341,25 @@ def builtin_courses():
 
 def builtin_course(code):
     return next((c for c in builtin_courses() if c["code"] == code), None)
+
+
+# ---------------------------------------------------------------- BUILTIN-DOCS
+# A built-in course can ship the FAA standard it is built from (e.g. the CFII PTS) in
+# ground_lessons/courses/docs/. Its outline lists it in "documents": [{"file", "designation", "title",
+# "doc_type", "doc_date", "categories", "source_url"}]. Once the course is installed, groundschool puts
+# each one in Resources, so lessons, students and the FAA update check all work from the same file.
+DOC_DIR = os.path.join(COURSE_DIR, "docs")
+
+
+def builtin_documents(course):
+    """The course's shipped documents whose PDF is present: [dict + "path"]."""
+    out = []
+    for d in (course or {}).get("documents") or []:
+        fn = os.path.basename(d.get("file") or "")
+        path = os.path.join(DOC_DIR, fn)
+        if fn.lower().endswith(".pdf") and d.get("designation") and os.path.isfile(path):
+            out.append(dict(d, path=path))
+    return out
 
 
 # ---------------------------------------------------------------- GS-FOI-LINK
