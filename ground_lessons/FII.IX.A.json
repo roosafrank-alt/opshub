@@ -1,0 +1,1780 @@
+{
+ "task_code": "FII.IX.A",
+ "task_title": "Loss of Communications",
+ "area": "Area IX. Emergency Operations",
+ "minutes": 91,
+ "objective": "By the end of this lesson you can describe, as an instructor, how a pilot recognizes a two-way radio failure and alerts ATC, when to continue on the route as filed and when to fly something else under 14 CFR 91.185 and 91.3(b), and how to work out the time to leave the clearance limit and begin the approach, with worked examples you can teach on a whiteboard, in the airplane and in a training device.",
+ "why": "When the radios fail under IFR, ATC keeps serving the flight on the basis that the pilot is flying 14 CFR 91.185 [[34:53|AIM 6-4-1]]. That only works if the pilot knows, at any point of the flight, exactly what route to fly, what altitude to fly and when to go beyond the clearance limit [[23:333|IFH 11-8]]. This Task checks that you can describe recognition, the continue-or-deviate decision and the approach timing from an instructional standpoint (FAA-S-8081-9E, Area IX, Task A).",
+ "prereading": [
+  {
+   "res": "60",
+   "pages": [
+    482,
+    483
+   ],
+   "printed": "14 CFR 91.183, 91.185 and 91.187",
+   "what": "The rule itself: VFR conditions, route, altitude and leaving the clearance limit, plus IFR communications and malfunction reports.",
+   "label": "14 CFR 91.183 to 91.187"
+  },
+  {
+   "res": "34",
+   "pages": [
+    53,
+    54,
+    55
+   ],
+   "printed": "AIM 6-4-1 to 6-4-3",
+   "what": "The AIM text of 91.185 with its notes on Class A, \"as soon as practicable\" and expected altitudes, the three altitude examples, code 7600 and how to reestablish contact.",
+   "label": "AIM 6-4-1 to 6-4-3"
+  },
+  {
+   "res": "23",
+   "pages": [
+    330,
+    331,
+    333,
+    334
+   ],
+   "printed": "IFH 11-5, 11-6, 11-8 and 11-9",
+   "what": "Electrical system failure as a cause of radio loss, and planning every IFR flight for a two-way radio failure.",
+   "label": "IFH 11-5 to 11-9"
+  },
+  {
+   "res": "29",
+   "pages": [
+    107,
+    108,
+    110,
+    111
+   ],
+   "printed": "IPH 2-47, 2-48, 2-50 and 2-51",
+   "what": "Communication failure, the RDOF radar tag, ARTCC frequency outages, MEA changes, holding instructions with an EFC and holding at a clearance limit.",
+   "label": "IPH 2-47 to 2-51"
+  },
+  {
+   "res": "33",
+   "pages": [
+    382,
+    387,
+    428,
+    429,
+    430
+   ],
+   "printed": "AIM 5-3-8 and 5-4-10",
+   "what": "Holding at a clearance limit without instructions, holding leg timing, and how to adjust a holding pattern to leave a fix at a set time.",
+   "label": "AIM 5-3-8, 5-4-10"
+  },
+  {
+   "res": "25",
+   "pages": [
+    120,
+    172,
+    173,
+    174,
+    177,
+    178
+   ],
+   "printed": "AIH 5-17, 9-2 to 9-4, 9-7 and 9-8",
+   "what": "Scenario-based training, flight simulation training devices and ATDs, and the telling-and-doing technique.",
+   "label": "AIH 5-17, 9-2 to 9-8"
+  }
+ ],
+ "warmup": "Think first: your instrument learner was cleared \"to the BRAVO VOR via V12, maintain 5,000, expect further clearance 1520Z.\" BRAVO is an en route VOR 30 miles short of the destination. The radios die in cloud at 1450Z. Before reading on, write down the route, the altitude, the time he leaves BRAVO and the time he starts the approach. Then decide what one question you would ask him to find out whether he really understands why.",
+ "key_terms": [
+  {
+   "term": "Lost communications",
+   "def": "Loss of the ability to communicate by radio. Such aircraft are sometimes called NORDO, for no radio [[34:374|P/CG L-3]]."
+  },
+  {
+   "term": "Code 7600",
+   "def": "The transponder code for loss of two-way radio capability [[34:54|AIM 6-4-2]]. On the radar screen the data block flashes RDOF, radio failure [[29:107|IPH 2-47]]."
+  },
+  {
+   "term": "VMC",
+   "def": "Visual meteorological conditions: visibility, distance from cloud and ceiling equal to or better than specified minima [[34:441|P/CG V-4]]."
+  },
+  {
+   "term": "IMC",
+   "def": "Instrument meteorological conditions: visibility, distance from cloud and ceiling less than the minima specified for VMC [[34:364|P/CG I-5]]."
+  },
+  {
+   "term": "Clearance limit",
+   "def": "The fix, point or location to which an aircraft is cleared when issued an air traffic clearance [[34:325|P/CG C-4]]."
+  },
+  {
+   "term": "Expect further clearance (EFC) time",
+   "def": "The time a pilot can expect to receive clearance beyond a clearance limit [[34:342|P/CG E-3]]."
+  },
+  {
+   "term": "Expect further clearance via",
+   "def": "Tells the pilot the routing to expect if any part of the route beyond a short range clearance limit differs from the one filed [[34:342|P/CG E-3]]."
+  },
+  {
+   "term": "Cleared as filed",
+   "def": "Cleared to proceed by the route of flight filed in the flight plan. It does not include the altitude, DP or DP transition [[34:325|P/CG C-4]]."
+  },
+  {
+   "term": "Estimated time en route (ETE)",
+   "def": "The estimated flying time from departure point to destination, lift-off to touchdown [[34:342|P/CG E-3]]. 91.185 computes the ETA from the filed or amended ETE [[60:483|14 CFR 91.185(c)(3)]]."
+  },
+  {
+   "term": "Minimum IFR altitudes",
+   "def": "Minimum altitudes for IFR operations from part 91, published on charts and in parts 95 and 97; where none is prescribed, 1,000 feet above the highest obstacle within 4 NM of the course, or 2,000 feet in designated mountainous areas [[34:379|P/CG M-4]]."
+  },
+  {
+   "term": "MEA",
+   "def": "Minimum en route IFR altitude: the lowest published altitude between radio fixes that assures acceptable navigational signal coverage and meets obstacle clearance requirements [[34:378|P/CG M-3]]."
+  },
+  {
+   "term": "As soon as practicable",
+   "def": "Not \"as soon as possible.\" The pilot need not land at an unauthorized airport, at one unsuitable for the aircraft, or only minutes short of the destination [[34:53|AIM 6-4-1]]."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "The three questions every IFR pilot must be able to answer",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.A.K1",
+    "FII.IX.A.K2",
+    "FII.IX.A.K3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Avionics are very reliable, and a complete communications failure is unlikely. Still, the IFH says each IFR flight should be planned and flown in anticipation of a two-way radio failure. At any point the pilot must know exactly what route to fly, what altitude to fly and when to continue beyond a clearance limit [[23:333|IFH 11-8]]."
+    },
+    {
+     "p": "The reason is how ATC works without you. ATC service is provided on the basis that the pilot is operating in accordance with 14 CFR 91.185 [[34:53|AIM 6-4-1]]. The main objective of the rules is to prevent extended IFR no-radio operations, which may adversely affect other users of the airspace [[29:107|IPH 2-47]]. If your learner flies what the controller predicts, the controller can protect him."
+    },
+    {
+     "table": {
+      "head": [
+       "PTS element",
+       "What the learner must be able to say",
+       "Where it comes from"
+      ],
+      "rows": [
+       [
+        "K1. Recognition of loss of communications",
+        "\"It is a real failure, I am squawking 7600 and I am trying every way to reach ATC.\"",
+        "[[34:54|AIM 6-4-2]] [[34:55|AIM 6-4-3]]"
+       ],
+       [
+        "K2. When to continue with flight plan as filed or when to deviate",
+        "\"VFR conditions: continue VFR and land as soon as practicable. Otherwise this route, at this altitude, for this segment.\"",
+        "[[60:482|14 CFR 91.185(b)]] [[60:482|14 CFR 91.185(c)(1)]] [[60:483|14 CFR 91.185(c)(2)]]"
+       ],
+       [
+        "K3. How to determine the time to begin an approach at destination",
+        "\"I leave the clearance limit at this time and begin descent or descent and approach at that time.\"",
+        "[[60:483|14 CFR 91.185(c)(3)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "The Instrument lesson IR.VII.A covers the pilot's side: troubleshooting, the 91.185 procedure, holding and light gun signals. This lesson goes deeper on the three PTS elements and on how you teach and test them."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "No regulation can cover every lost comm situation. When one is not covered, pilots are expected to use good judgment, and should not be reluctant to use the emergency authority of 14 CFR 91.3(b). Whether the failure is an emergency depends on the circumstances and is the pilot's decision [[34:53|AIM 6-4-1]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: open every lost comm lesson with the same three questions: which route, which altitude, and what time. They are the three things the IFH says the pilot must know at any point of the flight [[23:333|IFH 11-8]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner says lost comm is so rare he will look up the rule if it ever happens. What do you tell him?",
+    "a": "Each IFR flight should be planned and flown in anticipation of a radio failure, so at any point he must already know route, altitude and when to leave the clearance limit [[23:333|IFH 11-8]]. ATC will be serving him on the basis that he is flying 91.185 [[34:53|AIM 6-4-1]]."
+   }
+  },
+  {
+   "title": "Recognizing a loss of communications",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.A.K1"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "**Recognition of loss of communications.** It starts with listening. Be alert to the sounds, or the lack of sounds, in the receiver: check the volume, recheck the frequency and make sure the microphone is not stuck in the transmit position [[33:227|AIM 4-2-2]]. A stuck mike can block a frequency for an extended period [[33:227|AIM 4-2-2]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Clue",
+       "What may be going on",
+       "What the learner checks"
+      ],
+      "rows": [
+       [
+        "No reply after a frequency change",
+        "Wrong frequency, or a problem on the new one",
+        "Call the transferring controller for another frequency or instructions [[29:108|IPH 2-48]]"
+       ],
+       [
+        "A busy frequency goes quiet",
+        "Receiver problem, stuck mike, or an ARTCC frequency outage",
+        "Volume, frequency, mike [[33:227|AIM 4-2-2]]. Wait at least one minute before deciding Center's frequency has failed; switchover to a backup seldom takes more than 60 seconds [[29:108|IPH 2-48]]"
+       ],
+       [
+        "ATC is heard, but no one answers",
+        "Transmitter, or the audio panel selection",
+        "The audio panel sets receiver volume and selects the transmitter [[23:53|IFH 2-2]]. Switching between COM1 and COM2 changes both the transmit and receive frequency [[23:54|IFH 2-3]]"
+       ],
+       [
+        "Radios fading along with other electrical items",
+        "Charging system failure",
+        "Ammeter discharge, loadmeter, or an alternator warning light [[23:330|IFH 11-5]]"
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "Teach the electrical clue hard. After a charging system failure there is about 40 minutes of battery life, and that is only an approximation [[23:330|IFH 11-5]]. In many airplanes with electronic displays a standby battery powers an essential bus that usually includes COM 1 and NAV 1, and it must be armed to work [[23:331|IFH 11-6]]."
+    },
+    {
+     "p": "Partial failures count. If only the transmitter is dead, listen on every receiver, including the navigation receivers: ATC may try to talk over a VOR, VORTAC, NDB or localizer frequency [[29:107|IPH 2-47]]. The controller has the same recognition problem: when a pilot changes frequency without acknowledging, the controller cannot tell whether the instruction was received or the radio failed [[33:229|AIM 4-2-3]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: teach recognition as a habit, not an event. After every frequency change the learner checks in and notes the old frequency. If no one answers, he already knows where to go back to [[29:108|IPH 2-48]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner calls Center twice after a handoff, hears nothing, and announces \"lost comm.\" What should he do first?",
+    "a": "Check volume, frequency and a stuck mike [[33:227|AIM 4-2-2]], call the transferring controller for another frequency, and wait at least a minute before deciding Center's frequency has failed [[29:108|IPH 2-48]]."
+   }
+  },
+  {
+   "title": "Alerting ATC: squawk 7600 and try every way back",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.A.K1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Once the failure is real, set the transponder to Mode A/3, Code 7600, and understand that the aircraft may not be in radar coverage [[34:54|AIM 6-4-2]]. When an aircraft squawks 7600, the information block on the radar screen flashes RDOF, radio failure, to alert the controller [[29:107|IPH 2-47]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "p": "Then keep trying to get through:"
+    },
+    {
+     "bullets": [
+      "Monitor the NAVAID voice feature [[34:54|AIM 6-4-3]].",
+      "Call on the previously assigned frequency [[34:54|AIM 6-4-3]].",
+      "Call an FSS, or New York Radio or San Francisco Radio, which can relay to ATC facilities throughout the country [[34:55|AIM 6-4-3]].",
+      "Use 121.5 MHz [[34:55|AIM 6-4-3]].",
+      "Try other aircraft and a nearby FSS [[23:334|IFH 11-9]]. During an ARTCC outage, relay through an FSS is quicker than company radio, because the FSS has direct interphone lines to the ARTCC sector [[29:108|IPH 2-48]]."
+     ]
+    },
+    {
+     "p": "There is no priority among these: if the capability exists, do them all at the same time [[34:55|AIM 6-4-3]]. On contact with an FSS or New York or San Francisco Radio, say that communications on the previously assigned frequency were lost, give position, altitude and last assigned frequency, and request further clearance from the controlling facility [[34:55|AIM 6-4-3]]. Under IFR in controlled airspace the pilot also reports the malfunction as soon as practical: aircraft identification, equipment affected, how much IFR capability is impaired, and the help wanted from ATC [[60:483|14 CFR 91.187]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Code",
+       "Use"
+      ],
+      "rows": [
+       [
+        "7600",
+        "Loss of two-way radio capability [[34:54|AIM 6-4-2]]"
+       ],
+       [
+        "7700",
+        "Distress or urgency, to alert a ground radar facility, then establish communications [[34:29|AIM 6-2-2]]"
+       ],
+       [
+        "7500",
+        "Only nondiscrete Code 7500 is decoded as the hijack code [[33:223|AIM 4-1-20]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "On routine code changes, avoid passing through 7500, 7600 or 7700: from 2700 to 7200, go to 2200 first, not 7700 [[33:223|AIM 4-1-20]]. On a transponder with integrated ADS-B, entering 7600 also sets the ADS-B emergency status [[33:303|AIM 4-5-7]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "A learner asks why he should squawk 7600 over remote terrain where there may be no radar. What do you answer?",
+    "a": "The AIM itself warns the aircraft may not be in radar coverage [[34:54|AIM 6-4-2]], but any radar that sees it flashes RDOF to the controller [[29:107|IPH 2-47]]. He keeps trying every other way at the same time [[34:55|AIM 6-4-3]]."
+   }
+  },
+  {
+   "title": "VMC or IMC: the first fork in the rule",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.A.K2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "(b) VFR conditions. If the failure occurs in VFR conditions, or if VFR conditions are encountered after the failure, each pilot shall continue the flight under VFR and land as soon as practicable [[60:482|14 CFR 91.185(b)]]."
+     }
+    },
+    {
+     "p": "VFR conditions are weather conditions equal to or better than the minimum for flight under visual flight rules [[34:438|P/CG V-1]], the same idea as VMC [[34:441|P/CG V-4]]. Anything less is IMC [[34:364|P/CG I-5]]. The minima are those of 91.155; for example, in Class E below 10,000 feet MSL the pilot needs 3 statute miles and 500 feet below, 1,000 feet above and 2,000 feet horizontal from clouds [[60:465|14 CFR 91.155(a)]]. Beneath the ceiling in a surface area, VFR needs a ceiling of at least 1,000 feet [[60:466|14 CFR 91.155(c)]], and landing there needs at least 3 statute miles ground visibility, or flight visibility if ground visibility is not reported [[60:466|14 CFR 91.155(d)]]."
+    },
+    {
+     "p": "The AIM note gives the purpose: to keep a no-radio aircraft from extended IFR operation in the ATC system, because ATC may have to reroute or delay other users to protect it. The procedure also applies in Class A airspace [[34:53|AIM 6-4-1]]. \"Land as soon as practicable\" does not mean \"as soon as possible.\" The pilot keeps the right to use best judgment and need not land at an unauthorized airport, at one unsuitable for the aircraft, or only minutes short of the destination [[34:53|AIM 6-4-1]]."
+    },
+    {
+     "p": "Paragraph (c) applies if the failure occurs in IFR conditions, or if paragraph (b) cannot be complied with [[60:482|14 CFR 91.185(c)]]. So a pilot in clear air on top of a solid undercast, with no VFR way down to an airport, cannot comply with (b) and flies (c). The IPH puts it plainly: if IFR conditions prevail, pilots must comply with the procedures in the CFRs to ensure aircraft separation [[29:107|IPH 2-47]]."
+    },
+    {
+     "p": "Arriving VFR at a towered airport without a radio: stay outside or above the Class D surface area until the direction and flow of traffic is known, then join the pattern and watch the tower for light signals [[33:235|AIM 4-2-13]]. In flight, a steady green means cleared to land and a flashing red means airport unsafe, do not land [[60:451|14 CFR 91.125]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The books word this differently. The rule says the pilot shall continue under VFR [[60:482|14 CFR 91.185(b)]]; the IFH says should [[23:333|IFH 11-8]] and the IPH says if possible [[29:107|IPH 2-47]]. Teach the rule's wording."
+     }
+    }
+   ],
+   "check": {
+    "q": "Radios fail on top at 9,000 feet in clear air, with a solid undercast reported down to 600 feet at every airport ahead. Your learner says, \"VFR conditions, so I go VFR.\" Is he right?",
+    "a": "No. He is in VFR conditions but cannot continue under VFR to a landing, so paragraph (b) cannot be complied with and paragraph (c) applies [[60:482|14 CFR 91.185(c)]]."
+   }
+  },
+  {
+   "title": "The route: Assigned, Vectored, Expected, Filed",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.A.K2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Teach the route rule in the regulation's own words first, then the memory aid. Under (c)(1) the pilot continues by the first of these that applies [[60:482|14 CFR 91.185(c)(1)]]:"
+    },
+    {
+     "table": {
+      "head": [
+       "Memory aid",
+       "The rule's words",
+       "Example clearance"
+      ],
+      "rows": [
+       [
+        "A: Assigned",
+        "\"By the route assigned in the last ATC clearance received\" [[60:482|14 CFR 91.185(c)(1)]]",
+        "\"Cleared to the BRAVO VOR via V12\": fly V12 to BRAVO"
+       ],
+       [
+        "V: Vectored",
+        "\"If being radar vectored, by the direct route from the point of radio failure to the fix, route, or airway specified in the vector clearance\" [[60:482|14 CFR 91.185(c)(1)]]",
+        "\"Turn left heading 250, vectors to join V23\": proceed directly to V23"
+       ],
+       [
+        "E: Expected",
+        "\"In the absence of an assigned route, by the route that ATC has advised may be expected in a further clearance\" [[60:482|14 CFR 91.185(c)(1)]]",
+        "\"Expect further clearance via V4\" beyond the clearance limit"
+       ],
+       [
+        "F: Filed",
+        "\"In the absence of an assigned route or a route that ATC has advised may be expected in a further clearance, by the route filed in the flight plan\" [[60:482|14 CFR 91.185(c)(1)]]",
+        "The flight plan route"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Route: AVE F. Assigned, Vectored, Expected, Filed. Filed comes last: it is flown only when nothing was assigned and nothing was expected [[60:482|14 CFR 91.185(c)(1)]]."
+     }
+    },
+    {
+     "p": "**When to continue with flight plan as filed or when to deviate.** \"Cleared as filed\" means cleared to proceed by the route filed in the flight plan, but it does not include the altitude, DP or DP transition [[34:325|P/CG C-4]]. So in that clearance the filed route is also the assigned route. The filed route stops being the answer as soon as ATC assigns another route, vectors the airplane toward a fix or airway, or gives an expected route [[60:482|14 CFR 91.185(c)(1)]]. \"Expect further clearance via\" is how ATC tells the pilot the routing beyond a short range clearance limit when it differs from the one filed [[34:342|P/CG E-3]]."
+    },
+    {
+     "p": "**Published lost comm procedures.** Radar SIDs often include nonstandard lost communication procedures. If the radios fail while being vectored on one, the pilot is expected to fly the procedure on the chart, not necessarily the one in the AIM [[29:42|IPH 1-26]]. On any vectored departure, the initial heading given before takeoff is vital if two-way radio communications are lost during departure [[23:296|IFH 10-5]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "In this radar SID, if no transmissions are received within one minute after departure, the pilot keeps the assigned heading until 7,000 feet, then climbs to the filed altitude via direct DEN VOR/DME and the assigned transition [[29:44|IPH 1-28]]."
+    }
+   ],
+   "check": {
+    "q": "Cleared as filed, your learner was later rerouted \"direct CHARLIE, then V8.\" The radios fail. He plans to rejoin his filed route \"because that is what ATC has on the flight plan.\" What do you teach?",
+    "a": "The route assigned in the last clearance received comes first: direct CHARLIE, then V8. The filed route is used only when there is no assigned or expected route [[60:482|14 CFR 91.185(c)(1)]]."
+   }
+  },
+  {
+   "title": "The altitude: highest of Minimum, Expected, Assigned",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.A.K2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "(2) Altitude. At the highest of the following altitudes or flight levels for the route segment being flown: (i) the altitude or flight level assigned in the last ATC clearance received; (ii) the minimum altitude (converted, if appropriate, to minimum flight level as prescribed in 91.121(c)) for IFR operations; or (iii) the altitude or flight level ATC has advised may be expected in a further clearance [[60:483|14 CFR 91.185(c)(2)]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Altitude: MEA. The highest of Minimum, Expected and Assigned, for the segment being flown [[60:483|14 CFR 91.185(c)(2)]]. M means the minimum IFR altitude, which is often the MEA but not always [[34:379|P/CG M-4]]."
+     }
+    },
+    {
+     "p": "Teach the words learners skip. **Highest**: compare all three on every segment [[60:483|14 CFR 91.185(c)(2)]]. **For the route segment being flown**: the intent is to select the right altitude for each segment and adjust it for the segments that follow [[34:54|AIM 6-4-1]]. **Minimum altitude for IFR operations**: the altitudes published on charts and in parts 95 and 97, or, where none is prescribed, 1,000 feet above the highest obstacle within 4 NM of the course (2,000 feet in designated mountainous areas) [[34:379|P/CG M-4]]."
+    },
+    {
+     "p": "**Expected altitudes come with a time or a fix.** If ATC said to expect a higher altitude at a specified time or fix, hold the higher of the last assigned and the minimum IFR altitude until that time or fix, then climb to the expected altitude. If the failure happens after that time or fix, the expected altitude no longer applies [[34:54|AIM 6-4-1]]. If ATC said to expect a lower altitude, keep the higher of the last assigned and the minimum IFR altitude until the time or fix in the leave clearance limit rule [[34:54|AIM 6-4-1]]."
+    },
+    {
+     "p": "A common source of an expected altitude: \"cleared as filed\" does not include the filed en route altitude, so ATC states one or tells the pilot to expect the assigned or filed altitude within a given time or at a certain point after departure [[33:346|AIM 5-2-6]]."
+    },
+    {
+     "table": {
+      "head": [
+       "At the next fix",
+       "What the pilot does"
+      ],
+      "rows": [
+       [
+        "The minimum IFR altitude goes up",
+        "Begin the climb immediately after passing the point where it applies; where obstacles intervene, cross that point at or above the MCA [[60:480|14 CFR 91.177(b)]] [[29:108|IPH 2-48]]"
+       ],
+       [
+        "The MEA goes down",
+        "Descend to the last assigned altitude or the altitude expected in a further clearance when reaching the fix where the MEA decreases [[29:108|IPH 2-48]]"
+       ],
+       [
+        "The segment has a MOCA",
+        "Below the MEA down to the MOCA only with the navigation signals available, and, navigating by VOR, only within 22 NM of that VOR [[60:480|14 CFR 91.177(a)(1)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "\"Expect\" altitudes printed on a STAR are for planning. They must not be used in lost comm unless ATC has specifically advised the pilot to expect them as part of a further clearance [[33:393|AIM 5-4-1]]. Entering a TAA with no radio, keep the 91.185(c)(2) altitude until reaching the appropriate IAF [[33:405|AIM 5-4-5]] [[29:200|IPH 4-60]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "After takeoff your learner was told \"maintain 5,000, expect 9,000 ten minutes after departure.\" The radios fail 4 minutes after takeoff in IMC; the MEA is 4,000. What does he fly?",
+    "a": "5,000, the higher of the last assigned and the minimum IFR altitude, until 10 minutes after departure; then climb to 9,000 [[34:54|AIM 6-4-1]] [[60:483|14 CFR 91.185(c)(2)]]."
+   }
+  },
+  {
+   "title": "Working the altitude rule segment by segment",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.A.K2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "The AIM gives three worked examples. Put them on a whiteboard as a strip of segments and have the learner fill in each altitude [[34:54|AIM 6-4-1]]."
+    },
+    {
+     "table": {
+      "head": [
+       "AIM Example 3 segment",
+       "MEA",
+       "Assigned or expected",
+       "Fly",
+       "Why"
+      ],
+      "rows": [
+       [
+        "a to b",
+        "5,000",
+        "Assigned 6,000; told to expect 8,000 at b",
+        "6,000",
+        "Assigned is highest until the fix named in the expect clearance [[34:54|AIM 6-4-1]]"
+       ],
+       [
+        "b to c",
+        "5,000",
+        "Expected 8,000 now applies",
+        "8,000",
+        "Expected is highest [[34:54|AIM 6-4-1]]"
+       ],
+       [
+        "c to d",
+        "11,000",
+        "Expected 8,000",
+        "11,000",
+        "MEA is highest; climb at c, or before c if needed for an MCA [[34:54|AIM 6-4-1]]"
+       ],
+       [
+        "d to e",
+        "7,000",
+        "Expected 8,000",
+        "8,000",
+        "8,000 is the highest of the three, even though the MEA is 7,000 [[34:54|AIM 6-4-1]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Example 1.** Assigned 7,000 on a direct route that requires a climb to a 9,000 minimum IFR altitude: climb to reach 9,000 at the time or place it becomes necessary. Later, on an airway with a 5,000 MEA, descend to 7,000, the last assigned altitude, because it is higher than the MEA [[34:54|AIM 6-4-1]]."
+    },
+    {
+     "p": "**Example 2.** Being descended for an approach, the pilot was assigned 2,700 until crossing the VOR, then cleared for the approach. The MOCA is 2,700, the MEA 4,000, and the aircraft is within 22 NM of the VOR. Stay at 2,700 until crossing the VOR, because that is the minimum IFR altitude for the segment [[34:54|AIM 6-4-1]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: when the learner has filled in the strip, change one fact (move the failure past the expect fix, raise one MEA, add an MCA) and have him redo it. The AIH notes that random practice gives better retention than repeating the same drill [[25:78|AIH 3-27]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "In AIM Example 3, why does the pilot fly 8,000 between d and e when the MEA is 7,000?",
+    "a": "8,000 is the altitude ATC advised him to expect, and it is the highest of the three for that segment [[34:54|AIM 6-4-1]]."
+   }
+  },
+  {
+   "title": "Leaving the clearance limit: two cases",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.A.K3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Paragraph (c)(3) asks two questions: is the clearance limit a fix from which an approach begins, and has an EFC been received [[60:483|14 CFR 91.185(c)(3)]]? An initial approach fix (IAF) identifies the beginning of an initial approach segment [[34:362|P/CG I-3]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Clearance limit",
+       "EFC received",
+       "No EFC"
+      ],
+      "rows": [
+       [
+        "A fix from which an approach begins",
+        "Commence descent or descent and approach as close as possible to the EFC [[60:483|14 CFR 91.185(c)(3)(i)]]",
+        "Commence descent or descent and approach as close as possible to the ETA calculated from the filed or amended (with ATC) ETE [[60:483|14 CFR 91.185(c)(3)(i)]]"
+       ],
+       [
+        "Not a fix from which an approach begins",
+        "Leave the clearance limit at the EFC, proceed to a fix from which an approach begins, and commence descent or descent and approach as close as possible to the ETA [[60:483|14 CFR 91.185(c)(3)(ii)]]",
+        "Leave the clearance limit upon arrival over it, proceed to a fix from which an approach begins, and commence descent or descent and approach as close as possible to the ETA [[60:483|14 CFR 91.185(c)(3)(ii)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Point out what sets the approach time in each case. At a limit where an approach begins, an EFC, if one was received, sets it. At a limit short of that, the EFC only sets when the pilot leaves; the approach time is still the ETA [[60:483|14 CFR 91.185(c)(3)]]."
+    },
+    {
+     "p": "**Holding at the limit.** All holding instructions should include an EFC, so that with lost comm the pilot can leave the holding fix at a definite time [[29:111|IPH 2-51]]. When the pattern is charted, ATC may give only the holding direction and \"as published\" [[33:382|AIM 5-3-8]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "With no holding instructions, the pilot asks ATC for further clearance before reaching the fix [[29:111|IPH 2-51]]. If the pattern is charted, he holds as depicted. If none is charted and no instructions come, he enters a standard pattern on the course on which the aircraft approached the fix and requests further clearance as soon as possible; the altitude at the clearance limit is protected [[33:382|AIM 5-3-8]]. Within 3 minutes of a clearance limit with no clearance beyond it, the pilot slows to cross the fix at or below the maximum holding airspeed [[33:382|AIM 5-3-8]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Normally pilots report the time and altitude reaching a clearance limit and report leaving it; the AIM notes that with two-way communications failure, pilots are required to comply with 91.185 [[33:382|AIM 5-3-8]]. Application: tell the learner ATC cannot hear those reports, so it predicts his timing from the rule."
+     }
+    }
+   ],
+   "check": {
+    "q": "Cleared to an en route VOR 40 miles short of the destination with no EFC, the radios fail. Your learner plans to hold at the VOR until his ETA. What is wrong?",
+    "a": "The VOR is not a fix from which an approach begins. With no EFC he leaves it upon arrival, proceeds to an approach fix and begins descent or descent and approach as close as possible to the ETA [[60:483|14 CFR 91.185(c)(3)(ii)]]."
+   }
+  },
+  {
+   "title": "Working out the time to begin the approach",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.A.K3"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "**How to determine the time to begin an approach at destination.** The ETA in the rule is calculated from the filed or amended (with ATC) estimated time en route [[60:483|14 CFR 91.185(c)(3)]]. The ETE is the estimated flying time from departure point to destination, lift-off to touchdown [[34:342|P/CG E-3]]. So the method is the takeoff time plus the filed or amended ETE."
+    },
+    {
+     "bullets": [
+      "1. Write down the takeoff time on every IFR flight, for example 1405Z.",
+      "2. Add the filed ETE, or the ETE amended with ATC: 1405Z + 1:40 = 1545Z [[60:483|14 CFR 91.185(c)(3)]].",
+      "3. Ask the two questions: is the clearance limit a fix from which an approach begins, and is there an EFC [[60:483|14 CFR 91.185(c)(3)]]?",
+      "4. Compare the time the airplane will reach the approach fix with the time the rule gives, and plan to lose time or not."
+     ]
+    },
+    {
+     "table": {
+      "head": [
+       "Situation",
+       "Time the rule gives",
+       "What the pilot does"
+      ],
+      "rows": [
+       [
+        "Limit is the destination IAF, no EFC, ETA 1545Z, arrives 1530Z",
+        "1545Z",
+        "Holds at the IAF, his clearance limit, and begins descent or descent and approach as close as possible to 1545Z [[60:483|14 CFR 91.185(c)(3)(i)]] [[33:382|AIM 5-3-8]]"
+       ],
+       [
+        "Same, but arrives 1600Z",
+        "1545Z",
+        "Begins on arrival, the closest he can now come to 1545Z [[60:483|14 CFR 91.185(c)(3)(i)]]"
+       ],
+       [
+        "Limit is the destination IAF, EFC 1530Z, ETA 1545Z",
+        "1530Z",
+        "Begins as close as possible to the EFC [[60:483|14 CFR 91.185(c)(3)(i)]]"
+       ],
+       [
+        "Limit is an en route VOR, EFC 1515Z, arrives 1505Z, 10 minutes from the IAF, ETA 1530Z",
+        "Leave 1515Z; approach 1530Z",
+        "Holds until 1515Z, reaches the IAF about 1525Z and begins as close as possible to 1530Z [[60:483|14 CFR 91.185(c)(3)(ii)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Keep the ETE honest.** The rule accepts an ETE amended with ATC [[60:483|14 CFR 91.185(c)(3)]]. When not in radar contact, the AIM asks for a corrected estimate whenever a previous one is off by more than 2 minutes, and at all times pilots report a change in average true airspeed of 5 percent or 10 knots, whichever is greater [[33:377|AIM 5-3-3]]. Application: after a long reroute or a big change in wind, have the learner give ATC a new estimate while the radios still work."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: have the learner write down every EFC, new clearance limit and expected route or altitude when it is issued. He must know route, altitude and when to leave the clearance limit at any point [[23:333|IFH 11-8]], and his notes are the only record he will have."
+     }
+    }
+   ],
+   "check": {
+    "q": "Off at 0920Z with a filed ETE of 2:15. Cleared to the destination IAF, no EFC. When does the learner begin the approach?",
+    "a": "As close as possible to 1135Z (0920Z + 2:15) [[60:483|14 CFR 91.185(c)(3)(i)]]."
+   }
+  },
+  {
+   "title": "Leaving a fix on time: planning the last lap",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.A.K3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Pilots should plan the last lap of the holding pattern to leave the fix as close as possible to the exact time [[29:111|IPH 2-51]]. The AIM shows the arithmetic for leaving a holding fix at an assigned time, and the pilot should adjust the flight path to leave as closely as possible to that time [[33:429|AIM 5-4-10]]. Application: use the same arithmetic for an EFC."
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "bullets": [
+      "The AIM example: while holding, at 12:03 the pilot is told to leave the fix inbound at 12:07. Back over the fix at 12:04, there are 3 minutes to lose [[33:430|AIM 5-4-10]].",
+      "More than 2 minutes to lose, so fly a racetrack rather than a 360° turn, which would use up 2 minutes [[33:430|AIM 5-4-10]].",
+      "The turns at the ends of the racetrack take about 2 minutes. 3 minus 2 leaves 1 minute of level flight, split in two: 30 seconds outbound, then turn back [[33:430|AIM 5-4-10]].",
+      "Expecting a headwind on the inbound course, shorten the outbound time somewhat; with a tailwind, lengthen it [[33:430|AIM 5-4-10]]."
+     ]
+    },
+    {
+     "p": "At or below 14,000 feet MSL the inbound leg is 1 minute [[33:387|AIM 5-3-8]]. With about 2 minutes of turns [[33:430|AIM 5-4-10]], a no-wind lap takes about 4 minutes, so the learner can count laps backward from the EFC."
+    },
+    {
+     "table": {
+      "head": [
+       "Over the fix inbound",
+       "EFC",
+       "Time to lose",
+       "Plan"
+      ],
+      "rows": [
+       [
+        "1516Z",
+        "1520Z",
+        "4 minutes",
+        "One more lap with 1-minute legs: 2 minutes of turns plus 2 minutes level [[33:430|AIM 5-4-10]] [[33:387|AIM 5-3-8]]"
+       ],
+       [
+        "1517Z",
+        "1520Z",
+        "3 minutes",
+        "2 minutes of turns, 30 seconds outbound, 30 seconds back [[33:430|AIM 5-4-10]]"
+       ],
+       [
+        "1518Z",
+        "1520Z",
+        "2 minutes",
+        "A 360° turn uses about 2 minutes [[33:430|AIM 5-4-10]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: have the learner say, every time he crosses the fix, how many minutes are left and how he will fly the next lap. It turns \"about then\" into a plan."
+     }
+    }
+   ],
+   "check": {
+    "q": "Crossing the holding fix inbound at 1447Z with an EFC of 1450Z, how should the learner fly the last lap in no wind?",
+    "a": "He has 3 minutes to lose. The turns take about 2 minutes, leaving 1 minute of level flight: about 30 seconds outbound and 30 seconds back [[33:430|AIM 5-4-10]]."
+   }
+  },
+  {
+   "title": "Risk: when to deviate, and when not to",
+   "kind": "risk",
+   "codes": [
+    "FII.IX.A.K2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "The rule opens with \"unless otherwise authorized by ATC\" [[60:482|14 CFR 91.185(a)]], and the AIM expects pilots to follow it unless emergency authority is exercised [[34:53|AIM 6-4-1]]. These are the legitimate reasons to fly something else:"
+    },
+    {
+     "table": {
+      "head": [
+       "Reason",
+       "What the pilot flies"
+      ],
+      "rows": [
+       [
+        "VFR conditions, now or later",
+        "Continue under VFR and land as soon as practicable [[60:482|14 CFR 91.185(b)]]"
+       ],
+       [
+        "A published lost comm procedure, such as on a radar SID",
+        "The procedure on the chart [[29:42|IPH 1-26]]"
+       ],
+       [
+        "Lost comm instructions from a radar controller",
+        "Those instructions. In radar approaches controllers prefix them \"If no transmission received for (time)\" [[34:361|P/CG I-2]] [[34:374|P/CG L-3]]"
+       ],
+       [
+        "An in-flight emergency requiring immediate action",
+        "Whatever the emergency requires, deviating from any Part 91 rule to that extent [[60:435|14 CFR 91.3(b)]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Electrical failure is the classic case. The IFH says that at no time should a pilot consider continuing a flight once the charging system has failed: land at the nearest suitable airport [[23:330|IFH 11-5]]. In a technically advanced aircraft that failure is considered an emergency [[23:331|IFH 11-6]]. Flying 91.185 for 90 minutes to an ETA on a battery that may last about 40 minutes is not a plan [[23:330|IFH 11-5]]."
+    },
+    {
+     "p": "Emergency authority comes with duties. If 91.3(b) is used to deviate from an ATC clearance, the pilot in command must notify ATC as soon as possible and obtain an amended clearance [[34:28|AIM 6-1-1]], and on request must send a written report of the deviation [[60:435|14 CFR 91.3(c)]]. In a distress or urgency condition, code 7700 alerts a ground radar facility [[34:29|AIM 6-2-2]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Deviating for convenience is the real risk. ATC protects airspace on the assumption that the pilot flies 91.185 [[34:53|AIM 6-4-1]]. Descending early to \"get under\" the clouds, leaving the limit before the EFC or starting the approach well before the ETA puts a no-radio airplane where ATC is not expecting it [[60:483|14 CFR 91.185(c)(3)]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "In IMC the alternator fails, and 10 minutes later the radios go silent. The ETA is 75 minutes away. Your learner says he must fly 91.185 to the destination. What do you teach?",
+    "a": "With a failed charging system he should land at the nearest suitable airport [[23:330|IFH 11-5]]. 91.3(b) lets him deviate as far as the emergency requires [[60:435|14 CFR 91.3(b)]], and code 7700 is available to alert radar [[34:29|AIM 6-2-2]]."
+   }
+  },
+  {
+   "title": "What learners get wrong, and how you fix it",
+   "kind": "skills",
+   "codes": [
+    "FII.IX.A.K1",
+    "FII.IX.A.K2",
+    "FII.IX.A.K3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "These are the errors you will hear in lost comm talk-throughs. For each one, name it, find the cause, and send the learner back to the source words."
+    },
+    {
+     "table": {
+      "head": [
+       "Error",
+       "Usual cause",
+       "How you spot and fix it"
+      ],
+      "rows": [
+       [
+        "Declares lost comm without checking volume, frequency and mike",
+        "Startle at a quiet radio",
+        "Make it a flow: volume, frequency, mike [[33:227|AIM 4-2-2]], then the previous controller [[29:108|IPH 2-48]]"
+       ],
+       [
+        "Gives up on Center after 20 seconds",
+        "Does not know backups take time",
+        "Switchover seldom takes more than 60 seconds; wait at least a minute [[29:108|IPH 2-48]]"
+       ],
+       [
+        "Tries one way to reach ATC at a time",
+        "Believes there is an order",
+        "No priority; do them all at once if able [[34:55|AIM 6-4-3]]"
+       ],
+       [
+        "Flies the filed route after a reroute",
+        "Remembers the flight plan, not the clearance",
+        "Ask \"what was your last route clearance?\" Assigned comes first [[60:482|14 CFR 91.185(c)(1)]]"
+       ],
+       [
+        "Picks one altitude for the whole flight",
+        "Skips \"for the route segment being flown\"",
+        "Whiteboard strip, segment by segment [[34:54|AIM 6-4-1]]"
+       ],
+       [
+        "Climbs to an expected altitude at once",
+        "Forgets the time or fix in the expect clearance",
+        "Hold the higher of assigned and minimum until that time or fix [[34:54|AIM 6-4-1]]"
+       ],
+       [
+        "Computes the ETA from the time the radios failed",
+        "Mixes up ETA and time remaining",
+        "The ETA comes from the filed or amended ETE [[60:483|14 CFR 91.185(c)(3)]]; log the takeoff time"
+       ],
+       [
+        "Leaves an en route limit on arrival despite an EFC",
+        "Mixes up the two cases",
+        "Ask the two questions: approach fix? EFC? [[60:483|14 CFR 91.185(c)(3)(ii)]]"
+       ],
+       [
+        "Stays IFR in VFR conditions",
+        "Feels IFR is always safer",
+        "The rule says continue under VFR and land as soon as practicable [[60:482|14 CFR 91.185(b)]]"
+       ],
+       [
+        "Reads \"as soon as practicable\" as \"land now, anywhere\"",
+        "Confuses it with \"as soon as possible\"",
+        "Not required to land at an unsuitable or unauthorized airport [[34:53|AIM 6-4-1]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Analyze before you correct. When the learner thinks aloud, you can tell whether an error comes from a misconception or from a lack of motor skill [[25:178|AIH 9-8]]. Application: almost every error above is about the rule, not about flying skill, so the fix is usually a question that sends the learner back to the rule's words."
+    }
+   ],
+   "check": {
+    "q": "Cleared to a fix with \"expect 8,000 at the fix,\" your learner climbs to 8,000 the moment you say \"radios failed.\" Name the error and the fix.",
+    "a": "He used the expected altitude before its fix. He holds the higher of the last assigned and minimum IFR altitude until the fix, then climbs [[34:54|AIM 6-4-1]]."
+   }
+  },
+  {
+   "title": "Teaching and testing it in the airplane",
+   "kind": "skills",
+   "codes": [
+    "FII.IX.A.K1",
+    "FII.IX.A.K2",
+    "FII.IX.A.K3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "This Task is knowledge: the PTS asks you to exhibit instructional knowledge by describing the three elements, and the evaluator must select at least one Task in Area IX (FAA-S-8081-9E, Area IX). The PTS tells evaluators to use scenario-based questions when possible, and to evaluate your ability to teach judgment by asking you to describe the oral discussions and practical problems you would use (FAA-S-8081-9E, Introduction). Expect a story, not a list. The AIH says a good scenario is not a test, has no single right answer and promotes decision-making [[25:120|AIH 5-17]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Stage",
+       "What you do"
+      ],
+      "rows": [
+       [
+        "Ground",
+        "Teach the rule's words, the two clearance limit cases and the ETA method; build a scenario that starts with a reason to fly [[60:482|14 CFR 91.185]] [[25:120|AIH 5-17]]"
+       ],
+       [
+        "Instructor tells, instructor does",
+        "On a real IFR flight, say aloud the route, altitude and time you would fly if the radios failed now, in the same order each time [[25:177|AIH 9-7]]"
+       ],
+       [
+        "Learner tells, instructor does",
+        "At random points ask \"radios just failed: route, altitude, time?\" while you fly; misunderstandings show before his hands are busy [[25:178|AIH 9-8]]"
+       ],
+       [
+        "Learner tells, learner does",
+        "He flies and talks through recognition, 7600 and the plan; you hear what he is thinking [[25:178|AIH 9-8]]"
+       ],
+       [
+        "Assess",
+        "Grade the decision, not only the procedure: how did he reach it and what resources did he use [[25:32|AIH 1-28]]?"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Application: in the airplane under IFR, never actually stop talking to ATC or fly the lost comm route to simulate a failure. Under IFR in controlled airspace the pilot in command must ensure a continuous watch is kept on the appropriate frequency [[60:482|14 CFR 91.183]]. Simulate with words: the learner says what he would fly, and you compare it with the real clearance."
+     }
+    },
+    {
+     "p": "Brief the positive exchange of flight controls before the flight; the AIH calls the three-step exchange a proven procedure [[25:178|AIH 9-8]]. A lesson that adds simulated emergencies, a heavy workload or other operational problems is a good way to assess judgment [[25:32|AIH 1-28]]. SRM fits here: use the resources inside and outside the aircraft, judge whether there is time to use each, and in an emergency prioritize tasks and manage workload [[30:56|RMH 8-3]]."
+    }
+   ],
+   "check": {
+    "q": "The examiner asks, \"How would you teach a learner to decide when to leave a clearance limit?\" What does a strong answer include?",
+    "a": "A short scenario with a clearance limit and an EFC, the rule's two cases [[60:483|14 CFR 91.185(c)(3)]], the learner telling while you fly [[25:178|AIH 9-8]], and an assessment of how he reached the decision [[25:32|AIH 1-28]]."
+   }
+  },
+  {
+   "title": "Teaching it in an ATD or flight training device",
+   "kind": "skills",
+   "codes": [
+    "FII.IX.A.K1",
+    "FII.IX.A.K2",
+    "FII.IX.A.K3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "The FAA separates flight simulation trainers into full flight simulators (FFS), flight training devices (FTD) and aviation training devices (ATD) [[25:172|AIH 9-2]]. FFSs and FTDs are qualified under part 60 and used in FAA-approved training programs [[25:172|AIH 9-2]]. ATDs are approved as basic or advanced (BATD or AATD) and are mostly used by general aviation flight schools [[25:173|AIH 9-3]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "An integrated curriculum teaches the knowledge in the classroom, then the procedure in the device, then moves to the aircraft to verify proficiency [[25:174|AIH 9-4]]. The FAA recommends training continue in the simulator until the tasks are accomplished successfully, before attempting them in an aircraft [[25:174|AIH 9-4]]."
+    },
+    {
+     "p": "Application: a device lesson built on the sources:"
+    },
+    {
+     "bullets": [
+      "Brief the clearance, takeoff time and filed ETE, then fail the radio at a time the learner does not know.",
+      "Watch for the recognition checks, 7600 and the attempts to reach ATC [[33:227|AIM 4-2-2]] [[34:54|AIM 6-4-2]] [[34:55|AIM 6-4-3]].",
+      "Have him fly the route, altitude and timing to the approach, holding for the EFC or ETA as the rule requires [[60:483|14 CFR 91.185(c)(3)]].",
+      "Run it again with one fact changed: a reroute, an expect altitude, VFR conditions, an alternator failure. Random practice builds retention [[25:78|AIH 3-27]].",
+      "Debrief with collaborative assessment: the learner's self-assessment first, then your detailed assessment and a discussion [[25:176|AIH 9-6]]."
+     ]
+    },
+    {
+     "p": "Credit and logging: training time in an FFS, FTD or ATD is logged as 61.51(h) prescribes [[25:174|AIH 9-4]] [[60:230|14 CFR 61.51(h)]]. Toward the instrument rating, up to 10 hours in a basic or 20 hours in an advanced ATD may be credited if the device is approved, an authorized instructor provides the time and the FAA approved the tasks [[60:253|14 CFR 61.65(i)]]."
+    },
+    {
+     "p": "Testing: ATDs cannot be used for airman practical tests [[25:173|AIH 9-3]]. The CFII PTS credits this Task in FTD levels 6 and 7 and FFS levels A to D under an approved part 141 or 142 curriculum, and in such a device the actions are done as in actual circumstances, not \"simulated\" (FAA-S-8081-9E, Introduction and Appendix 1)."
+    }
+   ],
+   "check": {
+    "q": "Your school wants a practice lost comm checkride in its AATD to count as an instrument practical test. What do you tell them?",
+    "a": "ATDs cannot be used for airman practical tests [[25:173|AIH 9-3]]. The AATD is for training until the tasks are done successfully, before the airplane [[25:174|AIH 9-4]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "FII.IX.A-1.jpg",
+   "res": "29",
+   "page": 107,
+   "caption": "Figure 2-69. Two-way radio communications failure transponder code. (IPH 2-47)",
+   "alt": "A black radar screen with yellow-green lines. Near the center a data block reads 7600 on the first line and RDOF on the second, with a short leader line to a group of slanted target marks. A green caption box below says that when an aircraft squawks code 7600 during a two-way radio communication failure, the information block on the radar screen flashes RDOF (radio failure) to alert the controller.",
+   "source": "IPH, PDF p. 107"
+  },
+  "f2": {
+   "file": "FII.IX.A-2.jpg",
+   "res": "29",
+   "page": 110,
+   "caption": "Figure 2-71. ATC holding instructions. (IPH 2-50)",
+   "alt": "Two en route chart excerpts with green callout boxes. Top left: a charted hold at PINNE Intersection and a box saying a clearance for a charted holding pattern has at least three items: direction to hold from the holding fix, holding fix and expect further clearance time, with the example \"Hold southeast of PINNE Intersection as published. Expect further clearance at 1645.\" Bottom right: an uncharted hold at HORST Intersection on V8 and a box listing the extra items for an uncharted pattern: holding course, outbound leg length in minutes or nautical miles with DME, nonstandard pattern if used, with the example \"Hold west of Horst Intersection on Victor 8, 5 mile legs, left turns, expect further clearance at 1430.\" A red NOT FOR NAVIGATION watermark crosses the image.",
+   "source": "IPH, PDF p. 110"
+  },
+  "f3": {
+   "file": "FII.IX.A-3.jpg",
+   "res": "29",
+   "page": 44,
+   "caption": "Figure 1-25. Example of a radar SID at Denver, Colorado (top of the chart). (IPH 1-28)",
+   "alt": "Top of the ROCKIES SEVEN DEPARTURE chart for Denver/Centennial with two orange callouts. One, Initial departure instructions, points to highlighted text: fly assigned heading and altitude for radar vectors to assigned transition, expect filed altitude 10 minutes after departure. The other, Lost communications procedure specific to this departure, points to highlighted text: LOST COMMUNICATIONS, if no transmissions are received within one minute after departure, maintain assigned heading until 7000 feet, then climb to filed altitude via direct DEN VOR/DME, thence via assigned transition; if filed altitude is above 10000 feet, cross DEN VOR/DME at or above 11000 feet.",
+   "source": "IPH, PDF p. 44"
+  },
+  "f4": {
+   "file": "FII.IX.A-4.jpg",
+   "res": "29",
+   "page": 110,
+   "caption": "Figure 2-72. Clearance limit holding. (IPH 2-50)",
+   "alt": "A jet flies eastbound on airway V214, labeled in a black box at the left, toward the Cherrelyn VORTAC (117.2 CHL), shown as a compass rose at the right with its frequency box above. The airway line next to the station is marked 269 degrees. Radials 331, 221 and 126 extend from the station. A holding pattern with arrows is drawn at the southwest edge of the compass rose, along the 221 degree radial, with left turns.",
+   "source": "IPH, PDF p. 110"
+  },
+  "f5": {
+   "file": "FII.IX.A-5.jpg",
+   "res": "33",
+   "page": 429,
+   "caption": "FIG 5-4-19. Timed Approaches from a Holding Fix. (AIM 5-4-10)",
+   "alt": "A side view of aircraft stacked in holding patterns 1,000 feet apart over the LOM, with a note to report leaving the previous altitude for the new assigned altitude, and the lowest aircraft descending toward the airport past the LMM. Distances are marked as one minute flying time and approximately 5 miles. Below, a plan view of the timing: 12:03 clearance received; :04 initial time over the fix; :05 after the turn outbound; :05 1/2 after a 30 second outbound leg; :06 1/2 after the turn back; and :07, report leaving final approach time, as the aircraft crosses the fix inbound.",
+   "source": "AIM, PDF p. 429"
+  },
+  "f6": {
+   "file": "FII.IX.A-6.jpg",
+   "res": "23",
+   "page": 330,
+   "caption": "Figure 11-4. Ammeter (left) and loadmeter (right). (IFH 11-5)",
+   "alt": "Part of an instrument panel. On the left a round combination gauge labeled Ammeter, with a vacuum scale from 3 to 7 inches Hg on its left half and an ammeter scale from minus 60 to plus 60 amps on its right half, the needle near zero. On the right a rectangular gauge labeled Loadmeter, marked 0, 30 and 60 ALT AMPS, with the needle between 0 and 30.",
+   "source": "IFH, PDF p. 330"
+  },
+  "f7": {
+   "file": "FII.IX.A-7.jpg",
+   "res": "25",
+   "page": 174,
+   "caption": "Figure 9-4. A level 4 FTD used for procedure training. (AIH 9-4)",
+   "alt": "Two photos. Left: three people at a flight training device cockpit, one man pointing at the instrument panel while a woman holds the control stick. Right: a white and black FRASCA training device with two large display screens and an overhead panel, in front of a curved white projection screen.",
+   "source": "AIH, PDF p. 174"
+  }
+ },
+ "scenario": {
+  "title": "Silence on the long IFR cross-country",
+  "codes": [
+   "FII.IX.A.K1",
+   "FII.IX.A.K2",
+   "FII.IX.A.K3"
+  ],
+  "setup": "You are a new CFII on your instrument learner's long IFR cross-country in a Cessna 172 with electronic displays. You took off at 1310Z with a filed ETE of 2:05. The filed route is V9 to the HOTEL VOR, the initial approach fix for the VOR approach at the destination. In IMC at 6,000 feet Center says: \"Cleared to the DELTA VOR via V9, maintain 6,000, hold northeast as published, expect further clearance 1450Z.\" DELTA is an en route VOR on V9, 25 minutes short of HOTEL. The MEA is 4,000 to DELTA and 7,000 from DELTA to HOTEL. At 1420Z, after a frequency change, nobody answers. Your learner is flying.",
+  "questions": [
+   {
+    "q": "Your learner says \"lost comm\" and reaches for the transponder. What do you have him do first?",
+    "a": "Fly the airplane, then check volume, frequency and a stuck mike [[33:227|AIM 4-2-2]], call the controller who handed him off, and wait at least a minute before deciding Center's frequency failed [[29:108|IPH 2-48]]. Glance at the ammeter and alternator light too [[23:330|IFH 11-5]]."
+   },
+   {
+    "q": "It is a real failure. What does he do to alert ATC and get them back?",
+    "a": "Squawk 7600 [[34:54|AIM 6-4-2]]. Listen on the NAVAID voice feature and call on the previous frequency, an FSS or New York or San Francisco Radio, and 121.5, all at once if he can [[34:54|AIM 6-4-3]] [[34:55|AIM 6-4-3]]. Other aircraft can help relay [[23:334|IFH 11-9]]."
+   },
+   {
+    "q": "Still in IMC. Which route and altitude to DELTA, and what does he do there?",
+    "a": "V9 to DELTA, the route assigned in the last clearance [[60:482|14 CFR 91.185(c)(1)]], at 6,000, because the assigned altitude is higher than the 4,000 MEA [[60:483|14 CFR 91.185(c)(2)]]. DELTA is not a fix from which an approach begins and he has an EFC, so he holds northeast as published until 1450Z [[60:483|14 CFR 91.185(c)(3)(ii)]] [[29:111|IPH 2-51]]."
+   },
+   {
+    "q": "When does he leave DELTA, at what altitude and by what route does he fly to HOTEL, and when does he start the approach?",
+    "a": "He leaves DELTA at the 1450Z EFC, timing the last lap to leave on time [[29:111|IPH 2-51]]. Beyond DELTA there is no assigned or expected route, so he flies the filed route, V9 [[60:482|14 CFR 91.185(c)(1)]]. The MEA rises to 7,000, the highest of the three, so he climbs right after passing DELTA [[60:480|14 CFR 91.177(b)]] [[60:483|14 CFR 91.185(c)(2)]]. ETA is 1310Z + 2:05 = 1515Z. He reaches HOTEL about 1515Z and begins descent or descent and approach as close as possible to 1515Z [[60:483|14 CFR 91.185(c)(3)(ii)]]."
+   },
+   {
+    "q": "Over DELTA you see the alternator warning light and a discharge on the ammeter. What changes?",
+    "a": "At no time should a pilot continue a flight once the charging system has failed: land at the nearest suitable airport [[23:330|IFH 11-5]]. In an airplane with electronic displays this is an emergency [[23:331|IFH 11-6]]. 91.3(b) allows deviating from the plan as far as needed [[60:435|14 CFR 91.3(b)]], and code 7700 alerts radar to a distress or urgency condition [[34:29|AIM 6-2-2]]."
+   },
+   {
+    "q": "On the ground, how do you turn this into teaching?",
+    "a": "Start with his self-assessment, then give your detailed assessment and discuss the two [[25:176|AIH 9-6]]. Focus on how he reached each decision and which resources he used [[25:32|AIH 1-28]]. Then replay the flight in the training device with one fact changed each time [[25:174|AIH 9-4]] [[25:78|AIH 3-27]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "FII.IX.A.K2",
+   "do": "From a clearance the examiner reads to you, explain aloud which route and which altitude the learner flies on each segment after a radio failure, quoting the wording of 91.185(c)(1) and (c)(2), and say when the filed route applies and when to deviate.",
+   "practice": "Have another applicant read you clearances with reroutes, vectors and expect items, and answer route and altitude for each segment in under a minute [[60:482|14 CFR 91.185(c)(1)]] [[60:483|14 CFR 91.185(c)(2)]]. Add one deviation case each time: VFR conditions, a radar SID procedure or an alternator failure [[60:482|14 CFR 91.185(b)]] [[29:42|IPH 1-26]] [[23:330|IFH 11-5]]."
+  },
+  {
+   "code": "FII.IX.A.K3",
+   "do": "On a whiteboard, work out when the learner leaves the clearance limit and when he begins the approach for all four combinations of clearance limit and EFC, then plan the last holding lap to leave on time.",
+   "practice": "Make cards with takeoff times, ETEs, EFCs and clearance limits and drill the two questions, approach fix or not and EFC or not [[60:483|14 CFR 91.185(c)(3)]]. Time the last lap with the AIM method [[33:430|AIM 5-4-10]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Your learner hears nothing after a handoff to a new Center frequency. Per the IPH, what should he try first?",
+   "options": [
+    "Squawk 7600 and join the filed route",
+    "Call the transferring controller for help",
+    "Declare an emergency on 121.5 right away",
+    "Switch to COM 2 and fly the filed route"
+   ],
+   "answer": 1,
+   "why": "If two-way communications cannot be established after changing frequencies, re-contact the transferring controller for another frequency or instructions [[29:108|IPH 2-48]]. 7600 comes once the failure is real [[34:54|AIM 6-4-2]]; the filed route is not the first choice anyway [[60:482|14 CFR 91.185(c)(1)]]."
+  },
+  {
+   "q": "Center goes quiet in the middle of a busy session. How long should your learner wait before deciding the ARTCC frequency has failed?",
+   "options": [
+    "At least ten seconds",
+    "At least five minutes",
+    "Until the next fix",
+    "At least one minute"
+   ],
+   "answer": 3,
+   "why": "Backup switchover seldom takes more than 60 seconds, so wait at least one minute before deciding the ARTCC frequency has failed [[29:108|IPH 2-48]]."
+  },
+  {
+   "q": "Your learner asks in what order to try the old frequency, FSS and 121.5. What does AIM 6-4-3 say?",
+   "options": [
+    "Old frequency first, then FSS, then 121.5",
+    "No priority; do all at once if able",
+    "121.5 only after one full holding lap",
+    "FSS only if the flight is in VFR conditions"
+   ],
+   "answer": 1,
+   "why": "There is no priority on which action should be attempted first; if the capability exists, do all at the same time [[34:55|AIM 6-4-3]]."
+  },
+  {
+   "q": "Inside radar coverage, what does the controller see when your learner squawks 7600?",
+   "options": [
+    "The data block flashes RDOF",
+    "Nothing until he presses IDENT",
+    "A hijack alert on the screen",
+    "Only the code, with no alert"
+   ],
+   "answer": 0,
+   "why": "When an aircraft squawks 7600, the information block on the radar screen flashes RDOF, radio failure, to alert the controller [[29:107|IPH 2-47]]. Outside radar coverage nobody may see it at all [[34:54|AIM 6-4-2]]."
+  },
+  {
+   "q": "The radios failed in IMC. Twenty minutes later your learner breaks out into clear VFR conditions with suitable airports ahead. What does the rule require?",
+   "options": [
+    "Stay IFR at the 91.185 altitude and route",
+    "Hold at the next fix until ATC answers",
+    "Continue VFR and land as soon as practicable",
+    "Climb back into IMC to keep IFR separation"
+   ],
+   "answer": 2,
+   "why": "If VFR conditions are encountered after the failure, the pilot shall continue the flight under VFR and land as soon as practicable [[60:482|14 CFR 91.185(b)]]. The goal is to keep no-radio aircraft out of extended IFR operation [[34:53|AIM 6-4-1]]."
+  },
+  {
+   "q": "The radios fail in VFR conditions 8 minutes short of the destination. A grass strip unsuitable for the airplane lies below. What does the AIM say?",
+   "options": [
+    "Land on the strip, since practicable means possible",
+    "He may continue; no need to land minutes short",
+    "Return VFR to the departure airport",
+    "Orbit until radio contact is regained"
+   ],
+   "answer": 1,
+   "why": "\"As soon as practicable\" is not \"as soon as possible.\" Pilots need not land at an airport unsuitable for the aircraft or only minutes short of the destination [[34:53|AIM 6-4-1]]."
+  },
+  {
+   "q": "Your learner is on \"heading 250, vectors to join V23\" in IMC when the radios fail. Which route does he fly?",
+   "options": [
+    "Direct to V23, then along V23",
+    "Hold heading 250 until reaching the MEA",
+    "Back to the last fix on the filed route",
+    "The filed route from present position"
+   ],
+   "answer": 0,
+   "why": "If being radar vectored, fly the direct route from the point of radio failure to the fix, route or airway specified in the vector clearance [[60:482|14 CFR 91.185(c)(1)]]. The filed route comes last."
+  },
+  {
+   "q": "Cleared to ALPHA via V6, your learner was told \"expect further clearance via V14\" beyond ALPHA. He filed V2 beyond ALPHA. Radios fail. Route beyond ALPHA?",
+   "options": [
+    "V14, the expected route",
+    "V2, the filed route",
+    "V6, the last assigned airway",
+    "Direct to the destination"
+   ],
+   "answer": 0,
+   "why": "In the absence of an assigned route, fly the route ATC has advised may be expected in a further clearance; the filed route applies only when there is neither [[60:482|14 CFR 91.185(c)(1)]]."
+  },
+  {
+   "q": "Last assigned 5,000. The next segment's MEA is 7,000 and no expected altitude was given. What does your learner fly on that segment, and when does he climb?",
+   "options": [
+    "5,000, the last assigned, all the way",
+    "6,000, halfway between the two",
+    "7,000, climbing now to be early",
+    "7,000, climbing just after the fix"
+   ],
+   "answer": 3,
+   "why": "Fly the highest of assigned, minimum and expected for the segment [[60:483|14 CFR 91.185(c)(2)]]. The climb begins immediately after passing the point where the higher minimum applies [[60:480|14 CFR 91.177(b)]]."
+  },
+  {
+   "q": "ATC said \"expect 9,000 at 1410Z.\" The radios fail at 1425Z while your learner is still at the assigned 7,000; the MEA is 5,000. What does he fly?",
+   "options": [
+    "9,000, climbing to it right away",
+    "7,000, as the expect time has passed",
+    "5,000, the published MEA there",
+    "8,000, splitting the difference"
+   ],
+   "answer": 1,
+   "why": "If the radio failure occurs after the time or fix specified, the altitude to be expected is not applicable; keep the higher of the last assigned and minimum IFR altitude [[34:54|AIM 6-4-1]]."
+  },
+  {
+   "q": "The clearance limit is the destination IAF. Your learner has an EFC of 1530Z and an ETA of 1545Z. When does he begin descent or descent and approach?",
+   "options": [
+    "As close as possible to 1545Z",
+    "On arrival over the IAF",
+    "Halfway between the two times",
+    "As close as possible to 1530Z"
+   ],
+   "answer": 3,
+   "why": "When the clearance limit is a fix from which an approach begins, commence descent or descent and approach as close as possible to the EFC if one has been received; the ETA is used only when no EFC was received [[60:483|14 CFR 91.185(c)(3)(i)]]."
+  },
+  {
+   "q": "Your learner is eastbound on V214 to the Cherrelyn VORTAC, the clearance limit, with no holding instructions and no answer from ATC. Where does he hold?",
+   "options": [
+    "Southwest on the 221° radial, with left turns",
+    "West of the VOR on V214 with right turns",
+    "East of the VOR on V214 with right turns",
+    "Anywhere inside the compass rose"
+   ],
+   "answer": 0,
+   "why": "If further clearance cannot be obtained, hold in the charted pattern at the fix: here southwest on the 221° radial with left turns. Only if no hold were charted would he hold west on V214 with right turns [[29:111|IPH 2-51]].",
+   "figure": "f4"
+  },
+  {
+   "q": "Your school asks whether an AATD can be used for an instrument practical test that includes lost comm. What is the answer?",
+   "options": [
+    "Yes, for one approach only",
+    "Yes, with an instructor endorsement",
+    "No, never for a practical test",
+    "Yes, for the lost comm Task only"
+   ],
+   "answer": 2,
+   "why": "ATDs cannot be used for airman practical tests or type rating training requirements [[25:173|AIH 9-3]]. They are training devices with credit limits [[60:253|14 CFR 61.65(i)]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "Your learner took off at 1035Z with a filed ETE of 1:50. The clearance limit is the destination IAF, with no EFC. When should he begin the approach?",
+   "options": [
+    "On arrival over the IAF",
+    "1:50 after the radios failed",
+    "At 1210Z, to allow for the approach",
+    "As close as possible to 1225Z"
+   ],
+   "answer": 3,
+   "why": "With no EFC at a fix from which an approach begins, commence descent or descent and approach as close as possible to the ETA from the filed or amended ETE: 1035Z + 1:50 = 1225Z [[60:483|14 CFR 91.185(c)(3)(i)]]. The time of the failure plays no part."
+  },
+  {
+   "q": "Cleared to an en route intersection that is not an approach fix, with no EFC, your learner loses the radios in IMC. What does he do at the intersection?",
+   "options": [
+    "Hold there until his ETA, then proceed",
+    "Leave on arrival; begin near the ETA",
+    "Hold there until radio contact returns",
+    "Leave on arrival; begin on reaching the IAF"
+   ],
+   "answer": 1,
+   "why": "If the clearance limit is not a fix from which an approach begins and no EFC was received, leave upon arrival over it, proceed to a fix from which an approach begins, and commence descent or descent and approach as close as possible to the ETA [[60:483|14 CFR 91.185(c)(3)(ii)]]."
+  },
+  {
+   "q": "Same intersection, but now he has an EFC of 1610Z and arrives at 1550Z. When does he leave the intersection?",
+   "options": [
+    "At 1610Z, the EFC",
+    "At 1550Z, on arrival",
+    "At his ETA",
+    "After one lap, about 1554Z"
+   ],
+   "answer": 0,
+   "why": "If the clearance limit is not a fix from which an approach begins, leave it at the EFC if one has been received [[60:483|14 CFR 91.185(c)(3)(ii)]]. All holding instructions should include an EFC for exactly this reason [[29:111|IPH 2-51]]."
+  },
+  {
+   "q": "Your learner was \"cleared to the Ace airport as filed.\" Which item is NOT part of that clearance?",
+   "options": [
+    "The filed route of flight",
+    "The filed en route altitude",
+    "The destination airport",
+    "A STAR he filed in the flight plan"
+   ],
+   "answer": 1,
+   "why": "\"Cleared as filed\" does not include the altitude, DP or DP transition [[34:325|P/CG C-4]]. The en route altitude is stated, or the pilot is told when to expect it [[33:346|AIM 5-2-6]]. A STAR filed in the flight plan is part of the filed route, and the clearance includes the destination [[33:346|AIM 5-2-6]]."
+  },
+  {
+   "q": "On a STAR, a published \"expect\" crossing altitude was never mentioned by ATC. The radios fail. Is it the \"expected\" altitude of 91.185(c)(2)?",
+   "options": [
+    "Yes, every printed expect altitude counts",
+    "Yes, but only below 10,000 feet MSL",
+    "No, unless ATC advised him to expect it",
+    "Only if it is lower than the MEA"
+   ],
+   "answer": 2,
+   "why": "Published \"expect\" altitudes are for planning and must not be used in lost comm unless ATC has specifically advised the pilot to expect them as part of a further clearance [[33:393|AIM 5-4-1]]."
+  },
+  {
+   "q": "Your learner enters a TAA with no radio and no approach clearance. What altitude does he keep until the IAF?",
+   "options": [
+    "The TAA sector minimum altitude",
+    "The MSA shown on the approach chart",
+    "The FAF crossing altitude",
+    "The 91.185(c)(2) altitude"
+   ],
+   "answer": 3,
+   "why": "Pilots entering the TAA with two-way radio failure must maintain the highest altitude prescribed by 91.185(c)(2) until arriving at the appropriate IAF [[33:405|AIM 5-4-5]] [[29:200|IPH 4-60]]."
+  },
+  {
+   "q": "The radios fail while your learner is being vectored on a radar SID that prints its own lost communications procedure. What does he fly?",
+   "options": [
+    "The route list in AIM 6-4-1",
+    "The procedure printed on the SID",
+    "The last heading until VFR",
+    "Direct to the first filed fix"
+   ],
+   "answer": 1,
+   "why": "Radar SIDs often include nonstandard lost communication procedures; the pilot is expected to comply with the procedure on the chart, not necessarily the one in the AIM [[29:42|IPH 1-26]]."
+  },
+  {
+   "q": "In an airplane with electronic displays, the alternator fails in IMC and then the radios die. The ETA is 80 minutes away. Best answer?",
+   "options": [
+    "Fly 91.185 to the ETA, since it is the rule",
+    "Hold at the next fix while the battery recovers",
+    "Climb to the filed altitude for better range",
+    "Land at the nearest suitable airport"
+   ],
+   "answer": 3,
+   "why": "At no time should a pilot continue once the charging system has failed; land at the nearest suitable airport [[23:330|IFH 11-5]]. In such an airplane it is an emergency [[23:331|IFH 11-6]], and 91.3(b) allows the deviation [[60:435|14 CFR 91.3(b)]]."
+  },
+  {
+   "q": "After deviating from an ATC clearance under emergency authority, what does the AIM say the pilot in command must do?",
+   "options": [
+    "Nothing, if no one was put at any risk",
+    "Land at the nearest towered airport",
+    "Tell ATC soon; get an amended clearance",
+    "Resume the original clearance at once"
+   ],
+   "answer": 2,
+   "why": "If 91.3(b) is used to deviate from an ATC clearance, the PIC must notify ATC as soon as possible and obtain an amended clearance [[34:28|AIM 6-1-1]]. Resuming the old clearance without telling ATC is not what the AIM asks. A written report of the deviation is sent only on request [[60:435|14 CFR 91.3(c)]]."
+  },
+  {
+   "q": "Before a radar approach the controller says, \"If no transmission received for one minute...\" followed by instructions. What are they?",
+   "options": [
+    "Lost communications procedures",
+    "A request for a report every minute",
+    "A frequency change instruction",
+    "A timed approach clearance"
+   ],
+   "answer": 0,
+   "why": "ATC uses \"If no transmission received for (time)\" in radar approaches to prefix procedures the pilot follows in the event of lost communications [[34:361|P/CG I-2]] [[34:374|P/CG L-3]]."
+  },
+  {
+   "q": "Your learner crosses the holding fix inbound at 1517Z with an EFC of 1520Z, in no wind. How long is the outbound leg of his last lap?",
+   "options": [
+    "1 minute",
+    "90 seconds",
+    "30 seconds",
+    "None; a 360° turn"
+   ],
+   "answer": 2,
+   "why": "Three minutes to lose: the turns take about 2 minutes, leaving 1 minute of level flight split between outbound and inbound, so 30 seconds outbound. A 360° turn would use only 2 minutes [[33:430|AIM 5-4-10]]."
+  },
+  {
+   "q": "Assigned 2,700 until crossing the VOR, then cleared for the approach. MOCA 2,700, MEA 4,000, and the airplane is 15 NM from the VOR. The radios fail. What altitude?",
+   "options": [
+    "2,700 until crossing the VOR",
+    "4,000, the MEA for the airway",
+    "Climb to the MSA on the chart",
+    "Descend to the FAF altitude now"
+   ],
+   "answer": 0,
+   "why": "AIM Example 2: remain at 2,700 until crossing the VOR, because it is the minimum IFR altitude for the segment [[34:54|AIM 6-4-1]]. Below the MEA to the MOCA is allowed within 22 NM of the VOR [[60:480|14 CFR 91.177(a)(1)]]."
+  },
+  {
+   "q": "Assigned 7,000, your learner flies a direct route that needs 9,000, then joins an airway with a 5,000 MEA. What does he fly on the airway?",
+   "options": [
+    "5,000, the MEA",
+    "9,000, the highest so far",
+    "6,000, 1,000 above the MEA",
+    "7,000, the last assigned"
+   ],
+   "answer": 3,
+   "why": "AIM Example 1: on the 5,000 MEA airway descend to 7,000, the last assigned altitude, because it is higher than the MEA [[34:54|AIM 6-4-1]]. The 9,000 applied only to the segment that needed it [[60:483|14 CFR 91.185(c)(2)]]."
+  },
+  {
+   "q": "How does the CFII PTS say the evaluator assesses your ability to teach judgment?",
+   "options": [
+    "You describe the discussions you would use",
+    "You fly a lost comm approach to minimums",
+    "You pass a written test on 91.185 alone",
+    "You bring a learner you have trained"
+   ],
+   "answer": 0,
+   "why": "The PTS says the ability to teach judgment is evaluated by asking the applicant to describe the oral discussions and practical problems used to teach it (FAA-S-8081-9E, Introduction). Scenario-based training is the AIH tool for it [[25:120|AIH 5-17]]."
+  },
+  {
+   "q": "Off at 1405Z with a filed ETE of 1:40, your learner later amended the ETE with ATC to 1:55. The limit is the destination IAF, with no EFC. Begin near what time?",
+   "options": [
+    "1545Z",
+    "1555Z",
+    "1600Z",
+    "On arrival"
+   ],
+   "answer": 2,
+   "why": "The ETA is calculated from the filed or amended (with ATC) ETE: 1405Z + 1:55 = 1600Z [[60:483|14 CFR 91.185(c)(3)(i)]]. 1545Z uses the old ETE."
+  },
+  {
+   "q": "Making a routine code change from 2700 to 7200, which sequence does the AIM recommend?",
+   "options": [
+    "2700, then 7700, then 7200",
+    "2700, then 7600, then 7200",
+    "2700, then 2200, then 7200",
+    "Any order, if done quickly"
+   ],
+   "answer": 2,
+   "why": "Avoid inadvertent selection of 7500, 7600 or 7700: switch first to 2200, then to 7200, not to 7700 and then 7200 [[33:223|AIM 4-1-20]]."
+  }
+ ],
+ "takeaways": [
+  "Plan every IFR flight for a radio failure: always know the route, the altitude and when to leave the clearance limit.",
+  "Recognize before declaring: volume, frequency, mike, the previous controller, a one-minute wait; then 7600 and every way to reach ATC at once.",
+  "VFR conditions: continue VFR and land as soon as practicable. IMC, or VFR you cannot keep: fly paragraph (c).",
+  "Route AVE F: Assigned, Vectored, Expected, Filed. Filed comes last.",
+  "Altitude MEA: the highest of Minimum, Expected and Assigned, segment by segment; an expected altitude starts at its time or fix.",
+  "Approach-fix limit: begin near the EFC, or the ETA without one. Limit short of that: leave at the EFC, or on arrival without one, and begin near the ETA.",
+  "ETA is takeoff time plus filed or amended ETE; plan the last lap to leave on time.",
+  "Deviate for VFR conditions, a published or issued lost comm procedure, or a real emergency under 91.3(b), never for convenience."
+ ],
+ "cfi_notes": [
+  "For anyone adding the instrument rating to a flight instructor certificate, the PTS marks Area IX as required, and the evaluator must select at least one Task. Tasks C and D are omitted unless the applicant furnishes a multiengine airplane, and then C or D is mandatory; in a single-engine airplane expect IX.A or IX.B (FAA-S-8081-9E, Area IX and the additional rating table).",
+  "The books word paragraph (b) differently: the rule says shall [[60:482|14 CFR 91.185(b)]], the IFH should [[23:333|IFH 11-8]], the IPH if possible [[29:107|IPH 2-47]]. Teach the rule.",
+  "The P/CG defines ETE as lift-off to touchdown and ETA, for nonscheduled operators, as the runway-on time [[34:342|P/CG E-3]], yet 91.185(c)(3) uses that ETA as the time to commence descent or descent and approach [[60:483|14 CFR 91.185(c)(3)]]. The sources do not reconcile this; teach the rule's wording and expect an examiner to ask.",
+  "The AIM note covers a lower expected altitude too: keep the higher of assigned and minimum until the time or fix in the leave clearance limit rule [[34:54|AIM 6-4-1]]. Many learners only know the higher case.",
+  "The rule says \"a fix from which an approach begins,\" not \"IAF\" [[60:483|14 CFR 91.185(c)(3)]]. The IAF is the usual example [[34:362|P/CG I-3]], but use the rule's words when an examiner asks.",
+  "AIM 5-3-8 and the IPH agree on holding without instructions: the AIM says a standard pattern on the course on which the aircraft approached the fix [[33:382|AIM 5-3-8]], the IPH says the inbound course with right turns [[29:111|IPH 2-51]].",
+  "Examiners like the radar SID with its own lost comm procedure [[29:42|IPH 1-26]], \"as soon as practicable\" versus \"as soon as possible\" [[34:53|AIM 6-4-1]], and the early arrival at an approach fix that is not the clearance limit, which the rule does not fully answer [[60:483|14 CFR 91.185(c)(3)(ii)]].",
+  "The CFII PTS credits this Task in FTD levels 6 and 7 and FFS levels A to D under a part 141 or 142 curriculum (FAA-S-8081-9E, Introduction and Appendix 1), while ATDs cannot be used for practical tests at all [[25:173|AIH 9-3]]. Use the ATD for training, not for a \"mock checkride\" that counts.",
+  "Tie this Task to IX.B and the electrical lessons: a charging failure means land at the nearest suitable airport [[23:330|IFH 11-5]], which usually overrides flying 91.185 all the way to an ETA."
+ ],
+ "gaps": [
+  "No source here says what to fly when a vector clearance names no fix, route or airway (for example \"turn left heading 270 for traffic\"); the AIM only says to use good judgment when a situation is not covered [[34:53|AIM 6-4-1]].",
+  "No source says how to use extra time when the airplane reaches an approach fix that is not the clearance limit well before the ETA; the rule only says to begin as close as possible to the ETA [[60:483|14 CFR 91.185(c)(3)(ii)]].",
+  "No source here says whether to squawk 7600 or 7700 when a radio failure is part of a larger emergency such as an electrical failure.",
+  "No source describes how to set up a radio failure in a particular ATD or FTD; use the device's own documentation.",
+  "No source here describes how ATC might check whether a no-radio pilot can still receive, for example by asking for an IDENT.",
+  "The handbooks give no common-errors list for lost communications; the errors chunk is built from the CFR, AIM, IFH and IPH text."
+ ],
+ "activities": [
+  {
+   "type": "tf",
+   "key": "h1",
+   "after": 3,
+   "title": "True or false: is it really lost?",
+   "intro": "Decide whether each statement is true or false.",
+   "cards": [
+    {
+     "s": "If no one answers right after a frequency change, a good first step is to call the controller who handed you off.",
+     "a": true,
+     "why": "True. Re-contact the transferring controller for another frequency or instructions [[29:108|IPH 2-48]]."
+    },
+    {
+     "s": "An ARTCC backup radio usually takes several minutes to come on, so a 30-second silence is already a failure.",
+     "a": false,
+     "why": "False. Switchover seldom takes more than 60 seconds; wait at least one minute [[29:108|IPH 2-48]]."
+    },
+    {
+     "s": "Squawking 7600 guarantees that ATC knows about the failure.",
+     "a": false,
+     "why": "False. The aircraft may not be in an area of radar coverage [[34:54|AIM 6-4-2]]."
+    },
+    {
+     "s": "ATC may try to reach a pilot over a VOR, VORTAC, NDB or localizer frequency.",
+     "a": true,
+     "why": "True. Listen on every working receiver, including the navigation receivers [[29:107|IPH 2-47]]."
+    },
+    {
+     "s": "The AIM sets an order: previous frequency first, then FSS, then 121.5.",
+     "a": false,
+     "why": "False. There is no priority; if able, do all at the same time [[34:55|AIM 6-4-3]]."
+    },
+    {
+     "s": "On a transponder with integrated ADS-B, entering 7600 also sets the ADS-B emergency status.",
+     "a": true,
+     "why": "True [[33:303|AIM 4-5-7]]."
+    }
+   ]
+  },
+  {
+   "type": "sort",
+   "key": "h2",
+   "after": 4,
+   "title": "Which paragraph applies?",
+   "intro": "Tap each situation, then the part of 91.185 the pilot flies.",
+   "buckets": [
+    "91.185(b): continue VFR and land",
+    "91.185(c): IFR route, altitude, time"
+   ],
+   "items": [
+    {
+     "t": "Radios fail in clear air below a high overcast, 10 miles visibility, airports nearby",
+     "b": 0
+    },
+    {
+     "t": "Radios fail in cloud; later you break out into VFR conditions with a suitable airport ahead",
+     "b": 0
+    },
+    {
+     "t": "Radios fail in Class A airspace in clear air, with VFR conditions all the way to a suitable airport",
+     "b": 0
+    },
+    {
+     "t": "Radios fail in solid IMC",
+     "b": 1
+    },
+    {
+     "t": "Radios fail on top of a solid undercast with no VFR way down to any airport",
+     "b": 1
+    },
+    {
+     "t": "Radios fail between layers and you cannot stay clear of clouds to a landing",
+     "b": 1
+    }
+   ],
+   "why": "VFR conditions at the failure or later mean continue under VFR and land as soon as practicable [[60:482|14 CFR 91.185(b)]], in Class A too [[34:53|AIM 6-4-1]]. IFR conditions, or VFR conditions that do not allow (b) to be complied with, mean paragraph (c) [[60:482|14 CFR 91.185(c)]]."
+  },
+  {
+   "type": "match",
+   "key": "h3",
+   "after": 6,
+   "title": "What does that clearance give you if the radios fail?",
+   "intro": "Tap a clearance, then what it gives the pilot under 91.185.",
+   "pairs": [
+    {
+     "l": "\"Cleared to BRAVO via V12\"",
+     "r": "The assigned route"
+    },
+    {
+     "l": "\"Turn left heading 250, vectors to join V23\"",
+     "r": "Direct from the point of failure to V23"
+    },
+    {
+     "l": "\"Expect further clearance via V4\"",
+     "r": "The route to fly when none is assigned"
+    },
+    {
+     "l": "\"Maintain 5,000, expect 9,000 ten minutes after departure\"",
+     "r": "An altitude to climb to at a set time"
+    },
+    {
+     "l": "\"Hold west as published, expect further clearance 1520\"",
+     "r": "The time to leave the holding fix"
+    },
+    {
+     "l": "\"Cleared to the Ace airport as filed\"",
+     "r": "The filed route, but not the filed altitude"
+    }
+   ],
+   "why": "Route order from [[60:482|14 CFR 91.185(c)(1)]]; expected altitudes from [[34:54|AIM 6-4-1]] and [[33:346|AIM 5-2-6]]; the EFC from [[60:483|14 CFR 91.185(c)(3)]] and [[29:111|IPH 2-51]]; \"cleared as filed\" from [[34:325|P/CG C-4]]."
+  },
+  {
+   "type": "calc",
+   "key": "h4",
+   "after": 7,
+   "title": "Altitude, segment by segment",
+   "intro": "Use the highest of minimum, expected and assigned for each segment. Type the altitude in feet.",
+   "items": [
+    {
+     "q": "AIM Example 3, segment b to c: MEA 5,000, last assigned 6,000, told to expect 8,000 at b. What altitude after passing b?",
+     "answer": 8000,
+     "tol": 0,
+     "unit": "feet",
+     "why": "At b the expected 8,000 applies and is the highest [[34:54|AIM 6-4-1]]."
+    },
+    {
+     "q": "Same example, segment c to d: MEA 11,000. What altitude?",
+     "answer": 11000,
+     "tol": 0,
+     "unit": "feet",
+     "why": "The 11,000 MEA is the highest; climb at c, or before c for an MCA [[34:54|AIM 6-4-1]]."
+    },
+    {
+     "q": "Same example, segment d to e: MEA 7,000. What altitude?",
+     "answer": 8000,
+     "tol": 0,
+     "unit": "feet",
+     "why": "The expected 8,000 is higher than the 7,000 MEA [[34:54|AIM 6-4-1]]."
+    },
+    {
+     "q": "Last assigned 7,000, nothing expected. On an airway with a 5,000 MEA, what altitude?",
+     "answer": 7000,
+     "tol": 0,
+     "unit": "feet",
+     "why": "AIM Example 1: the last assigned 7,000 is higher than the MEA [[34:54|AIM 6-4-1]]."
+    },
+    {
+     "q": "Assigned 4,000, told \"expect 6,000 at XRAY.\" The radios fail after passing XRAY, still at 4,000, MEA 3,000. What altitude?",
+     "answer": 4000,
+     "tol": 0,
+     "unit": "feet",
+     "why": "If the failure occurs after the time or fix specified, the expected altitude no longer applies; keep the higher of assigned and minimum [[34:54|AIM 6-4-1]]."
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h5",
+   "after": 8,
+   "title": "Holding at the clearance limit",
+   "figure": "f4",
+   "intro": "Drag each label to its numbered pin on the drawing.",
+   "pins": [
+    {
+     "x": 12,
+     "y": 55,
+     "label": "The airway flown to the clearance limit"
+    },
+    {
+     "x": 36,
+     "y": 54,
+     "label": "Before reaching the fix: ask ATC for further clearance"
+    },
+    {
+     "x": 84,
+     "y": 23,
+     "label": "The clearance limit"
+    },
+    {
+     "x": 60,
+     "y": 57,
+     "label": "Charted hold: use it if no instructions come, left turns"
+    },
+    {
+     "x": 55,
+     "y": 51,
+     "label": "Inbound course: hold here with right turns only if no hold is charted"
+    }
+   ],
+   "why": "From IPH Figure 2-72: eastbound on V214 to the Cherrelyn VORTAC as the clearance limit; ask for further clearance before the fix, hold southwest on the 221° radial with left turns as charted, or west on V214 with right turns if no hold were charted [[29:111|IPH 2-51]]."
+  },
+  {
+   "type": "order",
+   "key": "h6",
+   "after": 9,
+   "title": "Clearance limit short of the destination, with an EFC",
+   "intro": "Put the rule's steps in order, first to last, then tap Check.",
+   "steps": [
+    "Fly the AVE F route at the highest of minimum, expected and assigned altitude for each segment",
+    "Hold at the clearance limit, as charted or on the course you approached it on",
+    "Leave the clearance limit at the EFC",
+    "Proceed to a fix from which an approach begins",
+    "Commence descent or descent and approach as close as possible to the ETA"
+   ],
+   "why": "Route and altitude from [[60:482|14 CFR 91.185(c)(1)]] and [[60:483|14 CFR 91.185(c)(2)]]; holding without instructions from [[33:382|AIM 5-3-8]]; the leave clearance limit sequence from [[60:483|14 CFR 91.185(c)(3)(ii)]]."
+  },
+  {
+   "type": "calc",
+   "key": "h7",
+   "after": 10,
+   "title": "Timing the approach",
+   "intro": "Work it out, then type your answer. Write Z times as four digits, for example 0930.",
+   "items": [
+    {
+     "q": "Off at 1148Z with a filed ETE of 2:27. What is the ETA?",
+     "answer": 1415,
+     "tol": 0,
+     "unit": "Z",
+     "why": "1148Z + 2:27 = 1415Z. The ETA comes from the filed or amended ETE [[60:483|14 CFR 91.185(c)(3)]]."
+    },
+    {
+     "q": "Off at 1405Z. The filed ETE was 1:40, but it was amended with ATC to 1:55. What is the ETA for 91.185?",
+     "answer": 1600,
+     "tol": 0,
+     "unit": "Z",
+     "why": "1405Z + 1:55 = 1600Z. The rule allows an ETE amended with ATC [[60:483|14 CFR 91.185(c)(3)]]."
+    },
+    {
+     "q": "The limit is the destination IAF, no EFC, ETA 1545Z. He arrives over the IAF at 1527Z. How many minutes does he hold before beginning?",
+     "answer": 18,
+     "tol": 0,
+     "unit": "minutes",
+     "why": "1545 - 1527 = 18 minutes; begin as close as possible to the ETA [[60:483|14 CFR 91.185(c)(3)(i)]]."
+    },
+    {
+     "q": "Crossing the fix inbound with 3 minutes to the EFC, in no wind. How many seconds should the outbound leg be?",
+     "answer": 30,
+     "tol": 0,
+     "unit": "seconds",
+     "why": "Turns take about 2 minutes; the remaining 1 minute is split between outbound and inbound: 30 seconds [[33:430|AIM 5-4-10]]."
+    },
+    {
+     "q": "With 1-minute inbound and outbound legs and about 2 minutes of turns, about how long is one no-wind lap?",
+     "answer": 4,
+     "tol": 0,
+     "unit": "minutes",
+     "why": "2 minutes of turns [[33:430|AIM 5-4-10]] plus a 1-minute inbound leg [[33:387|AIM 5-3-8]] and a 1-minute outbound leg = 4 minutes."
+    },
+    {
+     "q": "EFC 1520Z. Crossing the fix inbound at 1508Z, how many 4-minute laps fit before he leaves?",
+     "answer": 3,
+     "tol": 0,
+     "unit": "laps",
+     "why": "12 minutes / 4 minutes = 3 laps; plan the last lap to leave as close as possible to the EFC [[29:111|IPH 2-51]]."
+    }
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h8",
+   "after": 13,
+   "title": "A lost comm lesson in the AATD",
+   "intro": "You are a CFII running a lost comm scenario for an instrument learner in an advanced ATD. Make each teaching call as the lesson unfolds.",
+   "steps": [
+    {
+     "s": "Briefing. What should the learner have written down before the flight so the timing part is possible?",
+     "options": [
+      "Only the frequencies he expects to use",
+      "Takeoff time, filed ETE, and every clearance item",
+      "Only the approach minimums at the destination",
+      "Nothing; the device will show his ETA"
+     ],
+     "answer": 1,
+     "why": "He must know route, altitude and when to leave the clearance limit at any point [[23:333|IFH 11-8]], and the ETA comes from the filed or amended ETE [[60:483|14 CFR 91.185(c)(3)]]."
+    },
+    {
+     "s": "You fail the radio after a handoff. Within five seconds he squawks 7600 without checking anything.",
+     "options": [
+      "Praise the fast squawk and move on",
+      "Reset the device and start over",
+      "Debrief the checks: volume, frequency, mike, last controller",
+      "Tell him 7700 was the right code"
+     ],
+     "answer": 2,
+     "why": "Check volume, frequency and a stuck mike [[33:227|AIM 4-2-2]], call the transferring controller and wait at least a minute [[29:108|IPH 2-48]]. 7600 is the radio failure code [[34:54|AIM 6-4-2]]."
+    },
+    {
+     "s": "He was cleared \"to KILO VOR via V5, maintain 6,000, expect 8,000 at KILO, EFC 1445Z.\" KILO is an en route VOR. The radios failed before KILO, and he starts climbing to 8,000 at once.",
+     "options": [
+      "Stop him: 6,000 until KILO, then 8,000",
+      "Let it go; the expected altitude is highest",
+      "Have him wait to climb until 1445Z",
+      "Have him descend to the MEA"
+     ],
+     "answer": 0,
+     "why": "With an expected altitude at a fix, hold the higher of assigned and minimum until that fix, then climb [[34:54|AIM 6-4-1]]. The EFC is a time to leave the limit, not a climb time [[60:483|14 CFR 91.185(c)(3)(ii)]]."
+    },
+    {
+     "s": "He reaches KILO at 1430Z and turns toward the destination IAF at once.",
+     "options": [
+      "Correct: with lost comm, leave on arrival",
+      "Correct, as long as he flies the filed route",
+      "Wrong: he holds at KILO until his ETA",
+      "Wrong: he holds at KILO until the 1445Z EFC"
+     ],
+     "answer": 3,
+     "why": "KILO is not a fix from which an approach begins, and he has an EFC, so he leaves at the EFC [[60:483|14 CFR 91.185(c)(3)(ii)]], holding as charted or on the inbound course meanwhile [[33:382|AIM 5-3-8]]."
+    },
+    {
+     "s": "Leaving KILO at 1445Z he will reach the IAF at 1500Z. He took off at 1320Z with a filed ETE of 1:50. What should he do at the IAF?",
+     "options": [
+      "Begin the approach on arrival at 1500Z",
+      "Begin as close as possible to 1510Z",
+      "Hold until 1515Z for spacing",
+      "Hold there until ATC answers"
+     ],
+     "answer": 1,
+     "why": "ETA = 1320Z + 1:50 = 1510Z. He commences descent or descent and approach as close as possible to the ETA [[60:483|14 CFR 91.185(c)(3)(ii)]]. The rule does not say how to use the 10 minutes, so this is a judgment to discuss [[34:53|AIM 6-4-1]]."
+    },
+    {
+     "s": "In the debrief he asks why starting 10 minutes early matters, since no one else is around in the device.",
+     "options": [
+      "It does not matter in a training device",
+      "ATC protects airspace expecting 91.185 timing",
+      "Only the examiner cares about the timing",
+      "Early is always safer than late"
+     ],
+     "answer": 1,
+     "why": "ATC service is provided on the basis that the pilot is operating in accordance with 91.185 [[34:53|AIM 6-4-1]]. The device should build the same habit he needs in the real system [[25:174|AIH 9-4]]."
+    }
+   ]
+  }
+ ]
+}

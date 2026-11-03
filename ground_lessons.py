@@ -286,5 +286,24 @@ def builtin_course(code):
     return next((c for c in builtin_courses() if c["code"] == code), None)
 
 
+# ---------------------------------------------------------------- GS-FOI-LINK
+# The Fundamentals of Instructing is its own course (ground_lessons/courses/FOI.json), because any
+# flight instructor checkride can test it. Courses point to it where their own FOI Area would be:
+# the CFI ACS keeps an Area titled "Fundamentals of Instructing", and a built-in outline that leaves
+# that Area out names it in "see_also" ({"area": "I", "title": ..., "doc_number": "OPSHUB-FOI"}).
+FOI_DOC = "OPSHUB-FOI"
+_FOI_TITLE_RE = re.compile(r"fundamentals of instructing", re.I)
+
+
+def is_foi_area(title):
+    return bool(_FOI_TITLE_RE.search(title or ""))
+
+
+def see_also(doc_number):
+    """The 'see_also' entries of a built-in course outline (Areas taught in another course), or []."""
+    c = builtin_by_doc(doc_number)
+    return list((c or {}).get("see_also") or [])
+
+
 def builtin_by_doc(doc_number):
     return next((c for c in builtin_courses() if doc_number and c["doc_number"] == doc_number), None)

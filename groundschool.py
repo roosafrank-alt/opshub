@@ -1258,8 +1258,15 @@ def rating_detail(rating_id):
             reviews[area["id"]] = {"count": len(rv.get("questions") or []),
                                    "st": area_stats(conn, viewing_student_id, area["id"], rv) if viewing_student_id else None}
     assigned_ids = assigned_task_ids(conn, viewing_student_id) if viewing_student_id else set()
+    # GS-FOI-LINK: point to the stand-alone Fundamentals of Instructing course where this course's FOI Area is.
+    foi_course = None
+    if rating["doc_number"] != ground_lessons.FOI_DOC:
+        foi_course = conn.execute("SELECT id, name FROM acs_ratings WHERE doc_number = ?",
+                                  (ground_lessons.FOI_DOC,)).fetchone()
+    see_also = ground_lessons.see_also(rating["doc_number"]) if rating["doc_number"] != ground_lessons.FOI_DOC else []
     conn.close()
     return render_template("flight/groundschool_rating.html", rating=rating, areas=areas, resume=resume, reviews=reviews, assigned_ids=assigned_ids,
+                            foi_course=foi_course, see_also=see_also, is_foi_area=ground_lessons.is_foi_area,
                             tasks_by_area=tasks_by_area, elements_by_task=elements_by_task,
                             references_html_by_task=references_html_by_task, tab="groundschool",
                             changes_by_task=changes_by_task,
