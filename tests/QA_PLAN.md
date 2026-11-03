@@ -74,7 +74,7 @@ Shop / inventory
 - [x] Squawks: new, acknowledge, assign, repair, worker acknowledge (both `kind`s)
 - [x] Assets: new, quick new, edit, hours update, trash/restore/purge (hours going backwards is allowed today; not treated as a bug)
 - [x] Maintenance items: new, edit, complete, due/overdue math around hours and dates (`test_maintenance_items.py`, no bugs found)
-- [ ] Logbook entries: create, edit, print, starter templates
+- [x] Logbook entries: create, edit, print, starter templates (`test_logbook.py`; bad tach/Hobbs numbers were dismissed by Frank, not re-filed)
 - [x] Photos: upload (bad file types, huge files), set cover, delete
 - [x] Trash page: empty trash, restore conflicts (`test_trash.py`, `test_trash_restore_purge_every_link.py`)
 - [ ] Shop billing, shop pay, and stats totals match the underlying transactions and labor
@@ -141,3 +141,7 @@ Health check: 2213 tests; live has 40 failures/errors (the same clock/network-de
 ## Nov 2 note
 
 Health check: live 2382 tests, 40 failures/errors (the same clock/network-dependent group as Oct 25-Nov 1), no unexpected successes. Queued: 3 more, again only the `test_workers_menu.py` ones caused by the queued "Badges & Shop Code" idea (not a regression). No new area covered tonight (the full run took about 11 minutes); the next unchecked area is still Logbook entries.
+
+## Nov 3 note
+
+Health check: 2219 tests; live 25 failures + 15 errors (the same clock/network-dependent group as before), no unexpected successes. Queued: 3 more, again only the `test_workers_menu.py` ones caused by the queued "Badges & Shop Code" idea (not a regression). Logbook area confirmed fully covered by `test_logbook.py`, ticked. Next unchecked area: Admin users (create, edit, deactivate, role changes).
