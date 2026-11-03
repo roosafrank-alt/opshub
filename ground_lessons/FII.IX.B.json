@@ -1,0 +1,1817 @@
+{
+ "task_code": "FII.IX.B",
+ "task_title": "Approach with Loss of Primary Flight Instrument Indicators",
+ "area": "Area IX. Emergency Operations",
+ "minutes": 92,
+ "objective": "By the end of this lesson you can read a failure from the instrument picture on round dials and on glass, teach a learner to switch to backup instruments and tell ATC, decide with him when to declare and when to land, fly and explain a nonprecision approach without the primary flight instruments from the right seat, and set up realistic failures safely while you spot and fix the common errors.",
+ "why": "The CFII PTS puts special weight on this Task because instrument-rated pilots keep losing control in cloud after their gyro instruments or electronic displays fail [[FAA-S-8081-9E:16|PTS Introduction]]. A vacuum failure can lead an unsuspecting pilot into a dangerous unusual attitude, and the IFH says it is important to practice flying without the attitude and heading indicators [[23:333|IFH 11-8]]. In the AIH case study a pilot knew his vacuum pump had failed, flew into IMC anyway and lost control [[25:186|AIH 10-2]]. Your job is to train the eyes that catch the failure, the voice that asks for help early, and an approach that still works on a bad night.",
+ "prereading": [
+  {
+   "res": "23",
+   "pages": [
+    328,
+    329,
+    330,
+    331,
+    332,
+    333,
+    334,
+    335,
+    336,
+    337
+   ],
+   "printed": "IFH 11-3 to 11-12",
+   "what": "Aircraft system malfunctions: display and reversionary mode, alternator and standby battery, analog instrument, vacuum and pitot-static failures, the nearest airport function and regaining situational awareness.",
+   "label": "IFH 11-3 to 11-12"
+  },
+  {
+   "res": "23",
+   "pages": [
+    216,
+    217,
+    218,
+    219,
+    220
+   ],
+   "printed": "IFH 7-55 to 7-59",
+   "what": "AHRS and ADC failures on a PFD, the standby instruments, the autopilot wing leveler and the errors that lead to unusual attitudes.",
+   "label": "IFH 7-55 to 7-59"
+  },
+  {
+   "res": "23",
+   "pages": [
+    177,
+    178,
+    182,
+    197,
+    198,
+    214
+   ],
+   "printed": "IFH 7-16, 7-17, 7-21, 7-36, 7-37, 7-53",
+   "what": "Partial panel descents and level-offs, timed turns and turn coordinator calibration, and pitch control by the altimeter alone.",
+   "label": "IFH 7-16 to 7-53 (partial panel pages)"
+  },
+  {
+   "res": "24",
+   "pages": [
+    362,
+    363,
+    364,
+    365,
+    372
+   ],
+   "printed": "AFH 18-13 to 18-16, 18-23",
+   "what": "Electrical and pitot-static failures, shared backup inputs on glass panels, nonstandard failure indications and the limits of simulating failure modes.",
+   "label": "AFH 18-13 to 18-16, 18-23"
+  },
+  {
+   "res": "33",
+   "pages": [
+    377,
+    397,
+    430,
+    431
+   ],
+   "printed": "AIM 5-3-3, 5-4-4, 5-4-11",
+   "what": "Malfunction and \"unable\" reports, telling ATC you cannot fly the expected approach, and radar and no-gyro approaches.",
+   "label": "AIM 5-3-3, 5-4-4, 5-4-11"
+  },
+  {
+   "res": "34",
+   "pages": [
+    28,
+    29,
+    45,
+    46
+   ],
+   "printed": "AIM 6-1-1 to 6-3-2",
+   "what": "Emergency authority, the urgency condition, code 7700, and how to word a distress or urgency message.",
+   "label": "AIM 6-1-1 to 6-3-2"
+  },
+  {
+   "res": "25",
+   "pages": [
+    82,
+    177,
+    178,
+    182,
+    186,
+    191
+   ],
+   "printed": "AIH 3-31, 9-7, 9-8, 9-12, 10-2, 10-7",
+   "what": "Building an emergency scenario step by step, telling and doing, letting learners correct their own errors, the vacuum-failure accident case and the risks of simulated failures.",
+   "label": "AIH 3-31 to 10-7 (selected pages)"
+  }
+ ],
+ "warmup": "Think first: your instrument learner flies a fine partial panel approach every time you slide the covers over his attitude and heading indicators. One night in cloud his vacuum pump fails slowly and the gyros start to drift. Would your training have taught him to notice, or only to fly once someone tells him? What would you change so practice looks more like the real failure?",
+ "key_terms": [
+  {
+   "term": "Partial panel",
+   "def": "Flying with the attitude gyro and heading indicator covered or inoperative; every IFH basic maneuver except the instrument takeoff can be flown this way [[23:162|IFH 7-1]]. On glass it means the AHRS simulated or rendered inoperative [[23:194|IFH 7-33]]."
+  },
+  {
+   "term": "AHRS",
+   "def": "Attitude and heading reference system: solid-state sensors that replace the separate attitude, heading and turn gyros and work out which way is level and which way is north [[23:117|IFH 5-22]]."
+  },
+  {
+   "term": "ADC",
+   "def": "Air data computer: turns pitot pressure, static pressure and temperature into altitude, IAS, TAS and air temperature for the displays and other systems [[23:117|IFH 5-22]] [[23:118|IFH 5-23]]."
+  },
+  {
+   "term": "Reversionary mode",
+   "def": "The composite mode a glass system reverts to when a display fails: no moving map, with the PFD and the engine indications combined on the remaining screen [[23:329|IFH 11-4]]."
+  },
+  {
+   "term": "Standby instruments",
+   "def": "An attitude indicator, altimeter, airspeed indicator and magnetic compass installed for use when the PFD is unavailable [[23:331|IFH 11-6]]."
+  },
+  {
+   "term": "Standby battery and essential bus",
+   "def": "A reserve battery that comes online when the main battery runs down to about 19 volts, generally only with its switch in ARM, and powers the essential bus: usually AHRS, ADC, PFD, Nav 1, Com 1 and the standby indicator light [[23:331|IFH 11-6]]."
+  },
+  {
+   "term": "Alternate static source",
+   "def": "A second static source, normally inside the flight deck, for a blocked static system; with it the altimeter and airspeed read slightly high and the VSI shows a brief climb [[23:98|IFH 5-3]]."
+  },
+  {
+   "term": "No-gyro approach",
+   "def": "A radar approach for a pilot whose heading indicator is inoperative or inaccurate: the controller watches the track and says \"turn right,\" \"turn left\" or \"stop turn\" instead of giving headings [[23:358|IFH G-13]] [[33:431|AIM 5-4-11]]."
+  },
+  {
+   "term": "Surveillance approach (ASR)",
+   "def": "A radar approach with guidance in azimuth only; the controller gives headings, says when to descend to the MDA, and gives the MAP and the distance each mile [[33:430|AIM 5-4-11]] [[33:431|AIM 5-4-11]]."
+  },
+  {
+   "term": "Urgency",
+   "def": "A condition of being concerned about safety and of requiring timely but not immediate assistance; a potential distress condition [[34:437|P/CG U-2]]."
+  },
+  {
+   "term": "Distress",
+   "def": "A condition of being threatened by serious and/or imminent danger and of requiring immediate assistance [[34:337|P/CG D-4]]."
+  },
+  {
+   "term": "Malfunction report",
+   "def": "Under IFR in controlled airspace, the report to ATC of a navigation, approach or communication equipment failure: identification, equipment, how much IFR capability is impaired and what help is wanted [[60:483|14 CFR 91.187]]."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "What this Task asks, and how it fits with Area VIII",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.B.K1",
+    "FII.IX.B.K1c",
+    "FII.IX.B.S1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "This Task has four parts: describe the elements of losing the primary flight instrument indicators (K1), describe the common errors (K2), fly a nonprecision approach without those indicators while you explain it (S1), and analyze and correct the errors the evaluator flies (S2) [[FAA-S-8081-9E:45|PTS IX.B]]. The evaluator must select at least one Task in Area IX, so expect this one or lost communications [[FAA-S-8081-9E:45|PTS Area IX NOTE]]."
+    },
+    {
+     "p": "Why the PTS cares: the FAA is concerned about fatal spatial disorientation accidents of instrument-rated pilots flying in clouds with inoperative gyro heading or attitude indicators or a lost electronic display. Many light airplanes have one vacuum source and no dual gyros, and backup instruments in technically advanced airplanes may not sit directly in front of the pilot [[FAA-S-8081-9E:16|PTS Emphasis on Attitude Instrument Flying and Partial Panel Skills]]. The AFH counts nearly 200 spatial disorientation accidents from 2008 to 2013, more than 70% of them fatal [[24:108|AFH 5-3]]."
+    },
+    {
+     "table": {
+      "head": [
+       "PTS element",
+       "In plain words"
+      ],
+      "rows": [
+       [
+        "K1a. Recognition of inaccurate or inoperative primary instrument indicators and advising ATC and the evaluator",
+        "Spot the failed or lying instrument, name the system, and say it out loud to ATC and the evaluator"
+       ],
+       [
+        "K1b. Notification of ATC or evaluator anytime that the aircraft is unable to comply with an ATC clearance or whether able to continue the flight",
+        "Say \"unable\" as soon as a clearance can't be flown, and say whether the flight goes on or lands"
+       ],
+       [
+        "K1c. Importance of utilizing navigation equipment in an emergency situation and demonstrating a nonprecision approach without the use of primary flight instruments",
+        "Use every navigation aid and ATC to get down, then fly the NPA without attitude and heading"
+       ],
+       [
+        "K2a to K2c. Common errors",
+        "Wrong diagnosis, silence on the radio, and not switching to standby or emergency mode"
+       ],
+       [
+        "S1, S2. Skills",
+        "Fly and talk through the approach; name, explain and fix the errors the evaluator flies"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "The approach itself shows up twice in the PTS. Area VIII requires at least one nonprecision approach without the gyroscopic heading and attitude indicators [[FAA-S-8081-9E:40|PTS Area VIII NOTE]], and the PTS asks that one approach be flown on backup or partial panel instruments representing the failure mode most realistic for the equipment [[FAA-S-8081-9E:11|PTS Introduction]]. Related lessons: IR.VII.D covers the pilot's side, FII.VI.A the partial panel basics, and FII.VIII.A the approach with a short partial panel section. This lesson goes deeper on diagnosis, the call to ATC, the emergency decision, and how you build and test realistic failures."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: when the evaluator says \"your vacuum pump just failed,\" treat it as a scenario, not a maneuver: fly, diagnose, tell ATC and the evaluator, decide, then fly the approach while you teach. The PTS fails any Task in which you do not use ADM, including SRM [[FAA-S-8081-9E:16|PTS Introduction]]. Losing instruments lowers situational awareness, and the IFH tells pilots to regain it with the navigation instruments or ATC [[23:337|IFH 11-12]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "An examiner asks why the PTS makes such a point of partial panel when glass airplanes have standby instruments. What do you answer?",
+    "a": "Fatal disorientation accidents after gyro or display failures, single vacuum sources in light airplanes, and backups that may sit away from the pilot's direct view [[FAA-S-8081-9E:16|PTS Introduction]]. Glass failure indications are also not standardized, and the backup may share a pitot-static source with the primary display [[24:364|AFH 18-15]]."
+   }
+  },
+  {
+   "title": "Reading the failure picture: which system failed?",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.B.K1",
+    "FII.IX.B.K1a",
+    "FII.IX.B.K2",
+    "FII.IX.B.K2a"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "**Recognition of failed system components** starts with knowing what feeds each instrument. Designers spread the gyro instruments over separate electrical and pneumatic sources so one failure does not take everything, and many airplanes with air-driven attitude indicators use electric rate instruments, or the reverse [[23:112|IFH 5-17]]. Some instruments print their power source on the dial, but the POH/AFM is where the learner finds the source of every instrument, so he knows what to do when one fails [[23:114|IFH 5-19]]."
+    },
+    {
+     "p": "**Recognition of inaccurate or inoperative indicators.** A warning flag, or an attitude indicator that disagrees with the supporting performance instruments, usually identifies a failure. Keep control, speed up the cross-check and include every flight instrument; the problem may be one instrument or a system feeding several [[23:332|IFH 11-7]]. The quick test is to compare the attitude indicator with the turn indicator and the VSI: that one glance compares the suction or pressure system, the electrical system and the static system [[23:332|IFH 11-7]]."
+    },
+    {
+     "table": {
+      "head": [
+       "What the learner sees",
+       "Likely failed system",
+       "Confirm with"
+      ],
+      "rows": [
+       [
+        "Attitude and heading indicators drift or show flags; turn coordinator and VSI say level",
+        "Vacuum (pneumatic) system [[23:332|IFH 11-7]]",
+        "Suction gauge or a low-vacuum light, if fitted [[1:224|PHAK 8-22]]"
+       ],
+       [
+        "Altimeter frozen, VSI on zero, airspeed wrong as altitude changes",
+        "Static system blocked [[23:98|IFH 5-3]]",
+        "Alternate static source: the needles move significantly [[24:364|AFH 18-15]]"
+       ],
+       [
+        "Airspeed rises in a climb and falls in a descent, like an altimeter",
+        "Pitot ram and drain holes blocked [[23:98|IFH 5-3]]",
+        "Altimeter and VSI still normal [[24:364|AFH 18-15]]"
+       ],
+       [
+        "Airspeed slowly drops to zero",
+        "Pitot ram hole blocked, drain hole open [[23:97|IFH 5-2]] [[23:98|IFH 5-3]]",
+        "Altimeter and VSI still normal [[24:364|AFH 18-15]]"
+       ],
+       [
+        "Red X over attitude and heading on the PFD; air data tapes still work",
+        "AHRS [[23:217|IFH 7-56]]",
+        "Standby attitude indicator and compass [[23:219|IFH 7-58]]"
+       ],
+       [
+        "Red X over attitude, airspeed, altitude and vertical speed",
+        "AHRS and ADC [[23:219|IFH 7-58]]",
+        "Standby airspeed, attitude indicator, altimeter, compass [[23:219|IFH 7-58]]"
+       ],
+       [
+        "A discharge on the ammeter, or an alternator warning light",
+        "Charging system [[23:330|IFH 11-5]]",
+        "The POH/AFM alternator failure procedure [[23:332|IFH 11-7]]"
+       ],
+       [
+        "One screen goes dark",
+        "Display [[23:329|IFH 11-4]]",
+        "Reversionary mode on the remaining screen [[23:329|IFH 11-4]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Glass failure indications are not standardized: the primary and backup displays may react differently to the same loss of data, and both may differ from round dials [[24:364|AFH 18-15]]. Pilots need equipment-specific information to interpret a failure [[24:364|AFH 18-15]] [[24:365|AFH 18-16]]. Teach the failure pictures of the airplane your learner actually flies."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: make \"what powers it?\" part of every preflight briefing. Point at each flight instrument and have the learner name its source and what else dies with it, from the POH/AFM [[23:114|IFH 5-19]]. Then on the first sign of trouble he already knows which instruments to compare."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner sees the attitude indicator in a 15° left bank while the turn coordinator shows wings level and the VSI zero. She asks which one to believe. What do you teach?",
+    "a": "Two systems against one: the turn indicator (electrical) and VSI (static) agree, the attitude indicator (suction) does not, so suspect the vacuum system and keep the wings level on the turn coordinator [[23:332|IFH 11-7]]. Then confirm with the flags and the suction gauge [[23:333|IFH 11-8]]."
+   }
+  },
+  {
+   "title": "Vacuum failure: slow, quiet and easy to miss",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.B.K1a",
+    "FII.IX.B.K2a"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "An engine-driven vacuum pump supplies the suction or pressure for the gyros, and when one fails the pilot is left with inoperative attitude and heading indicators [[23:332|IFH 11-7]]. Airplanes with an outside venturi tube instead of a pump have their own trap: ice can clog the tube and stop the instruments when they are most needed [[23:112|IFH 5-17]]."
+    },
+    {
+     "p": "The failure is often gradual. As the gyros slow down they may wander, and if they feed an autopilot or flight director they can drive it the wrong way [[23:332|IFH 11-7]]. Slow gyros are more easily deflected; some airplanes have a low-vacuum warning light, others only the gauge [[1:224|PHAK 8-22]]. Many small airplanes have no vacuum warning system, so the pilot should monitor the vacuum or pressure gauge [[23:332|IFH 11-7]] [[23:333|IFH 11-8]]."
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "In this picture the airplane is level at 2,000 feet MSL, not turning left. A pilot who misses the OFF or failed flags may read it as a left turn and turn a benign failure into a hazardous one [[23:332|IFH 11-7]]. That is what you train against: a missed vacuum failure can lead an unsuspecting pilot into a dangerous unusual attitude that needs a partial panel recovery [[23:333|IFH 11-8]]."
+    },
+    {
+     "p": "Three early clues to teach, before any flag appears:"
+    },
+    {
+     "bullets": [
+      "After a turn, the heading keeps changing while the attitude indicator shows level and the ball is centered: the attitude gyro has precessed [[23:186|IFH 7-25]].",
+      "Any rate of movement or indication that does not fit the maneuver: assume an unusual attitude and speed up the cross-check to tell attitude, instrument error and malfunction apart [[23:188|IFH 7-27]].",
+      "The attitude indicator disagrees with the turn coordinator and the VSI [[23:332|IFH 11-7]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: tie the suction gauge to fixed moments, for example each level-off, each new heading from ATC and the approach briefing, and ask \"suction?\" until the learner says it first. A habit is the defense, because many airplanes give no warning [[23:332|IFH 11-7]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "In level cruise in cloud, your learner's heading indicator drifts 20° in two minutes while the compass holds steady. What is your first question to her?",
+    "a": "\"What does the suction gauge say?\" The heading and attitude gyros are both lost when the vacuum system fails, and slowing gyros wander [[23:332|IFH 11-7]] [[1:224|PHAK 8-22]]. Then compare the attitude indicator with the turn coordinator and VSI [[23:332|IFH 11-7]]."
+   }
+  },
+  {
+   "title": "Pitot-static failures: when the performance instruments lie",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.B.K1a",
+    "FII.IX.B.K2a"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "A pitot or static failure gives erratic and unreliable indications, and a static problem hits the airspeed indicator, altimeter and VSI together [[23:333|IFH 11-8]]. That matters on partial panel, because the altimeter is the primary pitch instrument once the attitude display is gone [[23:197|IFH 7-36]]. Teach the learner the failure picture of each blockage so he is not flying a lie."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "table": {
+      "head": [
+       "Blockage",
+       "What the learner sees",
+       "What to do"
+      ],
+      "rows": [
+       [
+        "Static source blocked",
+        "Altimeter freezes at the altitude of the blockage, VSI reads zero, airspeed reads low above and high below that altitude [[23:98|IFH 5-3]]",
+        "Select the alternate static source; expect slightly high altitude and airspeed and a brief climb on the VSI [[23:98|IFH 5-3]]"
+       ],
+       [
+        "Static source partly blocked",
+        "May look normal through takeoff, climb and level-off, then on the descent shows too high, too fast and descending too slowly [[24:363|AFH 18-14]] [[24:364|AFH 18-15]]",
+        "Open the alternate static source in a climb or descent; if the needles move significantly, keep using it [[24:364|AFH 18-15]]"
+       ],
+       [
+        "Static blocked, no alternate source, unpressurized airplane",
+        "Same as above",
+        "Breaking the VSI glass gives the altimeter and airspeed a static source but may add errors; the VSI is not required for instrument flight [[23:333|IFH 11-8]]"
+       ],
+       [
+        "Pitot ram and drain holes blocked",
+        "Airspeed acts like an altimeter: up in a climb, down in a descent [[23:98|IFH 5-3]] [[24:364|AFH 18-15]]",
+        "Stop chasing the airspeed; altitude and vertical speed are unaffected [[24:364|AFH 18-15]]"
+       ],
+       [
+        "Pitot ram hole blocked, drain open",
+        "Airspeed slowly drops to zero [[23:97|IFH 5-2]] [[23:98|IFH 5-3]]",
+        "Same: altimeter and VSI still work [[24:364|AFH 18-15]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Glass airplanes add a twist. Many light airplanes with glass displays feed the backup instruments from the same pitot-static inputs, so one blockage can fail both, and some combine the ADC and AHRS so a blocked input may also affect the attitude display [[24:364|AFH 18-15]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The AFH names a pilot who fails to engage pitot heat in IMC among the cases that can end in disorientation and loss of control during extended, unpracticed partial panel flight [[24:108|AFH 5-3]]. Put pitot heat in the learner's IMC flow and ask about it."
+     }
+    }
+   ],
+   "check": {
+    "q": "Descending on the approach, your learner says the altimeter is stuck at 3,000 feet and the VSI reads zero, while the airspeed creeps up. What failed, and what does she do?",
+    "a": "A blocked static system: the altimeter freezes, the VSI shows zero, and below the blockage altitude the airspeed reads high [[23:98|IFH 5-3]]. She selects the alternate static source and expects slightly high altitude and airspeed readings [[23:98|IFH 5-3]]."
+   }
+  },
+  {
+   "title": "Glass panels: AHRS and ADC failures",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.B.K1a",
+    "FII.IX.B.K2a",
+    "FII.IX.B.K2c"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "In most modern general aviation systems the AHRS and ADC are built into the displays [[23:118|IFH 5-23]]. The AHRS works out attitude and magnetic heading; the ADC turns pitot, static and temperature inputs into altitude, IAS, TAS and air temperature [[23:117|IFH 5-22]] [[23:118|IFH 5-23]]."
+    },
+    {
+     "p": "**AHRS failure.** All attitude and heading leave the PFD, along with all unusual attitude protection, and in the IFH example every autopilot mode except roll and altitude hold is lost [[23:217|IFH 7-56]]. The airspeed, altitude and VSI tapes still work, but the slip/skid indicator is gone, that airplane has no standby turn coordinator, and the compass is less useful than a turn coordinator [[23:217|IFH 7-56]]. On glass, partial panel means the AHRS simulated or rendered inoperative [[23:194|IFH 7-33]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "**AHRS and ADC failure.** The PFD shows no attitude, airspeed, altitude or vertical speed [[23:219|IFH 7-58]] [[23:220|IFH 7-59]]. The only references left are the standby airspeed indicator, attitude indicator, altimeter and magnetic compass, and the analog standby attitude indicator can tumble in extreme pitch or bank [[23:219|IFH 7-58]]. In the IFH example the manufacturer recommends turning on the autopilot, which is only a wing leveler fed by its own turn coordinator behind the MFD; it cuts workload and the chance of an unusual attitude [[23:219|IFH 7-58]]."
+    },
+    {
+     "p": "**Pitch on glass partial panel.** Use the altitude tape and trend indicator as primary for pitch and avoid abrupt yoke movements [[23:197|IFH 7-36]]. Fix a deviation in two actions: stop the tape, then change pitch back toward the altitude, about 1° for deviations under 100 feet [[23:197|IFH 7-36]]. The glass VSI has no lag, so altitude changes show at once [[23:197|IFH 7-36]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: on each glass lesson, ask \"What is left if the AHRS quits? The ADC? Both?\" and have the learner answer from the AFM supplement and point to each standby instrument. The IFH shows one example system [[23:217|IFH 7-56]], and other systems behave differently [[24:364|AFH 18-15]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "The AHRS fails in cloud in a glass airplane like the IFH example. Your learner selects heading mode on the autopilot and nothing happens. Why, and what can he use?",
+    "a": "With the AHRS gone, that system loses every autopilot mode except roll and altitude hold [[23:217|IFH 7-56]], so there is no heading to hold. Roll mode, a wing leveler fed by its own turn coordinator, still works and lowers workload [[23:219|IFH 7-58]]."
+   }
+  },
+  {
+   "title": "Display and electrical failures: reversionary mode and the standby battery",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.B.K1a",
+    "FII.IX.B.K2a",
+    "FII.IX.B.K2c"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "**Display failure.** When one or more screens fail, the system reverts to a composite mode called reversionary, which drops the moving map and puts the PFD and the engine indications together [[23:329|IFH 11-4]]. A pilot who navigated by the map alone may suddenly lack his position, the nearest airport and nearby traffic; the display is a supplement and does not replace the en route chart [[23:329|IFH 11-4]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "**Charging system failure.** It shows as a discharge on an ammeter or as the alternator load on a loadmeter; some airplanes add a light, which on the Cessna 172 sits low on the left where open charts can hide it [[23:330|IFH 11-5]]. The IFH gives about 40 minutes of battery as an approximation not to rely on, and says never to continue the flight once the charging system fails: land at the nearest suitable airport [[23:330|IFH 11-5]]."
+    },
+    {
+     "p": "In a technically advanced airplane the same failure is an emergency, not an abnormal, because the AHRS, ADC and engine indications all need electrical power [[23:331|IFH 11-6]]. A standby battery comes online when the main battery runs down to about 19 volts, generally only if its switch is in ARM, which should be set before departure, and powers the essential bus: usually AHRS, ADC, PFD, Nav 1, Com 1 and the standby indicator light [[23:331|IFH 11-6]]. The IFH also describes switching the battery master off, with the standby battery switch in ARM, so the standby battery runs the essential bus and the main battery is saved for the approach, when flaps, gear and lights may need it [[23:331|IFH 11-6]]. Depending on the load and the battery's condition, there may be power for 45 minutes of flight or for only a matter of minutes, so reduce the load and land as soon as practical [[23:331|IFH 11-6]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "bullets": [
+      "Shed all but the most necessary equipment. Any loss of electrical power is critical in a small airplane: notify ATC immediately and ask for vectors to the nearest suitable airport [[24:363|AFH 18-14]].",
+      "Electric flap and gear motors draw far more than other equipment; selecting them on a weak battery can cause an immediate total power loss, so plan a no-flap landing and a manual gear extension [[24:362|AFH 18-13]] [[24:363|AFH 18-14]].",
+      "Once the standby battery is gone the flight deck may become very dark; do not count on any power after that [[23:331|IFH 11-6]].",
+      "Know which systems are electric and which keep working without power [[23:331|IFH 11-6]] [[23:332|IFH 11-7]]. If the turn coordinator is electric, as in many airplanes with vacuum attitude indicators, it dies with the battery [[23:112|IFH 5-17]]."
+     ]
+    }
+   ],
+   "check": {
+    "q": "Before an IFR training flight in a glass airplane, your learner leaves the standby battery switch off because \"it's for emergencies.\" What do you tell him?",
+    "a": "The standby battery generally comes online only with the switch in ARM, and arming should be done before departure [[23:331|IFH 11-6]]. Without it, an alternator failure followed by a flat main battery could leave no PFD at all."
+   }
+  },
+  {
+   "title": "Switching to backup: standby instruments and emergency mode",
+   "kind": "skills",
+   "codes": [
+    "FII.IX.B.K2",
+    "FII.IX.B.K2c",
+    "FII.IX.B.K1a"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Failure to transition to emergency mode/standby instrumentation** is the third PTS common error [[FAA-S-8081-9E:45|PTS IX.B K2c]]. It looks like a learner who keeps staring at a red X or a dead gyro, keeps flying the failed display, or never finds the standby instruments. Two causes are common. Startle and surprise: an unexpected event triggers a reflex and disrupts the thinking needed to respond [[24:108|AFH 5-3]]. And fixation: the impulse is to stop and stare at an instrument discrepancy unless the pilot has trained enough to recognize it at once [[23:189|IFH 7-28]]."
+    },
+    {
+     "p": "The IFH gives the transition an order you can teach [[23:332|IFH 11-7]]:"
+    },
+    {
+     "bullets": [
+      "1. Keep control: speed up the cross-check and include all flight instruments.",
+      "2. Identify the failed component and fly with the instruments that still work.",
+      "3. Try to restore it: check the power source, change to a backup or alternate system, reset if possible.",
+      "4. Cover the failed instruments, which may help with control and navigation.",
+      "5. Advise ATC and, if needed, declare an emergency before the situation gets beyond your ability to recover."
+     ]
+    },
+    {
+     "p": "On glass the backup may be the reversionary display [[23:329|IFH 11-4]] or the standby airspeed, attitude, altimeter and compass [[23:331|IFH 11-6]]. The PTS notes that backup instruments in technically advanced airplanes may not sit directly in front of the pilot [[FAA-S-8081-9E:16|PTS Introduction]], so the scan gets longer and the move to them must be practiced. Before a learner has to combine tasks, each one should work reasonably well on its own [[25:81|AIH 3-30]]: fly the standby instruments alone first, then add the failure."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Fly, Identify, Restore, Cover, Tell: a memory aid for the IFH sequence [[23:332|IFH 11-7]]. IR.VII.D teaches the same words to the pilot."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: have the learner say the five words out loud at every simulated failure. Thinking aloud keeps him on task and shows you whether an error comes from a misconception or from motor skill [[25:178|AIH 9-8]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "After you fail the AHRS in the training device, your learner keeps pressing PFD keys for 30 seconds while the altitude drifts 200 feet. Which error is this, and what is your fix?",
+    "a": "Failure to transition to standby instrumentation, driven by stop-and-stare fixation [[23:189|IFH 7-28]]. Fly first on the standby instruments, then identify and try to restore [[23:332|IFH 11-7]]. Repeat the failure at random moments until the move to standby is automatic."
+   }
+  },
+  {
+   "title": "Telling ATC and the evaluator, and saying \"unable\"",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.B.K1a",
+    "FII.IX.B.K1b",
+    "FII.IX.B.K2b"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "callout": {
+      "type": "reg",
+      "text": "The rule: the pilot in command of an aircraft under IFR in controlled airspace shall report as soon as practical to ATC any in-flight malfunction of navigational, approach or communication equipment, including (1) aircraft identification, (2) equipment affected, (3) the degree to which IFR capability in the ATC system is impaired and (4) the nature and extent of assistance desired [[60:483|14 CFR 91.187]]."
+     }
+    },
+    {
+     "p": "A failed attitude or heading indicator is not on that list, but the AIM covers it: when other equipment fails and the pilot judges that safety or IFR capability is affected, report it the same way, and report any information relating to the safety of flight [[33:377|AIM 5-3-3]]. The IFH says the usual next step after an instrument failure is to advise ATC [[23:332|IFH 11-7]]. The PTS adds the evaluator to the list [[FAA-S-8081-9E:45|PTS IX.B K1a]]."
+    },
+    {
+     "table": {
+      "head": [
+       "91.187 item",
+       "Sample words for a vacuum failure"
+      ],
+      "rows": [
+       [
+        "(1) Identification",
+        "\"Approach, Cherokee 4 3 2 Papa Alpha,\""
+       ],
+       [
+        "(2) Equipment affected",
+        "\"vacuum failure, attitude and heading indicators inoperative.\""
+       ],
+       [
+        "(3) Degree of impairment",
+        "\"I can hold altitude and fly timed turns, but not assigned headings.\""
+       ],
+       [
+        "(4) Assistance desired",
+        "\"Request no-gyro vectors for the VOR approach.\" [[33:431|AIM 5-4-11]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Unable to comply, or unable to continue.** K1b asks the learner to tell ATC or the evaluator any time the airplane cannot comply with a clearance, and whether the flight can continue [[FAA-S-8081-9E:45|PTS IX.B K1b]]. The pieces:"
+    },
+    {
+     "bullets": [
+      "No deviation from a clearance without an amended clearance unless there is an emergency (or a TCAS resolution advisory); if uncertain of a clearance, ask at once [[60:450|14 CFR 91.123(a)]].",
+      "If a clearance would, in the pilot's opinion, put the aircraft in jeopardy, it is the pilot's responsibility to request an amended clearance [[33:275|AIM 4-4-1]].",
+      "Advise ATC immediately if unable to fly the approach ATC said to expect, or if another approach is preferred [[33:397|AIM 5-4-4]].",
+      "Report when unable to climb or descend at least 500 feet per minute [[33:377|AIM 5-3-3]].",
+      "After deviating in an emergency, notify ATC as soon as possible [[60:450|14 CFR 91.123(c)]] and obtain an amended clearance [[33:281|AIM 4-4-10]].",
+      "Once in contact, comply, and do not hesitate to say when an instruction can't be complied with [[34:46|AIM 6-3-2]]."
+     ]
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: on a checkride or a training flight with a simulated failure, make the full four-item call on the intercom to the evaluator or instructor playing ATC, never on the real ATC frequency as if the failure were real. Then tell the evaluator in plain words what you are really doing with the airplane. Put the four items on the learner's approach briefing card so the call comes out in the same order under stress."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your partial panel learner is told \"turn left heading 240.\" He has no heading indicator. What should he say?",
+    "a": "That he is unable to fly headings and why, and request a no-gyro vector [[33:431|AIM 5-4-11]]. He must not guess at a clearance he cannot fly: ask, or say he cannot comply [[60:450|14 CFR 91.123(a)]] [[34:46|AIM 6-3-2]]."
+   }
+  },
+  {
+   "title": "Declare or not, continue or not",
+   "kind": "risk",
+   "codes": [
+    "FII.IX.B.K1b",
+    "FII.IX.B.K2",
+    "FII.IX.B.K2b"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "**Failure to notify ATC of situation** is the second PTS common error [[FAA-S-8081-9E:45|PTS IX.B K2b]]. The AIM names the usual root: pilots declare at once for fire, mechanical failure or structural damage, but some are reluctant to report an urgency condition that is not yet perilous but potentially catastrophic [[34:28|AIM 6-1-2]]. An aircraft is in at least an urgency condition the moment the pilot becomes doubtful about any condition that could adversely affect flight safety, and that is the time to ask for help, not after it becomes distress [[34:28|AIM 6-1-2]]. Delay has caused accidents and cost lives [[34:28|AIM 6-1-2]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Condition",
+       "Meaning",
+       "Radio call"
+      ],
+      "rows": [
+       [
+        "Urgency",
+        "Concerned about safety; needs timely but not immediate assistance [[34:437|P/CG U-2]]",
+        "PAN-PAN, preferably three times; priority over all but distress [[34:45|AIM 6-3-1]]"
+       ],
+       [
+        "Distress",
+        "Threatened by serious and/or imminent danger; needs immediate assistance [[34:337|P/CG D-4]]",
+        "MAYDAY, preferably three times; absolute priority, commands radio silence [[34:45|AIM 6-3-1]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Losing the gyros in IMC fits the urgency definition: the pilot is doubtful about a condition that affects safety [[34:28|AIM 6-1-2]]. Declaring brings additional assistance and priority handling [[30:47|RMH 6-4]]. If he is already in radio contact he keeps his assigned code; 7700 is for when he cannot reach anyone at once [[34:46|AIM 6-3-2]]. Application: a learner who is losing control is in distress; teach him to say MAYDAY without embarrassment."
+    },
+    {
+     "p": "**Authority and paperwork.** The pilot in command is the final authority and may deviate from any part 91 rule in an in-flight emergency requiring immediate action, with a written report only if the FAA asks [[60:435|14 CFR 91.3]]. If ATC gives priority without a rule deviation, the facility may ask for a detailed report within 48 hours [[60:450|14 CFR 91.123(d)]]. Application: learners often fear the paperwork more than the failure; show them how little it is."
+    },
+    {
+     "p": "**Continue or land?** The IFH answers for an electrical failure: never continue once the charging system fails; land at the nearest suitable airport [[23:330|IFH 11-5]]. For a vacuum failure use risk management. In the AIH case a pilot knew his vacuum pump had failed and saw IMC ahead; the aircraft and environment hazards together, a possible external pressure to reach his destination and his assumption that he could control the airplane without critical instruments made the risk high, and his most effective mitigation may have been to divert and land while still in VMC [[25:186|AIH 10-2]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: teach the decision with PAVE, as the AIH does with that case [[25:186|AIH 10-2]]. Pilot: how good is my partial panel today? Aircraft: what else shares the failed system? Environment: where is VMC, where is a radar approach? External pressures: who is waiting for me?"
+     }
+    }
+   ],
+   "check": {
+    "q": "In IMC, your learner's vacuum pump fails 20 minutes from his destination. He plans to say nothing to ATC \"until it's an emergency.\" What do you teach?",
+    "a": "He is already in at least an urgency condition, because he is doubtful about a condition affecting safety; that is the time to ask for help [[34:28|AIM 6-1-2]]. Declaring brings priority handling [[30:47|RMH 6-4]], and the failure should be reported with the four 91.187 items [[33:377|AIM 5-3-3]]."
+   }
+  },
+  {
+   "title": "Navigation equipment and ATC as backup instruments",
+   "kind": "knowledge",
+   "codes": [
+    "FII.IX.B.K1c",
+    "FII.IX.B.K1b"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "**Importance of utilizing navigation equipment in an emergency situation.** A pneumatic failure that takes the attitude and heading indicators can put a pilot in an unusual attitude and wreck his situational awareness [[23:337|IFH 11-12]]. The IFH's way back is to reassess and seek information from other sources, such as the navigation instruments or ATC [[23:337|IFH 11-12]]."
+    },
+    {
+     "bullets": [
+      "**Nearest airports.** A PFD soft key lists up to 25 nearest airports meeting the pilot's criteria [[23:334|IFH 11-9]]; from there he can go Direct-To and auto-tune the frequency [[23:335|IFH 11-10]], and on the MFD review and load an approach [[23:336|IFH 11-11]].",
+      "**The chart.** The display is a supplement, not a replacement for en route charts: follow the flight on the chart and know the closest airport, which becomes critical if the display fails [[23:329|IFH 11-4]].",
+      "**The battery radio.** Set up for a vacuum or electrical failure: if only Nav 1 works on battery or emergency power, put the primary approach NAVAID in Nav 1 [[29:175|IPH 4-35]].",
+      "**Without power.** With only the standby instruments left, navigation is pilotage and dead reckoning unless a handheld transceiver with GPS is aboard [[23:331|IFH 11-6]].",
+      "**The autopilot.** In the IFH example, roll and altitude hold survive an AHRS failure [[23:217|IFH 7-56]], and the roll mode, a wing leveler, lowers workload [[23:219|IFH 7-58]]; a wandering vacuum gyro, though, can drive a connected autopilot or flight director wrong [[23:332|IFH 11-7]]."
+     ]
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "p": "**ATC is navigation equipment too.** The only airborne radio equipment a radar approach needs is a working radio transmitter and receiver [[33:430|AIM 5-4-11]]. With the heading indicator out, the pilot advises ATC and asks for a no-gyro vector or approach, makes every turn at standard rate as soon as he hears \"turn right\" or \"turn left,\" and stops on \"stop turn.\" On a surveillance or precision approach, ATC calls for half standard rate once he is on final [[33:431|AIM 5-4-11]]. The IPH calls the no-gyro approach perhaps the greatest benefit of radar approaches when the heading indicator has failed [[29:209|IPH 4-69]]."
+    },
+    {
+     "p": "**Choosing the approach.** Application: with the gyros gone, pick the approach with the least maneuvering and the most help: a no-gyro radar approach if offered, otherwise a straight-in the learner knows, with the primary NAVAID in the battery radio. If ATC planned a different approach, he must tell ATC at once that he cannot fly it or prefers another [[33:397|AIM 5-4-4]]. If he feels rushed on vectors, he can ask for a delay or a longer vector [[30:47|RMH 6-4]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "A radar approach does not waive the weather minimums [[33:430|AIM 5-4-11]]. An ASR might not be approved unless there is an ATC operational requirement or an unusual or emergency situation, so a training request may be refused, and PAR and ASR minimums are on separate pages of the Terminal Procedures Publication [[33:430|AIM 5-4-11]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner's heading indicator fails on vectors near an airport with radar approach control. Name two kinds of navigation help he should use before he starts the approach.",
+    "a": "ATC: no-gyro vectors or a no-gyro radar approach, turning on \"turn right/left\" and stopping on \"stop turn\" [[33:431|AIM 5-4-11]]. His own equipment: the navigation instruments and nearest airport page [[23:337|IFH 11-12]] [[23:334|IFH 11-9]], with the approach NAVAID in the radio that works on battery [[29:175|IPH 4-35]]."
+   }
+  },
+  {
+   "title": "Flying the NPA on partial panel: technique past the basics",
+   "kind": "skills",
+   "codes": [
+    "FII.IX.B.S1",
+    "FII.IX.B.K1c"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "FII.VIII.A lists the partial panel basics: altimeter primary for pitch, timed turns, accurate trim on the descent and no-gyro vectors. This section adds the numbers and order that make the approach work, so you can teach them as a sequence."
+    },
+    {
+     "table": {
+      "head": [
+       "Phase",
+       "Technique without attitude and heading",
+       "Teaching point"
+      ],
+      "rows": [
+       [
+        "Before the failure",
+        "Calibrate the turn coordinator: at the standard-rate mark the heading should change 30° every 10 seconds; adjust the deflection if not [[23:182|IFH 7-21]]",
+        "On glass, 90° should take 30 seconds [[23:214|IFH 7-53]]"
+       ],
+       [
+        "Heading changes",
+        "Timed turns: degrees divided by 3 gives seconds at standard rate; half standard rate for small changes; roll in as the second hand passes a cardinal point [[23:182|IFH 7-21]] [[23:214|IFH 7-53]]",
+        "Read the compass only once straight and level [[23:187|IFH 7-26]]"
+       ],
+       [
+        "Level flight",
+        "Altimeter primary; small inputs; first stop the needle, then go back [[23:197|IFH 7-36]]",
+        "Return at about double the error, never more than the optimum rate [[23:197|IFH 7-36]]"
+       ],
+       [
+        "Descent at the FAF",
+        "Slow to descent speed level, reduce power to a known setting and lower the nose to hold the airspeed, then trim; this entry works with or without an attitude indicator [[23:178|IFH 7-17]]",
+        "Airspeed, altimeter and VSI vary until the airplane settles, so trim and pressures must be accurate [[23:177|IFH 7-16]]"
+       ],
+       [
+        "Constant-rate descent",
+        "VSI primary for pitch once near the rate, airspeed primary for power [[23:178|IFH 7-17]]",
+        "Planned rate: FAF altitude minus TDZE, divided by minutes inbound [[29:177|IPH 4-37]]"
+       ],
+       [
+        "Level-off at the MDA",
+        "At descent speed, lead by about 50 feet, level the pitch and add power [[23:178|IFH 7-17]]",
+        "On glass, start slowing the rate within about 10% of it [[23:198|IFH 7-37]]"
+       ],
+       [
+        "Course corrections",
+        "Bank no more than the degrees to turn, never past standard rate [[23:168|IFH 7-7]]",
+        "Small, precise inputs; rapid ones start an oscillation [[23:197|IFH 7-36]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Overcontrolling means more than 200 fpm past the rate you want [[23:198|IFH 7-37]]. Rapid inputs on limited instruments can disorient the pilot and fix his eyes on the altimeter, costing heading and airspeed control [[23:197|IFH 7-36]]. Keep descents stabilized, and below 1,000 feet AGL never more than about 1,000 fpm [[29:177|IPH 4-37]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: before the failure, have the learner write the descent rate, FAF-to-MAP time and timed-turn seconds for the expected approach on his card. Partial panel leaves no spare attention for arithmetic."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner needs a 45° heading change on partial panel close to the final approach course. How do you coach the turn?",
+    "a": "A half-standard-rate timed turn: 45° takes 30 seconds [[23:182|IFH 7-21]], rolling in as the second hand passes a cardinal point, and he checks the compass only once straight and level [[23:187|IFH 7-26]]."
+   }
+  },
+  {
+   "title": "Demonstrate and explain: the right-seat talk-through",
+   "kind": "skills",
+   "codes": [
+    "FII.IX.B.S1",
+    "FII.IX.B.K1a",
+    "FII.IX.B.K1b",
+    "FII.IX.B.K1c"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "S1 asks you to demonstrate and simultaneously explain the loss of the primary flight instrument indicators by flying a nonprecision approach without them [[FAA-S-8081-9E:45|PTS IX.B S1]]. The explanation must be clear, concise, technically accurate and complete, with no prompting [[FAA-S-8081-9E:15|PTS Introduction]]. Demonstrate exactly the way the learner should practice, in the same order you explain it [[25:177|AIH 9-7]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Phase",
+       "What you say while you fly"
+      ],
+      "rows": [
+       [
+        "Failure",
+        "\"Flags on the attitude and heading indicators. Wings level on the turn coordinator, altitude on the altimeter. Turn coordinator and VSI agree, the attitude indicator doesn't: suction system [[23:332|IFH 11-7]].\""
+       ],
+       [
+        "Restore and cover",
+        "\"Suction gauge is low; nothing to switch to on this airplane. Covering both gyros so they can't pull me off [[23:332|IFH 11-7]].\""
+       ],
+       [
+        "Tell",
+        "On the intercom, to the evaluator playing ATC: \"Approach, (call sign), vacuum failure, attitude and heading out. I can hold altitude and fly timed turns. Request no-gyro vectors for the VOR approach [[60:483|14 CFR 91.187]] [[33:431|AIM 5-4-11]].\" To the evaluator: \"I'd declare: I'm doubtful about safety, so that's at least urgency [[34:28|AIM 6-1-2]].\""
+       ],
+       [
+        "Set up",
+        "\"Approach NAVAID in Nav 1, the radio on battery power [[29:175|IPH 4-35]]. Brief: course, FAF altitude, MDA, time to the MAP, descent rate [[29:177|IPH 4-37]].\""
+       ],
+       [
+        "Vectors",
+        "\"Turn left: standard rate, now. Stop turn: wings level on the turn coordinator. Half standard rate on final [[33:431|AIM 5-4-11]].\""
+       ],
+       [
+        "FAF",
+        "\"Clock started. Power to the descent setting, nose down to hold speed, trim [[23:178|IFH 7-17]]. VSI to the planned rate.\""
+       ],
+       [
+        "Final",
+        "\"Needle drifting left: small half-standard-rate turn, no more bank than the heading change I need [[23:168|IFH 7-7]] [[23:182|IFH 7-21]].\""
+       ],
+       [
+        "MDA",
+        "\"Fifty feet to go: level off, add power [[23:178|IFH 7-17]]. Runway environment? If not by the MAP, missed approach.\""
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Then move through telling and doing: the learner tells while you fly, then the learner tells while he flies. Misunderstandings come out before he is busy with the controls, and his thinking aloud shows whether an error is a misconception or a motor skill [[25:178|AIH 9-8]]. Brief the positive exchange of flight controls before the flight [[25:178|AIH 9-8]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: keep the talk-through at the pace of the airplane. When workload peaks at the FAF, fly first and finish the sentence afterward. The PTS also counts any action that needs the evaluator to step in for safety as unsatisfactory [[FAA-S-8081-9E:15|PTS Introduction]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "During your demonstration you level off 40 feet below the MDA. What does the AIH say to do?",
+    "a": "If the demonstration does not match the explanation, acknowledge and explain the deviation immediately [[25:177|AIH 9-7]]; then correct back to the MDA and carry on."
+   }
+  },
+  {
+   "title": "Setting up realistic failures, safely",
+   "kind": "risk",
+   "codes": [
+    "FII.IX.B.K2a",
+    "FII.IX.B.K2c",
+    "FII.IX.B.S2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "The PTS asks for one approach on backup or partial panel instruments \"representing the failure mode(s) most realistic for the equipment used\" [[FAA-S-8081-9E:11|PTS Introduction]]. On round dials that usually means a vacuum failure taking both gyros [[23:332|IFH 11-7]]; on glass, an AHRS, ADC or display failure [[23:217|IFH 7-56]] [[23:329|IFH 11-4]]. The AFH names the limit: the difficulty or inability to simulate failure modes restricts training, and could leave a pilot less prepared for the real event [[24:365|AFH 18-16]] [[24:372|AFH 18-23]]."
+    },
+    {
+     "p": "Application: split the work between the airplane and a training device."
+    },
+    {
+     "table": {
+      "head": [
+       "Equipment",
+       "In the airplane",
+       "In an FTD or ATD"
+      ],
+      "rows": [
+       [
+        "Round dials, vacuum gyros",
+        "Cover the attitude and heading indicators [[23:162|IFH 7-1]] at an unannounced moment; ask what failed before he flies on",
+        "Fail the vacuum pump so the gyros slow and wander, and let him find it [[23:332|IFH 11-7]]"
+       ],
+       [
+        "Glass, AHRS or ADC",
+        "Simulate the AHRS failure the way the AFM or school allows [[23:194|IFH 7-33]]; fly the standby instruments",
+        "Fail the AHRS, ADC or a display; fly reversionary mode or standby [[23:329|IFH 11-4]] [[23:219|IFH 7-58]]"
+       ],
+       [
+        "Pitot-static",
+        "Talk it through only; never block a real port",
+        "Block a source and practice the alternate static source [[23:98|IFH 5-3]]"
+       ],
+       [
+        "Electrical",
+        "Talk through the load-shed list; never cut real essential power in IMC",
+        "Fail the alternator and fly to landing on the standby battery [[23:331|IFH 11-6]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Application: training devices are the place for failures you can't safely create in the airplane. An integrated curriculum can teach a procedure in a simulator and then move to the airplane, and the FAA recommends staying in the simulator until the task is done successfully [[25:174|AIH 9-4]]. The IFH lesson guide gives partial panel its own early lesson, then brings it back in the navigation, approach and cross-country lessons [[23:343|IFH B-2]] [[23:344|IFH B-3]]."
+    },
+    {
+     "bullets": [
+      "The evaluator will not simulate any condition that may jeopardize safe flight or damage the airplane [[FAA-S-8081-9E:10|PTS Introduction]]; hold yourself to the same rule. Simulated engine failures done wrong have caused real accidents [[25:191|AIH 10-7]].",
+      "Learn the airplane's avionics before you teach in it [[25:191|AIH 10-7]].",
+      "Simulated instrument flight needs a safety pilot in the other control seat with at least a private pilot certificate for the category and class [[60:446|14 CFR 91.109(c)(1)]], adequate vision forward and to each side or a competent observer [[60:447|14 CFR 91.109(c)(2)]], and fully functioning dual controls, with a narrow throwover-wheel exception [[60:447|14 CFR 91.109(c)(3)]]. The AIM adds that the weather should be good enough to make up for the safety pilot's restricted view, with more margin near busy airways and airports [[33:258|AIM 4-3-16]].",
+      "Brief the three-step exchange of controls [[25:178|AIH 9-8]], guard the controls, and take them calmly if needed [[25:179|AIH 9-9]].",
+      "Application: never squawk 7700 or say MAYDAY or PAN-PAN for a simulated failure. 7700 normally sets off an alarm at all control positions [[34:29|AIM 6-2-2]], and MAYDAY commands radio silence [[34:45|AIM 6-3-1]]. Pilots not on an IFR flight plan who want practice approaches should always say \"practice\" [[33:264|AIM 4-3-22]]."
+     ]
+    },
+    {
+     "p": "Realism also means surprise. Scenario training with realistic distractions helps pilots deal with startle, and the scenario should feel risky enough to raise stress [[24:108|AFH 5-3]]. Safety permitting, let the learner go part way into a mistake and find the way out [[25:182|AIH 9-12]]. Build it in steps, like the AIH's emergency example: first on the ground, then in the airplane at a known spot, then mixed with other duties far from home [[25:82|AIH 3-31]]."
+    }
+   ],
+   "check": {
+    "q": "Your learner always flies partial panel well once the covers go on. What would make the training more realistic, and where?",
+    "a": "In an FTD or ATD, fail the vacuum pump without warning so the gyros wander and he has to find it from the flags, suction gauge and instrument comparison [[23:332|IFH 11-7]]. The difficulty or inability to simulate failure modes limits training [[24:365|AFH 18-16]], and the device can show the slow failure safely."
+   }
+  },
+  {
+   "title": "Common errors: spot, explain, correct",
+   "kind": "skills",
+   "codes": [
+    "FII.IX.B.K2",
+    "FII.IX.B.K2a",
+    "FII.IX.B.K2b",
+    "FII.IX.B.K2c",
+    "FII.IX.B.S2"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "S2 asks you to analyze and correct the common errors [[FAA-S-8081-9E:45|PTS IX.B S2]], and the PTS lists them so the evaluator can see that you recognize, analyze and correct them [[FAA-S-8081-9E:10|PTS Introduction]]. Expect the evaluator, as your learner, to miss a flag, stay silent on the radio or keep scanning a dead PFD. For each one: what you see, why it happens, and the fix. Telling a learner he erred without explaining how to fix it does not help [[25:162|AIH 8-4]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Error",
+       "What you see",
+       "Usual cause",
+       "Fix, and how you teach it"
+      ],
+      "rows": [
+       [
+        "**Recognition of failed system components** (K2a): wrong system blamed",
+        "Chases the drifting attitude indicator into a real bank, or trusts a frozen altimeter",
+        "Missed flags; no comparison of instruments on different systems [[23:332|IFH 11-7]]",
+        "Compare attitude indicator, turn coordinator and VSI; ask \"which system?\" every time; teach the blockage table [[24:364|AFH 18-15]]"
+       ],
+       [
+        "**Failure to notify ATC of situation** (K2b)",
+        "Flies on in silence, or calls only once lost or low",
+        "Reluctance to report an urgency condition [[34:28|AIM 6-1-2]]",
+        "A scripted four-item call [[60:483|14 CFR 91.187]] built into the flow; praise early calls"
+       ],
+       [
+        "**Failure to transition to emergency mode/standby instrumentation** (K2c)",
+        "Stares at a red X, keeps using failed gyros, never looks at standby",
+        "Startle [[24:108|AFH 5-3]]; stop-and-stare fixation [[23:189|IFH 7-28]]",
+        "Fly, identify, restore, cover, tell [[23:332|IFH 11-7]]; repeat at random times in a training device"
+       ],
+       [
+        "Failed instruments left in view",
+        "Eyes keep going back to the dead gyro; heading drifts each time",
+        "Habit of scanning it",
+        "Cover them; it may help control and navigation [[23:332|IFH 11-7]]"
+       ],
+       [
+        "Overcontrolling pitch",
+        "Altitude oscillates; eyes locked on the altimeter",
+        "Large, rapid inputs on limited instruments [[23:197|IFH 7-36]]",
+        "Two steps, small inputs, return rate about double the error [[23:197|IFH 7-36]]"
+       ],
+       [
+        "Poor trim",
+        "Altitude wanders whenever he looks at the chart",
+        "A distraction while holding control pressure [[23:189|IFH 7-28]] [[23:219|IFH 7-58]]",
+        "Trim after every change; check with a brief hands-off moment"
+       ],
+       [
+        "Disorganized flight deck",
+        "Hunting for the chart or timer at the FAF",
+        "Not set up before the failure [[23:189|IFH 7-28]]",
+        "Brief and set up early, primary NAVAID in the battery radio [[29:175|IPH 4-35]]"
+       ],
+       [
+        "Compass misused in turns",
+        "Rolls out by the compass and overshoots",
+        "Fixation on the compass in the roll-out; wrong lead or lag [[23:187|IFH 7-26]]",
+        "Timed turns; read the compass only when straight and level [[23:187|IFH 7-26]] [[23:214|IFH 7-53]]"
+       ],
+       [
+        "Turn coordinator misread",
+        "Believes he is banked when he is skidding",
+        "Did not check the ball [[23:187|IFH 7-26]]",
+        "Ball first, then the miniature airplane"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "When a learner flies it right but you doubt he understands why, have him vary it or combine it with other tasks; a learner who does not understand the principles will probably not manage [[25:182|AIH 9-12]]. Debrief with collaborative assessment: his self-assessment first, then yours [[25:182|AIH 9-12]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: when the examiner flies an error, say three short sentences: \"That's a missed vacuum failure. You trusted one instrument without comparing it to the others. Check the turn coordinator and VSI, then cover the gyros.\" Name, cause, fix."
+     }
+    }
+   ],
+   "check": {
+    "q": "The examiner, as your learner, flies a perfect partial panel approach but never tells ATC about the failure. What do you say?",
+    "a": "Name it: failure to notify ATC of the situation. Cause: reluctance to report an urgency condition [[34:28|AIM 6-1-2]]. Fix: report with the four 91.187 items and ask for the help needed, such as no-gyro vectors [[60:483|14 CFR 91.187]] [[33:431|AIM 5-4-11]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "FII.IX.B-1.jpg",
+   "res": "24",
+   "page": 364,
+   "caption": "Figure 18-10. Effects of blocked pitot-static sources. (AFH 18-15)",
+   "alt": "Three round gauges, an airspeed indicator, an altimeter and a vertical speed indicator, linked by red bands to the matching tapes on a glass PFD behind them. Below them a table titled Effect of Blocked Pitot/Static Sources on Airspeed, Altimeter, and Vertical Speed Indications. Pitot source blocked: airspeed increases with altitude gain and decreases with altitude loss; altitude and vertical speed unaffected. One static source blocked: inaccurate while sideslipping, very sensitive in turbulence. Both static sources blocked: airspeed decreases with altitude gain and increases with altitude loss; altitude and vertical speed do not change with actual changes. Both static and pitot sources blocked: all indications remain constant regardless of actual changes.",
+   "source": "AFH, PDF p. 364"
+  },
+  "f2": {
+   "file": "FII.IX.B-2.jpg",
+   "res": "23",
+   "page": 220,
+   "caption": "Figure 7-74. AHRS and ADC failure. (IFH 7-59)",
+   "alt": "A Garmin PFD with red X marks across the attitude display, labeled ATTITUDE FAIL, across the airspeed tape, labeled AIRSPEED FAIL, across the altitude tape, labeled ALTITUDE FAIL, and across the vertical speed scale, labeled VERT SPEED FAIL. A red HDG flag sits above the compass rose, which shows tick marks but no heading numbers; beside it the heading bug box reads HDG 273° and the course box CRS 071°.",
+   "source": "IFH, PDF p. 220"
+  },
+  "f3": {
+   "file": "FII.IX.B-3.jpg",
+   "res": "23",
+   "page": 329,
+   "caption": "Figure 11-3. G1000 PFD display in normal mode and in the reversionary mode activated upon system failure. (IFH 11-4)",
+   "alt": "Top row, labeled Normal Mode: the left screen shows the PFD with attitude, airspeed and altitude tapes and an HSI; the right screen shows a moving map with an engine data strip. Bottom row, labeled Display Failure / Reversionary Mode: the left screen is dark, and the right screen now shows the flight instruments with the engine data strip down its left side and no moving map.",
+   "source": "IFH, PDF p. 329"
+  },
+  "f4": {
+   "file": "FII.IX.B-4.jpg",
+   "res": "23",
+   "page": 331,
+   "caption": "Figure 11-6. The double rocker switch and the standby battery switch. The standby battery must be armed to work correctly; arming should be done prior to departure. (IFH 11-6)",
+   "alt": "A gray switch panel. At the top, a red toggle switch under the label STBY BATT with positions ARM, OFF and TEST, the toggle up in ARM, and a TEST light beside it. Below, a red double rocker switch labeled MASTER, with ALT on the left half and BAT on the right half, both marked ON.",
+   "source": "IFH, PDF p. 331"
+  },
+  "f5": {
+   "file": "FII.IX.B-5.jpg",
+   "res": "23",
+   "page": 335,
+   "caption": "Figure 11-11. Information shown on the nearest airport page. (IFH 11-10)",
+   "alt": "A NEAREST AIRPORTS window with yellow callouts: airport identifier (KGNV, highlighted), airport symbol, best approach available (ILS for KGNV, VFR for 0J8), distance to the airport from present position (13.6 NM), communication frequency and type (MULTICOM 122.900), and longest runway available (5044 FT).",
+   "source": "IFH, PDF p. 335"
+  },
+  "f6": {
+   "file": "FII.IX.B-6.jpg",
+   "res": "23",
+   "page": 333,
+   "caption": "Figure 11-8. Vacuum failure: inoperative attitude and heading indicators. The airplane is actually level at 2,000 feet MSL. (IFH 11-8)",
+   "alt": "A round-dial panel. The attitude indicator shows the horizon tilted as if in a left bank, with a red OFF flag at its upper right. The heading indicator has a red flag on its right side. The turn coordinator, marked D.C. ELEC., shows wings level; the vertical speed indicator reads zero; the altimeter reads about 2,000 feet. At the left, a combined VAC and AMP gauge, its vacuum needle low, below the green band, sits next to the oil gauges, and manifold pressure and RPM gauges are on the right.",
+   "source": "IFH, PDF p. 333"
+  }
+ },
+ "scenario": {
+  "title": "Partial panel day in the Cherokee",
+  "codes": [
+   "FII.IX.B.K1a",
+   "FII.IX.B.K1b",
+   "FII.IX.B.K1c",
+   "FII.IX.B.K2b",
+   "FII.IX.B.K2c",
+   "FII.IX.B.S2"
+  ],
+  "setup": "You are a new CFII. Your instrument learner is two lessons from his checkride. He flies a round-dial PA-28 with one engine-driven vacuum pump and an electric turn coordinator. Today's plan: a VOR approach at a towered airport under radar approach control, in VMC with scattered clouds at 4,000 feet, you as instructor and safety pilot. Last week he flew a clean partial panel approach the moment you put the covers on. You also have an ATD at the school for next week.",
+  "questions": [
+   {
+    "q": "In the briefing, what do you cover about the failure itself?",
+    "a": "That a failure will be simulated and how, the positive exchange of controls [[25:178|AIH 9-8]], your role as safety pilot [[60:446|14 CFR 91.109(c)(1)]], and that nothing goes out as a real emergency, since 7700 normally triggers an alarm at all control positions [[34:29|AIM 6-2-2]]. The failure most realistic for this airplane is a vacuum failure taking both gyros [[23:332|IFH 11-7]] [[FAA-S-8081-9E:11|PTS Introduction]]."
+   },
+   {
+    "q": "How do you make the failure realistic in the airplane without making it unsafe?",
+    "a": "Introduce it without warning at a busy moment, cover the attitude and heading indicators [[23:162|IFH 7-1]], and ask what failed and how he knows before he flies on: flags, suction gauge, and attitude indicator against turn coordinator and VSI [[23:332|IFH 11-7]]. Save the slow, wandering failure for the ATD: the difficulty of simulating failure modes limits training [[24:365|AFH 18-16]], and a device can show a drifting gyro you could not safely create in the airplane."
+   },
+   {
+    "q": "He covers the gyros and flies well, but says nothing on the radio. What do you do?",
+    "a": "Ask, \"Who needs to know?\" Failure to notify ATC is a listed common error [[FAA-S-8081-9E:45|PTS IX.B K2b]]. He should report with the four 91.187 items [[60:483|14 CFR 91.187]] [[33:377|AIM 5-3-3]] and ask for no-gyro vectors [[33:431|AIM 5-4-11]]. You play the controller unless you have arranged practice with ATC."
+   },
+   {
+    "q": "Playing ATC, you say \"turn left,\" and he rolls into 30° of bank. Name the error and the fix.",
+    "a": "Overbanking: no-gyro turns are standard rate, started at once [[33:431|AIM 5-4-11]], and bank should never exceed what a standard-rate turn needs [[23:168|IFH 7-7]]. Have him hold the calibrated standard-rate mark on the turn coordinator [[23:182|IFH 7-21]]."
+   },
+   {
+    "q": "Inside the FAF his altitude swings 150 feet each way and the CDI drifts. What is happening and what do you say?",
+    "a": "Overcontrolling and fixation on the altimeter, which on limited instruments costs heading control [[23:197|IFH 7-36]]. Smaller inputs in two steps: stop the needle, then return [[23:197|IFH 7-36]]. If it won't settle, go missed and ask for more time on vectors [[30:47|RMH 6-4]]."
+   },
+   {
+    "q": "In the debrief he asks what he would do if this happened for real in IMC halfway to a destination an hour away.",
+    "a": "Tell ATC and declare at least urgency [[34:28|AIM 6-1-2]], use the navigation instruments and ATC [[23:337|IFH 11-12]], and weigh PAVE. The AIH case pilot flew on into IMC with a failed vacuum pump and lost control; his most effective mitigation may have been to divert and land while still in VMC [[25:186|AIH 10-2]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "FII.IX.B.S1",
+   "do": "From the right seat, fly a nonprecision approach with the attitude and heading indicators covered (or the AHRS failed on glass) while you explain recognition, the move to backup instruments, the call to ATC and the evaluator, the emergency decision, timed or no-gyro turns, the FAF descent and the MDA level-off.",
+   "practice": "Fly the talk-through aloud in an ATD first, in the same order you explain it [[25:177|AIH 9-7]], and stay there until it is consistent [[25:174|AIH 9-4]]. In the airplane, calibrate the turn coordinator on every flight [[23:182|IFH 7-21]] and have another applicant play ATC with \"turn left\" and \"stop turn\" [[33:431|AIM 5-4-11]]."
+  },
+  {
+   "code": "FII.IX.B.S2",
+   "do": "When the examiner, as your learner, misses a flag, stays silent on the radio, stares at a red X, overbanks on no-gyro vectors or chases the altimeter, name the error, explain the cause and give the fix.",
+   "practice": "Take turns with another applicant flying the errors in the common errors table. For each, say what you see, why it happens and the fix, with its source [[23:332|IFH 11-7]] [[34:28|AIM 6-1-2]] [[23:197|IFH 7-36]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Your learner's attitude indicator shows a left bank, while the turn coordinator shows wings level and the VSI zero. Which system does the IFH comparison point to?",
+   "options": [
+    "The static system feeding the VSI",
+    "The vacuum system driving the gyro",
+    "The electrical system feeding the turn coordinator",
+    "The pitot system feeding the airspeed"
+   ],
+   "answer": 1,
+   "why": "Comparing the attitude indicator with the turn indicator and VSI checks the suction, electrical and static systems at once [[23:332|IFH 11-7]]. Two agree, so the odd one out, the vacuum-driven attitude indicator, is the suspect. Blaming the turn coordinator ignores that the VSI agrees with it."
+  },
+  {
+   "q": "In cloud on the approach, your learner's altimeter stops at 4,000 feet and the VSI sits on zero while he descends. What should he do about it?",
+   "options": [
+    "Select the alternate static source",
+    "Use the airspeed as the pitch reference",
+    "Switch the PFD to reversionary mode",
+    "Break the airspeed glass"
+   ],
+   "answer": 0,
+   "why": "A blocked static system freezes the altimeter and zeroes the VSI; the remedy is the alternate static source [[23:98|IFH 5-3]]. The airspeed is wrong too, reading high below the altitude where the blockage occurred [[23:98|IFH 5-3]], and the glass that may be broken as a last resort is the VSI's, not the airspeed indicator's [[23:333|IFH 11-8]]."
+  },
+  {
+   "q": "In a glass airplane like the IFH example, the AHRS fails. Which autopilot modes are left?",
+   "options": [
+    "Heading and altitude hold",
+    "Navigation and vertical speed",
+    "Roll and altitude hold",
+    "None: the whole autopilot drops off"
+   ],
+   "answer": 2,
+   "why": "When the AHRS fails, all modes except roll and altitude hold are lost in that system [[23:217|IFH 7-56]]. Heading mode needs the heading the AHRS no longer provides."
+  },
+  {
+   "q": "Before an IFR flight in a glass airplane, which switch position lets the standby battery power the essential bus after a charging failure?",
+   "options": [
+    "Standby battery switch in TEST",
+    "Alternator half of the master OFF",
+    "Avionics master switch OFF",
+    "Standby battery switch in ARM"
+   ],
+   "answer": 3,
+   "why": "The standby battery comes online at about 19 volts, generally only with its switch in ARM, and arming should be done before departure [[23:331|IFH 11-6]]. TEST is not ARM, and switching the alternator off would create the very failure you are planning for."
+  },
+  {
+   "q": "Your partial panel learner has no heading indicator, and ATC says \"turn right heading 090.\" What should he ask for?",
+   "options": [
+    "A no-gyro vector or approach",
+    "More time on a delay vector",
+    "A block of altitudes to work in",
+    "A climb to get on top of the clouds"
+   ],
+   "answer": 0,
+   "why": "With the heading indicator inoperative or inaccurate, the pilot advises ATC and requests a no-gyro vector or approach [[33:431|AIM 5-4-11]]. A delay can help workload [[30:47|RMH 6-4]] but does not solve the heading problem."
+  },
+  {
+   "q": "On no-gyro vectors, before he is turned onto final, the controller says \"turn left.\" How should your learner turn?",
+   "options": [
+    "Half standard rate, starting at once",
+    "Standard rate, starting at once",
+    "A 30° bank until \"stop turn\"",
+    "Standard rate after readback"
+   ],
+   "answer": 1,
+   "why": "All turns are at standard rate and start immediately on the instruction; half standard rate is used only after being turned onto final on a surveillance or precision approach [[33:431|AIM 5-4-11]]."
+  },
+  {
+   "q": "In IMC with a vacuum failure, your learner won't tell ATC because \"it's not an emergency yet.\" According to the AIM, what condition is he already in?",
+   "options": [
+    "A normal flight until control is lost",
+    "Distress, which needs a MAYDAY",
+    "At least an urgency condition",
+    "An abnormal that needs no report"
+   ],
+   "answer": 2,
+   "why": "An aircraft is in at least an urgency condition the moment the pilot becomes doubtful about any condition that could adversely affect flight safety [[34:28|AIM 6-1-2]]. Distress means serious or imminent danger needing immediate help [[34:337|P/CG D-4]], which he is not in yet."
+  },
+  {
+   "q": "Your learner's report says: \"Approach, Skyhawk 1 2 3 Alpha Bravo, vacuum failure, request vectors.\" Which 91.187 item is missing?",
+   "options": [
+    "The aircraft identification",
+    "The equipment affected",
+    "The assistance he wants from ATC",
+    "How much his IFR capability is impaired"
+   ],
+   "answer": 3,
+   "why": "The report must include identification, equipment affected, the degree to which IFR capability is impaired, and the assistance desired [[60:483|14 CFR 91.187(b)]]. His call names the airplane, the failure and a request, but not what he can and cannot still do."
+  },
+  {
+   "q": "How does the IFH classify an alternator failure in a technically advanced airplane?",
+   "options": [
+    "As an emergency",
+    "As an abnormal to fix on the ground",
+    "As minor if the battery is new",
+    "As a reason for reversionary mode"
+   ],
+   "answer": 0,
+   "why": "A failure of this magnitude is considered an emergency in technically advanced aircraft, because the AHRS, ADC and engine indications run on electrical power [[23:331|IFH 11-6]]. On traditional round-dial airplanes it was considered an abnormality."
+  },
+  {
+   "q": "During a partial panel approach your learner keeps glancing at the failed attitude indicator and drifts off heading each time. What does the IFH suggest?",
+   "options": [
+    "Tap the failed gyro's glass",
+    "Cover the failed instruments",
+    "Use the compass as primary for bank",
+    "Fly faster to steady it"
+   ],
+   "answer": 1,
+   "why": "Covering the failed instruments may enhance the pilot's ability to maintain control and navigate [[23:332|IFH 11-7]]. In timed turns the turn coordinator, not the compass, is primary for bank [[23:182|IFH 7-21]]."
+  },
+  {
+   "q": "Partial panel, your learner is 200 feet low. About what vertical speed should he use to return?",
+   "options": [
+    "About 200 fpm",
+    "About 800 fpm",
+    "About 400 fpm",
+    "The airplane's best rate of climb"
+   ],
+   "answer": 2,
+   "why": "Use a vertical speed about double the deviation, never more than the optimum rate for the airplane: 200 feet calls for about 400 fpm [[23:197|IFH 7-36]] [[23:198|IFH 7-37]]."
+  },
+  {
+   "q": "For the approach on backup or partial panel instruments, which failure does the PTS ask the evaluator to represent?",
+   "options": [
+    "Whatever failure the applicant prefers",
+    "A total electrical failure on every airplane",
+    "A pitot-static blockage on every panel",
+    "The mode most realistic for the equipment"
+   ],
+   "answer": 3,
+   "why": "The PTS asks for one procedure on backup or partial panel instruments representing the failure mode or modes most realistic for the equipment used [[FAA-S-8081-9E:11|PTS Introduction]]. The AFH notes that some failure modes are hard or impossible to simulate, which limits training [[24:365|AFH 18-16]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "Your learner sees this panel in cloud. What is the airplane actually doing?",
+   "figure": "f6",
+   "options": [
+    "Turning left at standard rate",
+    "Flying level at 2,000 feet",
+    "Descending in a left spiral",
+    "Climbing in a right turn"
+   ],
+   "answer": 1,
+   "why": "In IFH Figure 11-8 the airplane is actually level at 2,000 feet MSL and not in a left turn, which a pilot who misses the OFF flags may believe [[23:332|IFH 11-7]]. The turn coordinator, VSI and altimeter all agree on level flight."
+  },
+  {
+   "q": "Your learner's airspeed rises as he climbs and falls as he descends, while the altimeter and VSI behave normally. What is most likely blocked?",
+   "options": [
+    "The pitot tube, ram and drain holes",
+    "Both static ports",
+    "One static port",
+    "The vacuum system filter"
+   ],
+   "answer": 0,
+   "why": "With the pitot source blocked, indicated airspeed increases with altitude gain and decreases with altitude loss while altitude and vertical speed are unaffected [[24:364|AFH 18-15]]; the airspeed indicator acts like an altimeter [[23:98|IFH 5-3]]. Blocked static ports would freeze the altimeter."
+  },
+  {
+   "q": "According to the AFH, when does a partial static blockage often first show itself?",
+   "options": [
+    "During the takeoff roll",
+    "During the climb",
+    "During the descent",
+    "Only at cruise altitude"
+   ],
+   "answer": 2,
+   "why": "The altimeter, airspeed and VSI may work normally through takeoff, climb and level-off, and no malfunction may show until the airplane begins a descent [[24:363|AFH 18-14]]."
+  },
+  {
+   "q": "With both the AHRS and the ADC failed in the IFH example airplane, what does the manufacturer recommend?",
+   "options": [
+    "Pull and reset the AHRS breaker",
+    "Fly the approach on the MFD map",
+    "Descend at once to find VMC",
+    "Turn on the autopilot wing leveler"
+   ],
+   "answer": 3,
+   "why": "The manufacturer recommends turning on the autopilot, which is simply a wing leveler fed by its own turn coordinator; it cuts workload and the chance of an unusual attitude [[23:219|IFH 7-58]]."
+  },
+  {
+   "q": "In your learner's G1000 airplane one display goes dark. What should she expect?",
+   "options": [
+    "Reversionary mode on the other screen",
+    "Both screens to go dark together",
+    "Loss of all engine indications",
+    "Just the moving map on the other screen"
+   ],
+   "answer": 0,
+   "why": "When a display fails, the system reverts to a composite mode called reversionary, which drops the moving map and combines the PFD with the engine indications [[23:329|IFH 11-4]]."
+  },
+  {
+   "q": "The alternator fails in your learner's round-dial airplane in IMC, 90 minutes from his destination. What does the IFH say?",
+   "options": [
+    "Continue if the ammeter shows only a small discharge",
+    "Continue on the battery, which lasts about two hours",
+    "Continue only if VFR on top is possible",
+    "Do not continue; land at the nearest suitable airport"
+   ],
+   "answer": 3,
+   "why": "At no time should a pilot consider continuing once the charging system has failed: land at the nearest suitable airport. The roughly 40 minutes of battery is an approximation that should not be relied on [[23:330|IFH 11-5]]."
+  },
+  {
+   "q": "Your learner's alternator light is on as he nears the airport. What should he know about the electric flaps?",
+   "options": [
+    "They run on the standby bus",
+    "Their motors can drain a weak battery",
+    "They should go down early",
+    "They work until the volts read zero"
+   ],
+   "answer": 1,
+   "why": "Landing gear and flap motors use far more power than most equipment, and selecting them on a partially depleted battery may cause an immediate total loss of electrical power; expect a no-flap landing [[24:362|AFH 18-13]] [[24:363|AFH 18-14]]."
+  },
+  {
+   "q": "Which statement about the emergency authority of 14 CFR 91.3(b) is correct?",
+   "options": [
+    "It allows deviating from any part 91 rule as needed",
+    "It needs ATC approval before it can be used",
+    "It always requires a report within 48 hours",
+    "It applies only to engine or fire emergencies"
+   ],
+   "answer": 0,
+   "why": "In an in-flight emergency requiring immediate action, the pilot in command may deviate from any rule of part 91 to the extent required, with a written report only on request [[60:435|14 CFR 91.3]]. The 48-hour report is for priority given by ATC, and only if ATC asks [[60:450|14 CFR 91.123(d)]]."
+  },
+  {
+   "q": "You simulate a vacuum failure on a training flight under a busy approach control. Which choice keeps the simulation safe and clear?",
+   "options": [
+    "Squawk 7700 so ATC expects odd turns",
+    "Call PAN-PAN to get priority handling",
+    "Treat it as practice; no 7700 or PAN-PAN",
+    "Turn the transponder off for the exercise"
+   ],
+   "answer": 2,
+   "why": "Application: the failure is simulated, so nothing goes out as an emergency. Code 7700 normally triggers an alarm at all control positions [[34:29|AIM 6-2-2]], and PAN-PAN takes priority over all but distress traffic [[34:45|AIM 6-3-1]]. Pilots not on an IFR flight plan who want practice approaches should say \"practice\" [[33:264|AIM 4-3-22]]."
+  },
+  {
+   "q": "Why does the AIH suggest letting a learner go part way into a mistake before you step in, when safety permits?",
+   "options": [
+    "It lowers the instructor's workload",
+    "So he learns how to correct it himself",
+    "The PTS requires it on each lesson",
+    "It shows the learner who is in charge"
+   ],
+   "answer": 1,
+   "why": "Safety permitting, it is often better to let learners go part of the way into a mistake and find the way out; it is hard to learn a maneuver if they seldom get to correct an error [[25:182|AIH 9-12]]."
+  },
+  {
+   "q": "Your learner flies a good partial panel approach once you cover the gyros, but in the ATD he missed a slowly failing vacuum pump for three minutes. What does this tell you?",
+   "options": [
+    "The ATD is unrealistic and its result can be ignored",
+    "He needs more full panel approaches before anything else",
+    "He can fly partial panel but can't yet detect the failure",
+    "He is ready for the checkride on this Task as it stands"
+   ],
+   "answer": 2,
+   "why": "Recognition is its own skill: a flag or an inconsistency between instruments identifies a failure, and with no vacuum warning the gauge must be monitored [[23:332|IFH 11-7]]. Being unable to simulate certain failure modes in training can leave a pilot less prepared for the real one [[24:372|AFH 18-23]]."
+  },
+  {
+   "q": "On a surveillance approach with no-gyro vectors, when does the controller ask for half-standard-rate turns?",
+   "options": [
+    "From the very first vector",
+    "Only once below the MDA",
+    "Only if the pilot asks for it",
+    "After the turn onto final"
+   ],
+   "answer": 3,
+   "why": "The pilot is advised after the aircraft has been turned onto final approach to make turns at half standard rate [[33:431|AIM 5-4-11]]."
+  },
+  {
+   "q": "Partial panel on the approach, your learner makes 30° bank corrections and swings across the course. What do you teach?",
+   "options": [
+    "Bank no more than the degrees to turn",
+    "Steeper banks to finish turns sooner",
+    "Steer by the magnetic compass in turns",
+    "Wait for the needle to center itself"
+   ],
+   "answer": 0,
+   "why": "Correct with a bank no greater than the number of degrees to be turned, and never more than standard rate [[23:168|IFH 7-7]]. The compass is misleading in turns, so read it only straight and level [[23:187|IFH 7-26]]."
+  },
+  {
+   "q": "Partial panel, descending at 500 fpm at descent airspeed to the MDA, about how far above it should your learner start the level-off?",
+   "options": [
+    "About 150 feet",
+    "About 50 feet",
+    "About 300 feet",
+    "Right at the MDA"
+   ],
+   "answer": 1,
+   "why": "To level off from a descent at descent airspeed, lead the altitude by about 50 feet; the 100 to 150 foot lead is for leveling at a higher airspeed [[23:178|IFH 7-17]]."
+  },
+  {
+   "q": "FAF altitude 2,300 feet MSL, TDZE 500 feet, 3 minutes from the FAF to the runway. What descent rate should your learner plan?",
+   "options": [
+    "400 fpm",
+    "800 fpm",
+    "600 fpm",
+    "1,000 fpm"
+   ],
+   "answer": 2,
+   "why": "Subtract the TDZE from the FAF altitude and divide by the time inbound: 1,800 feet in 3 minutes is 600 fpm [[29:177|IPH 4-37]]."
+  },
+  {
+   "q": "In the IFH glass partial panel pages, what pitch change fits an altitude deviation of less than 100 feet?",
+   "options": [
+    "About 3°",
+    "Half a bar width",
+    "One full bar width",
+    "About 1°"
+   ],
+   "answer": 3,
+   "why": "On the PFD, for altitude deviations under 100 feet, use a pitch change of about 1 degree [[23:197|IFH 7-36]]. Bar widths are the round-dial rule of thumb [[23:165|IFH 7-4]]."
+  },
+  {
+   "q": "Your learner asks why he should declare when ATC is already helping him. What does the RMH say declaring brings?",
+   "options": [
+    "More help and priority handling",
+    "An automatic FAA violation",
+    "A forced landing at the nearest field",
+    "A radar approach below minimums"
+   ],
+   "answer": 0,
+   "why": "Declaring an emergency results in additional assistance and priority handling [[30:47|RMH 6-4]]. A written report is due only if the FAA asks [[60:435|14 CFR 91.3]], and a radar approach does not waive weather minimums [[33:430|AIM 5-4-11]]."
+  }
+ ],
+ "takeaways": [
+  "Diagnose by system: the attitude indicator against the turn coordinator and VSI compares suction, electrical and static.",
+  "Vacuum failures are often slow and silent; the suction gauge and the flags belong in every scan.",
+  "On glass, know what the AHRS, ADC, a display and the alternator each take away, and where the standby instruments are.",
+  "Move to backup in order: fly, identify, restore, cover, tell.",
+  "Doubt is already urgency: tell ATC early with the four 91.187 items and ask for no-gyro help.",
+  "Navigation equipment and ATC are backup instruments: nearest airport, Nav 1 on the battery radio, radar approaches, the wing leveler.",
+  "Simulate the failure most realistic for the equipment, put the ones you can't do safely in a training device, and never use 7700 or MAYDAY for practice."
+ ],
+ "cfi_notes": [
+  "14 CFR 91.187 names navigation, approach and communication equipment, not flight instruments [[60:483|14 CFR 91.187]]. The AIM asks for the same report when other equipment affects safety or IFR capability [[33:377|AIM 5-3-3]]. Application: teach the report for every flight instrument failure in IMC.",
+  "The IFH and AFH describe a pitot blockage differently. The IFH separates a blocked ram hole with an open drain (airspeed drops to zero) from ram and drain both blocked (airspeed acts like an altimeter) [[23:97|IFH 5-2]] [[23:98|IFH 5-3]]; the AFH table shows only the altimeter-like case [[24:364|AFH 18-15]]. Teach both.",
+  "Battery times differ: about 40 minutes and 30 to 40 minutes of useful voltage on one IFH page [[23:330|IFH 11-5]], 45 minutes or only a matter of minutes after an alternator failure in a technically advanced airplane, depending on load and battery condition [[23:331|IFH 11-6]], and the AFH example of a 25 amp-hour battery lasting 5 hours at 5 amps but 10 to 15 minutes at 40 amps [[24:362|AFH 18-13]]. None is a number to plan on.",
+  "Level-off leads depend on the speed: about 50 feet when leveling at descent airspeed, 100 to 150 feet (at 500 fpm) when leveling at a higher airspeed [[23:178|IFH 7-17]]. The IFH also gives about 10 percent of the vertical speed, for climbs on round dials [[23:177|IFH 7-16]] and for glass [[23:198|IFH 7-37]]; at 500 fpm that is the same 50 feet.",
+  "The IFH glass pages show one example system, with no standby turn coordinator and a wing leveler fed by a hidden turn coordinator [[23:217|IFH 7-56]] [[23:219|IFH 7-58]]. Failure indications are not standardized [[24:364|AFH 18-15]], so teach from the AFM supplement of the airplane flown.",
+  "The autopilot cuts both ways: a failing vacuum gyro can drive a connected autopilot or flight director wrong [[23:332|IFH 11-7]], while the IFH glass example recommends the wing leveler after an AHRS and ADC failure [[23:219|IFH 7-58]]. Teach the learner to check what feeds it before trusting it.",
+  "The PTS asks for the failure \"most realistic for the equipment used\" and forbids simulating anything that may jeopardize safe flight [[FAA-S-8081-9E:11|PTS Introduction]] [[FAA-S-8081-9E:10|PTS Introduction]]. Agree with the examiner before flight how the failure will be simulated in your airplane, and bring the AFM supplement.",
+  "Expect a story in the oral: what powers each instrument in your airplane, how the learner would know it failed, what he says to ATC, whether he declares, and which approach he asks for [[23:114|IFH 5-19]] [[34:28|AIM 6-1-2]]. The PTS fails any Task where ADM and SRM are missing [[FAA-S-8081-9E:16|PTS Introduction]].",
+  "An ASR might not be approved unless there is an ATC operational requirement or an unusual or emergency situation [[33:430|AIM 5-4-11]]. Ask your local approach facility whether it will give practice no-gyro vectors, and play the controller yourself when it can't."
+ ],
+ "gaps": [
+  "No source here says how to simulate an AHRS, ADC or display failure in a particular glass airplane (covers, circuit breakers or display backup controls); use the AFM supplement, the avionics guide and your school's procedures.",
+  "No source here gives one published step-by-step procedure for a partial panel nonprecision approach; this lesson combines IFH partial panel technique, IPH descent planning and AIM radar procedures.",
+  "No source here says whether GPS ground track on a moving map may stand in for a failed heading indicator.",
+  "Power sources, warning lights, standby battery endurance and autopilot behavior after a failure are airplane-specific and come from the POH/AFM [[23:114|IFH 5-19]] [[23:331|IFH 11-6]].",
+  "Which airports offer ASR, PAR or no-gyro service is in the Terminal Procedures Publication, which is not among the sources [[33:430|AIM 5-4-11]]."
+ ],
+ "activities": [
+  {
+   "type": "sort",
+   "key": "h1",
+   "after": 2,
+   "title": "Which system failed?",
+   "intro": "Tap each failure picture, then the system most likely behind it.",
+   "buckets": [
+    "Vacuum system",
+    "Static system",
+    "Pitot tube",
+    "Charging system",
+    "AHRS"
+   ],
+   "items": [
+    {
+     "t": "Attitude and heading indicators drift; turn coordinator and VSI say level",
+     "b": 0
+    },
+    {
+     "t": "Suction gauge low and OFF flags on the gyros",
+     "b": 0
+    },
+    {
+     "t": "Altimeter frozen and VSI on zero in a descent",
+     "b": 1
+    },
+    {
+     "t": "Needles jump when the alternate source is opened",
+     "b": 1
+    },
+    {
+     "t": "Airspeed rises in a climb and falls in a descent",
+     "b": 2
+    },
+    {
+     "t": "Ammeter shows a discharge and the alternator light is on",
+     "b": 3
+    },
+    {
+     "t": "Red X over attitude and heading; air data tapes still good",
+     "b": 4
+    },
+    {
+     "t": "Autopilot keeps only roll and altitude hold",
+     "b": 4
+    }
+   ],
+   "why": "Vacuum: flags, wander and the comparison with turn coordinator and VSI [[23:332|IFH 11-7]] [[1:224|PHAK 8-22]]. Static: frozen altimeter and zero VSI [[23:98|IFH 5-3]], confirmed by the alternate source [[24:364|AFH 18-15]]. Pitot ram and drain blocked: airspeed acts like an altimeter [[23:98|IFH 5-3]]. Charging: ammeter and alternator light [[23:330|IFH 11-5]]. AHRS: attitude and heading gone, autopilot down to roll and altitude hold in the IFH example [[23:217|IFH 7-56]]."
+  },
+  {
+   "type": "label",
+   "key": "h2",
+   "after": 3,
+   "title": "Reading a vacuum failure",
+   "figure": "f6",
+   "intro": "Drag each label to its numbered pin on the panel.",
+   "pins": [
+    {
+     "x": 52.5,
+     "y": 15.5,
+     "label": "OFF flag on the attitude indicator"
+    },
+    {
+     "x": 47.5,
+     "y": 25,
+     "label": "Attitude indicator showing a bank that is not real"
+    },
+    {
+     "x": 31,
+     "y": 61,
+     "label": "Electric turn coordinator: wings level"
+    },
+    {
+     "x": 65,
+     "y": 62,
+     "label": "VSI at zero: no climb or descent"
+    },
+    {
+     "x": 65,
+     "y": 25,
+     "label": "Altimeter steady at about 2,000 feet"
+    },
+    {
+     "x": 16,
+     "y": 52.5,
+     "label": "Vacuum gauge: belongs in the scan"
+    },
+    {
+     "x": 53,
+     "y": 58.5,
+     "label": "Failure flag on the heading indicator"
+    }
+   ],
+   "why": "From IFH Figure 11-8: the airplane is level at 2,000 feet MSL, not turning left as a pilot who misses the OFF or failed flags may think [[23:332|IFH 11-7]]. Comparing the attitude indicator with the turn coordinator and VSI checks the suction, electrical and static systems at once [[23:332|IFH 11-7]], and the vacuum gauge must be watched because many airplanes have no vacuum warning [[23:333|IFH 11-8]]."
+  },
+  {
+   "type": "tf",
+   "key": "h3",
+   "after": 6,
+   "title": "True or false: glass and electrical failures",
+   "intro": "Decide whether each statement is true or false.",
+   "cards": [
+    {
+     "s": "After an AHRS failure in the IFH example, the airspeed, altitude and VSI tapes still work.",
+     "a": true,
+     "why": "True. Only attitude and heading leave the PFD; the altimeter and VSI tapes are still clear [[23:217|IFH 7-56]]."
+    },
+    {
+     "s": "The IFH example glass airplane gives the pilot a standby turn coordinator.",
+     "a": false,
+     "why": "False. Its only turn coordinator sits behind the MFD for the autopilot, and the pilot cannot see it [[23:217|IFH 7-56]] [[23:219|IFH 7-58]]."
+    },
+    {
+     "s": "The analog standby attitude indicator can tumble in extreme pitch or bank.",
+     "a": true,
+     "why": "True. It can tumble and become unusable [[23:219|IFH 7-58]]."
+    },
+    {
+     "s": "The standby battery comes online when the main battery drops to about 19 volts, generally only with its switch in ARM.",
+     "a": true,
+     "why": "True, and the switch should be armed before departure [[23:331|IFH 11-6]]."
+    },
+    {
+     "s": "Glass failure indications are standardized, so a pilot trained on one system can read any other.",
+     "a": false,
+     "why": "False. They are not standardized, and primary and backup displays may respond differently [[24:364|AFH 18-15]]."
+    },
+    {
+     "s": "Many light glass airplanes feed the backup instruments from the same pitot-static sources as the PFD.",
+     "a": true,
+     "why": "True, so one blockage can fail both [[24:364|AFH 18-15]]."
+    }
+   ]
+  },
+  {
+   "type": "order",
+   "key": "h4",
+   "after": 7,
+   "title": "After an analog instrument failure",
+   "intro": "Put the IFH steps in order, first to last, then tap Check.",
+   "steps": [
+    "Keep control and speed up the cross-check, including all flight instruments",
+    "Compare the attitude indicator with the turn indicator and the VSI",
+    "Identify the failed component and fly with the instruments that work",
+    "Try to restore it: power source, backup or alternate system, reset",
+    "Cover the failed instruments",
+    "Advise ATC and, if necessary, declare an emergency"
+   ],
+   "why": "Sequence from IFH 11-7: keep control while identifying, compare across systems, use the working instruments, try to restore, cover, then advise ATC and declare before the situation gets beyond the pilot's ability to recover [[23:332|IFH 11-7]]."
+  },
+  {
+   "type": "match",
+   "key": "h5",
+   "after": 8,
+   "title": "What does the pilot owe ATC?",
+   "intro": "Tap a situation, then what the pilot should do.",
+   "pairs": [
+    {
+     "l": "Heading indicator out while on radar vectors",
+     "r": "Advise ATC and request a no-gyro vector or approach"
+    },
+    {
+     "l": "Can't fly the approach ATC said to expect",
+     "r": "Advise ATC immediately or ask for another approach"
+    },
+    {
+     "l": "Can't climb or descend at 500 fpm",
+     "r": "Report it without being asked"
+    },
+    {
+     "l": "Deviated from a clearance in an emergency",
+     "r": "Notify ATC as soon as possible and get an amended clearance"
+    },
+    {
+     "l": "A clearance would put the airplane in jeopardy",
+     "r": "Request an amended clearance"
+    },
+    {
+     "l": "Given priority in an emergency, no rule broken",
+     "r": "Send a detailed report within 48 hours if ATC asks"
+    }
+   ],
+   "why": "No-gyro [[33:431|AIM 5-4-11]]; approach advisories [[33:397|AIM 5-4-4]]; 500 fpm report [[33:377|AIM 5-3-3]]; emergency deviation [[60:450|14 CFR 91.123(c)]] [[33:281|AIM 4-4-10]]; jeopardy [[33:275|AIM 4-4-1]]; priority report [[60:450|14 CFR 91.123(d)]]."
+  },
+  {
+   "type": "calc",
+   "key": "h6",
+   "after": 11,
+   "title": "Partial panel numbers",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "Timed turn from 120° to 360° (a 120° turn) at standard rate. How many seconds?",
+     "answer": 40,
+     "tol": 0,
+     "unit": "seconds",
+     "why": "120° divided by 3° per second = 40 seconds [[23:214|IFH 7-53]]."
+    },
+    {
+     "q": "A 45° heading change at half standard rate. How many seconds?",
+     "answer": 30,
+     "tol": 0,
+     "unit": "seconds",
+     "why": "Half standard rate turns 45° in 30 seconds [[23:182|IFH 7-21]]."
+    },
+    {
+     "q": "Calibrating the turn rate indicator: how many seconds should a 90° heading change take at the standard-rate mark?",
+     "answer": 30,
+     "tol": 0,
+     "unit": "seconds",
+     "why": "If calibrated, 90° of heading change takes 30 seconds [[23:214|IFH 7-53]]."
+    },
+    {
+     "q": "Partial panel, 150 feet high. What rate of descent should the learner use to return?",
+     "answer": 300,
+     "tol": 0,
+     "unit": "fpm",
+     "why": "About double the deviation, never more than the optimum rate: 150 feet calls for 300 fpm [[23:197|IFH 7-36]]."
+    },
+    {
+     "q": "FAF 2,000 feet MSL, TDZE 400 feet, 2 minutes inbound. What descent rate?",
+     "answer": 800,
+     "tol": 0,
+     "unit": "fpm",
+     "why": "(2,000 minus 400) divided by 2 = 800 fpm [[29:177|IPH 4-37]]."
+    },
+    {
+     "q": "On glass, descending at 600 fpm, within about how many feet of the target should the learner start slowing the rate?",
+     "answer": 60,
+     "tol": 0,
+     "unit": "feet",
+     "why": "Begin slowing the vertical speed within about 10 percent of the rate: 10% of 600 = 60 feet [[23:198|IFH 7-37]]."
+    }
+   ]
+  },
+  {
+   "type": "decide",
+   "key": "h7",
+   "after": 12,
+   "title": "A glass-panel failure lesson in the ATD",
+   "intro": "You are a CFII running an AHRS and ADC failure scenario for an instrument learner in an advanced ATD set up like the IFH example airplane. Make each teaching call as the lesson unfolds.",
+   "steps": [
+    {
+     "s": "Before the scenario starts, your learner runs the before-takeoff checks. Which item matters most for the electrical failure you plan to add later?",
+     "options": [
+      "Standby battery switch to ARM",
+      "MFD brightness turned up",
+      "Both COM radios on one frequency",
+      "Autopilot set to heading mode"
+     ],
+     "answer": 0,
+     "why": "The standby battery generally comes online only with its switch in ARM, set before departure [[23:331|IFH 11-6]]."
+    },
+    {
+     "s": "In IMC you fail the AHRS. He keeps pressing PFD keys while the altitude drifts 200 feet.",
+     "options": [
+      "Let him keep trying until it resets",
+      "Freeze the device and start over",
+      "Coach: fly the standby instruments first",
+      "Restore the AHRS so he can finish"
+     ],
+     "answer": 2,
+     "why": "Control comes first, then identify and try to restore [[23:332|IFH 11-7]]. Stopping to stare at a discrepancy is a classic error [[23:189|IFH 7-28]]; letting him work out of it, coached, teaches more than restarting [[25:182|AIH 9-12]]."
+    },
+    {
+     "s": "He has the standby instruments under control. The heading display is gone and approach is giving vectors.",
+     "options": [
+      "Ask for headings and use the compass",
+      "Ask for a no-gyro vector or approach",
+      "Ask for a climb to get on top",
+      "Say nothing; fly the vectors"
+     ],
+     "answer": 1,
+     "why": "With the heading indicator inoperative, advise ATC and request a no-gyro vector or approach [[33:431|AIM 5-4-11]]; compass turns are harder than timed turns [[23:214|IFH 7-53]]."
+    },
+    {
+     "s": "He calls: \"Approach, November 1 2 Alpha Bravo, AHRS failure.\" What is missing?",
+     "options": [
+      "Nothing; the call is complete",
+      "His altitude and fuel on board",
+      "His position and destination",
+      "How impaired he is and the help he wants"
+     ],
+     "answer": 3,
+     "why": "91.187 asks for identification, equipment affected, degree of impairment and assistance desired [[60:483|14 CFR 91.187(b)]]."
+    },
+    {
+     "s": "You now fail the ADC as well. What does the manufacturer in the IFH example recommend?",
+     "options": [
+      "Pull and reset every breaker",
+      "Turn on the autopilot wing leveler",
+      "Switch to reversionary mode",
+      "Descend at once to find VMC"
+     ],
+     "answer": 1,
+     "why": "With an AHRS and ADC failure the manufacturer recommends the autopilot, simply a wing leveler, to cut workload and the chance of an unusual attitude [[23:219|IFH 7-58]]."
+    },
+    {
+     "s": "Debrief. He asks why you put him through failures he may never see.",
+     "options": [
+      "Because the PTS lists them all",
+      "Because airplanes fail often",
+      "Because the device can show failures the airplane can't safely",
+      "Because he flew badly last time"
+     ],
+     "answer": 2,
+     "why": "The difficulty or inability to simulate failure modes limits training and can leave a pilot less prepared for the real event [[24:365|AFH 18-16]] [[24:372|AFH 18-23]]. A device can show failures you could not safely create in the airplane, and the FAA recommends training in it until the task is done well [[25:174|AIH 9-4]]."
+    }
+   ]
+  },
+  {
+   "type": "tf",
+   "key": "h8",
+   "after": 13,
+   "title": "True or false: simulating failures safely",
+   "intro": "Decide whether each statement is true or false.",
+   "cards": [
+    {
+     "s": "The AIH warns that simulated engine failures done wrong have caused real accidents.",
+     "a": true,
+     "why": "True [[25:191|AIH 10-7]]. The same care applies to every simulated failure."
+    },
+    {
+     "s": "Simulated instrument flight needs a safety pilot in the other control seat.",
+     "a": true,
+     "why": "True, with at least a private pilot certificate for the category and class and adequate vision [[60:446|14 CFR 91.109(c)(1)]] [[60:447|14 CFR 91.109(c)(2)]]."
+    },
+    {
+     "s": "The FAA recommends moving to the airplane before the task works in the simulator, to add realism.",
+     "a": false,
+     "why": "False. The recommendation is to keep training in the simulator until the task is done successfully [[25:174|AIH 9-4]]."
+    },
+    {
+     "s": "Good scenario training carries enough sense of risk to raise stress, to prepare for startle.",
+     "a": true,
+     "why": "True. Controlled scenarios should feel risky enough to raise stress [[24:108|AFH 5-3]]."
+    },
+    {
+     "s": "Squawking 7700 for a simulated failure is fine if you tell ATC afterward.",
+     "a": false,
+     "why": "False. 7700 normally triggers an alarm at all control positions [[34:29|AIM 6-2-2]]; nothing about a simulated failure should go out as a real emergency."
+    },
+    {
+     "s": "Before teaching in a new glass airplane, the AIH says the instructor should learn its avionics.",
+     "a": true,
+     "why": "True [[25:191|AIH 10-7]]."
+    }
+   ]
+  }
+ ]
+}

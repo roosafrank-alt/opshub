@@ -566,9 +566,14 @@ def _sync_acs_resources(conn):
                 conn.execute("INSERT INTO resource_sources (resource_id, source_url, source_kind) VALUES (?, ?, ?)",
                              (rid, url, resource_scan.detect_kind(url)))
     conn.commit()
+    added += _sync_builtin_documents(conn)
+    builtin_desig = {d["designation"].upper() for c in ground_lessons.builtin_courses()
+                     for d in ground_lessons.builtin_documents(c)}
     todo = list(added) + [(r["id"], r["filename"]) for r in conn.execute(
-        "SELECT r.id, r.filename FROM acs_resources r WHERE r.acs_rating_id IS NOT NULL AND NOT EXISTS "
-        "(SELECT 1 FROM acs_resource_pages p WHERE p.resource_id = r.id)").fetchall() if (r["id"], r["filename"]) not in added]
+        "SELECT r.id, r.filename, r.designation, r.acs_rating_id FROM acs_resources r WHERE NOT EXISTS "
+        "(SELECT 1 FROM acs_resource_pages p WHERE p.resource_id = r.id)").fetchall()
+        if (r["acs_rating_id"] is not None or (r["designation"] or "").upper() in builtin_desig)
+        and (r["id"], r["filename"]) not in added]
     todo = [(rid, fn) for rid, fn in todo
             if os.path.isfile(os.path.join(UPLOAD_DIR, fn)) and rid not in _INDEXING]
     if todo:
@@ -578,6 +583,38 @@ def _sync_acs_resources(conn):
         else:
             _index_acs_resources(todo)
     return len(added)
+
+
+def _sync_builtin_documents(conn):
+    """BUILTIN-DOCS: the standard a built-in course is built from (its outline's "documents", e.g. the CFII
+    PTS) goes into Resources once the course is installed: a copy of the shipped PDF, with the FAA's address
+    as its source. A Resources row with the same document number is used as it is, never replaced.
+    Returns [(resource_id, filename)] added."""
+    added = []
+    installed = {r["doc_number"] for r in conn.execute(
+        "SELECT doc_number FROM acs_ratings WHERE doc_number IS NOT NULL").fetchall()}
+    for course in ground_lessons.builtin_courses():
+        if course["doc_number"] not in installed:
+            continue
+        for doc in ground_lessons.builtin_documents(course):
+            if conn.execute("SELECT 1 FROM acs_resources WHERE UPPER(designation) = UPPER(?)",
+                            (doc["designation"],)).fetchone():
+                continue
+            os.makedirs(UPLOAD_DIR, exist_ok=True)
+            stored = f"resource_{''.join(random.choices(string.ascii_lowercase + string.digits, k=12))}.pdf"
+            shutil.copyfile(doc["path"], os.path.join(UPLOAD_DIR, stored))
+            rid = conn.execute(
+                "INSERT INTO acs_resources (title, doc_type, filename, uploaded_by, uploaded_at, designation, "
+                "doc_date, categories) VALUES (?, ?, ?, NULL, ?, ?, ?, ?)",
+                (doc.get("title") or doc["designation"], doc.get("doc_type") or "PTS", stored, now_iso(),
+                 doc["designation"], doc.get("doc_date"), doc.get("categories"))).lastrowid
+            url = doc.get("source_url")
+            if url:
+                conn.execute("INSERT INTO resource_sources (resource_id, source_url, source_kind) VALUES (?, ?, ?)",
+                             (rid, url, resource_scan.detect_kind(url)))
+            added.append((rid, stored))
+    conn.commit()
+    return added
 
 
 _INDEXING = set()   # Resources rows whose page text is being indexed right now
@@ -1202,6 +1239,8 @@ def builtin_install(code):
             conn.execute("UPDATE acs_ratings SET status = 'parsed', parsed_at = ? WHERE id = ?", (now_iso(), rating_id))
             conn.commit()
             flash(f"Added '{course['name']}': {n_areas} Areas, {n_tasks} lessons, {n_el} items.", "success")
+        if _sync_builtin_documents(conn):  # BUILTIN-DOCS: its PTS/ACS goes into Resources now
+            _sync_acs_resources(conn)       # (indexes the new row's pages)
     except Exception as e:
         conn.rollback()
         conn.close()
@@ -1258,8 +1297,15 @@ def rating_detail(rating_id):
             reviews[area["id"]] = {"count": len(rv.get("questions") or []),
                                    "st": area_stats(conn, viewing_student_id, area["id"], rv) if viewing_student_id else None}
     assigned_ids = assigned_task_ids(conn, viewing_student_id) if viewing_student_id else set()
+    # GS-FOI-LINK: point to the stand-alone Fundamentals of Instructing course where this course's FOI Area is.
+    foi_course = None
+    if rating["doc_number"] != ground_lessons.FOI_DOC:
+        foi_course = conn.execute("SELECT id, name FROM acs_ratings WHERE doc_number = ?",
+                                  (ground_lessons.FOI_DOC,)).fetchone()
+    see_also = ground_lessons.see_also(rating["doc_number"]) if rating["doc_number"] != ground_lessons.FOI_DOC else []
     conn.close()
     return render_template("flight/groundschool_rating.html", rating=rating, areas=areas, resume=resume, reviews=reviews, assigned_ids=assigned_ids,
+                            foi_course=foi_course, see_also=see_also, is_foi_area=ground_lessons.is_foi_area,
                             tasks_by_area=tasks_by_area, elements_by_task=elements_by_task,
                             references_html_by_task=references_html_by_task, tab="groundschool",
                             changes_by_task=changes_by_task,

@@ -1,0 +1,1837 @@
+{
+ "task_code": "FII.II.A",
+ "task_title": "Aircraft Flight Instruments and Navigation Equipment",
+ "area": "Area II. Technical Subject Areas",
+ "minutes": 94,
+ "objective": "By the end of this lesson you can explain, at instructor depth, how each flight instrument, navigation receiver, display and autopilot in your training airplane works, what powers it and how it fails; teach a learner to recognize each failure picture; simulate failures safely; and explain the airplane's anti-ice, deice and weather detection equipment and its limits.",
+ "why": "Many instrument emergencies start as an equipment problem the pilot did not recognize: a vacuum gyro that wanders with no warning light [[23:332|IFH 11-7]], a partial static blockage that hides until the descent [[24:363|AFH 18-14]], or an autopilot that quietly drops to wings level [[1:70|PHAK 2-31]]. Comparing instruments is how pilots find a failure, but glass displays fail in ways that are not standardized [[24:364|AFH 18-15]]. Your learner needs a failure picture for every system before the first real one happens in cloud.",
+ "prereading": [
+  {
+   "res": "23",
+   "pages": [
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130,
+    131,
+    132,
+    133
+   ],
+   "printed": "IFH 5-2 to 5-38",
+   "what": "Pitot-static instruments, compass systems, gyro instruments and their power, AHRS, ADC, HSI, flight director, autopilot, FMS, PFD, MFD and the instrument preflight.",
+   "label": "IFH 5-2 to 5-38"
+  },
+  {
+   "res": "23",
+   "pages": [
+    246,
+    247,
+    248,
+    249,
+    250,
+    251,
+    252,
+    253,
+    254,
+    255,
+    256,
+    257,
+    258,
+    259,
+    260,
+    261,
+    262,
+    269,
+    270,
+    271,
+    272,
+    273,
+    274,
+    275,
+    276,
+    277,
+    278,
+    279,
+    280,
+    281,
+    282,
+    283,
+    284,
+    285
+   ],
+   "printed": "IFH 9-3 to 9-19, 9-26 to 9-42",
+   "what": "ADF, VOR, DME, GPS, RAIM, WAAS, ILS and marker beacons, with the operational errors of each.",
+   "label": "IFH 9-3 to 9-19, 9-26 to 9-42"
+  },
+  {
+   "res": "23",
+   "pages": [
+    216,
+    217,
+    218,
+    219,
+    220,
+    327,
+    328,
+    329,
+    330,
+    331,
+    332,
+    333
+   ],
+   "printed": "IFH 7-55 to 7-59, 11-2 to 11-8",
+   "what": "Glass display failures (AHRS, ADC), display reversion, alternator, vacuum and pitot-static failures, P-static and icing encounters.",
+   "label": "IFH 7-55 to 7-59, 11-2 to 11-8"
+  },
+  {
+   "res": "33",
+   "pages": [
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    89,
+    90,
+    91,
+    92,
+    96
+   ],
+   "printed": "AIM 1-1-2 to 1-1-9, 1-1-17",
+   "what": "NDB, VOR, VOR receiver checks, DME, ILS and marker beacons, and GPS with RAIM and approach scaling.",
+   "label": "AIM 1-1-2 to 1-1-9, 1-1-17"
+  },
+  {
+   "res": "1",
+   "pages": [
+    190,
+    191,
+    200,
+    201,
+    214,
+    215,
+    216,
+    218,
+    219,
+    220,
+    221,
+    222,
+    223
+   ],
+   "printed": "PHAK 7-30 to 7-31, 7-40 to 7-41, 8-12 to 8-21",
+   "what": "Electrical system, anti-ice and deice systems, the electronic flight display, gyro power sources and the gyro instruments.",
+   "label": "PHAK 7-30 to 7-31, 7-40 to 7-41, 8-12 to 8-21"
+  },
+  {
+   "res": "38",
+   "pages": [
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34
+   ],
+   "printed": "AC 91-74B 3-1 to 3-16",
+   "what": "Induction and structural icing, deice and anti-ice systems, icing effects on pitot-static and stall warning, certification and ice detection.",
+   "label": "AC 91-74B 3-1 to 3-16"
+  },
+  {
+   "res": "28",
+   "pages": [
+    173,
+    174,
+    175,
+    176,
+    275,
+    276,
+    277
+   ],
+   "printed": "AWH 15-3 to 15-6, 22-20 to 22-22",
+   "what": "Aircraft weather radar limits (power, wavelength, attenuation, beam width) and thunderstorm avoidance with radar and datalink weather.",
+   "label": "AWH 15-3 to 15-6, 22-20 to 22-22"
+  }
+ ],
+ "warmup": "Think first: your learner is flying a six-pack trainer in cloud when the attitude indicator slowly shows a 10° left bank. The turn coordinator is level, the heading card is creeping, and no warning light is on. Which instruments do you believe, which system failed, and how would you have taught her to find it in ten seconds?",
+ "key_terms": [
+  {
+   "term": "Rigidity in space",
+   "def": "The gyro property used by the attitude and heading indicators: the gyro stays fixed and the airplane rotates around it [[23:111|IFH 5-16]]."
+  },
+  {
+   "term": "Precession",
+   "def": "A force applied to a spinning gyro is felt 90° away in the direction of rotation; turn indicators work on it [[23:115|IFH 5-20]]."
+  },
+  {
+   "term": "Alternate static source",
+   "def": "A cabin static source for a blocked primary; cabin pressure is lower, so the altimeter reads slightly high, the airspeed high, and the VSI shows a brief climb [[23:98|IFH 5-3]]."
+  },
+  {
+   "term": "Flux valve",
+   "def": "A soft-iron sensor that picks up Earth's magnetic field by induction and drives a slaved HSI or RMI card [[23:110|IFH 5-15]]."
+  },
+  {
+   "term": "Slaving meter",
+   "def": "Shows the difference between the displayed and the magnetic heading; full deflection is normal while turning [[23:111|IFH 5-16]]."
+  },
+  {
+   "term": "AHRS",
+   "def": "Attitude and heading reference system: solid-state inertial sensors, rate gyros and magnetometers that replace the separate attitude, heading and turn gyros [[23:117|IFH 5-22]]."
+  },
+  {
+   "term": "Air data computer (ADC)",
+   "def": "Takes pitot pressure, static pressure and temperature and computes altitude, indicated and true airspeed and air temperature [[23:117|IFH 5-22]] [[23:118|IFH 5-23]]."
+  },
+  {
+   "term": "Reversionary mode",
+   "def": "After a display failure the remaining screen combines the PFD with the engine indications and drops the moving map [[23:329|IFH 11-4]]."
+  },
+  {
+   "term": "Essential bus",
+   "def": "Usually AHRS, ADC, PFD, nav 1 and com 1, powered by the standby battery near 19 volts if its switch is in ARM [[23:331|IFH 11-6]]."
+  },
+  {
+   "term": "Slant range",
+   "def": "DME distance measured in a straight line to the station, not along the ground; overhead it shows height above the station [[23:262|IFH 9-19]]."
+  },
+  {
+   "term": "RAIM",
+   "def": "Receiver autonomous integrity monitoring: 5 satellites, or 4 with baro-aiding, to detect a bad satellite; 6, or 5 with baro-aiding, to exclude it [[33:89|AIM 1-1-17]]."
+  },
+  {
+   "term": "Anti-icing and deicing",
+   "def": "Anti-icing prevents ice from forming and goes on before the encounter; deicing removes ice after it has formed [[1:200|PHAK 7-40]] [[38:23|AC 91-74B 3-4]] [[38:25|AC 91-74B 3-5]]."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "The instructor's map: what powers each item and how it fails",
+   "kind": "knowledge",
+   "codes": [
+    "FII.II.A.K1",
+    "FII.II.A.K2",
+    "FII.II.A.K3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "This Task is an oral Task: you show instructional knowledge of the airplane's flight instruments, navigation equipment, and anti-ice, deice and weather detection equipment [[FAA-S-8081-9E:26|PTS II.A]]. The Instrument lessons IR.II.B (instruments and navigation equipment) and IR.II.A (ice protection, vacuum and electrical systems) cover the pilot's side. This lesson adds how each item fails, how to teach it, and how to simulate the failure."
+    },
+    {
+     "p": "Start from the rule. For IFR, 91.205(d) adds two-way radio and navigation equipment suitable for the route, a gyroscopic rate-of-turn indicator (not required in an airplane with a third attitude instrument system usable through 360° of pitch and roll), a slip-skid indicator, a sensitive altimeter, a clock with seconds, a generator or alternator of adequate capacity, a gyroscopic pitch-and-bank indicator and a gyroscopic direction indicator [[60:488|14 CFR 91.205(d)]]."
+    },
+    {
+     "p": "Then teach the system behind each instrument. Gyro instruments are powered by separate electrical or pneumatic sources so that one failure does not take them all [[23:112|IFH 5-17]], and most airplanes keep at least one source of bank information after a single power failure [[1:218|PHAK 8-16]]. Some instruments name their power source on the dial, but only the POH/AFM gives the source of every instrument [[23:114|IFH 5-19]]."
+    },
+    {
+     "table": {
+      "head": [
+       "System",
+       "What it feeds",
+       "Failure picture"
+      ],
+      "rows": [
+       [
+        "Pitot",
+        "Airspeed indicator, or the air data computer [[23:97|IFH 5-2]]",
+        "Blocked with the drain open: airspeed drops to zero. Pitot and drain blocked: airspeed acts like an altimeter [[23:98|IFH 5-3]]"
+       ],
+       [
+        "Static",
+        "Altimeter, VSI and airspeed indicator [[23:97|IFH 5-2]]",
+        "Altimeter frozen, VSI at zero, airspeed wrong [[23:98|IFH 5-3]]"
+       ],
+       [
+        "Vacuum",
+        "In many airplanes, the attitude and heading indicators [[1:218|PHAK 8-16]]",
+        "Gyros slow down and wander, often with no warning light [[23:332|IFH 11-7]]"
+       ],
+       [
+        "Electrical",
+        "Turn coordinator in many airplanes [[1:218|PHAK 8-16]]; in glass airplanes the AHRS, ADC and engine indicating system [[23:331|IFH 11-6]]",
+        "Ammeter discharge or warning light, then a battery that runs down [[23:330|IFH 11-5]]"
+       ],
+       [
+        "Magnetic",
+        "Compass; flux valve or magnetometer for a slaved HSI or AHRS heading [[23:110|IFH 5-15]] [[1:222|PHAK 8-20]]",
+        "Turning and acceleration errors [[23:108|IFH 5-13]] [[23:109|IFH 5-14]]; heading lost with the AHRS or magnetometer [[23:214|IFH 7-53]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Why the map matters: comparing the six conventional instruments is how pilots diagnose common failures, but glass display failure indications may be entirely different and are not standardized [[24:364|AFH 18-15]]. The PTS adds that many light airplanes flown in IMC have a single vacuum source and no dual, independent attitude and heading indicators [[FAA-S-8081-9E:16|PTS Introduction]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: before the first partial panel lesson, build the map with the learner from the POH: each instrument, its power source and its failure picture. Quiz it in random order. You need the same command of every instrument and avionics box you teach in, which matters more with the wide variety of GPS and glass panels [[25:165|AIH 8-7]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner asks why her airplane has a vacuum attitude indicator but an electric turn coordinator. What do you answer?",
+    "a": "Gyros are powered by separate sources so a single failure does not take all of them [[23:112|IFH 5-17]], and most airplanes keep at least one source of bank information after one power source fails [[1:218|PHAK 8-16]]."
+   }
+  },
+  {
+   "title": "Pitot-static system: blockages and the alternate static source",
+   "kind": "knowledge",
+   "codes": [
+    "FII.II.A.K1",
+    "FII.II.A.K1a"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Pitot-static system.** The pitot tube senses ram air for the airspeed indicator or an air data computer. Static ports, which may be paired on each side so a sideslip does not give a false reading and sometimes heated, feed the airspeed indicator, altimeter and VSI [[23:97|IFH 5-2]]. Moisture, ice, dirt or insects can block either side [[23:97|IFH 5-2]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "table": {
+      "head": [
+       "Fault",
+       "Airspeed",
+       "Altimeter and VSI",
+       "Teaching point"
+      ],
+      "rows": [
+       [
+        "Pitot blocked, drain open",
+        "Drops to zero, very quickly but not instantly [[1:212|PHAK 8-10]]",
+        "Normal",
+        "Ram air vents out the drain until pitot equals static [[1:212|PHAK 8-10]]"
+       ],
+       [
+        "Pitot and drain blocked",
+        "Acts like an altimeter: higher in a climb, lower in a descent [[23:98|IFH 5-3]] [[38:29|AC 91-74B 3-11a]]",
+        "Normal",
+        "Have the learner predict the climb reading before you tell her"
+       ],
+       [
+        "Static port blocked",
+        "Low above the blockage altitude, high below it [[23:98|IFH 5-3]]",
+        "Altimeter frozen; VSI at zero [[23:98|IFH 5-3]]",
+        "The tell: altitude and VSI stuck while airspeed changes with climbs and descents"
+       ],
+       [
+        "Alternate static (cabin) on",
+        "Higher than actual [[23:98|IFH 5-3]]",
+        "Altimeter slightly high; VSI shows a brief climb [[23:98|IFH 5-3]]",
+        "The POH often has a correction table [[24:258|AFH 13-9]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Partial static blockage** is the one learners miss. It may show nothing in the takeoff, climb and level-off. In the descent the instruments say too high, too fast and descending too slowly. To check, open the alternate static source while climbing or descending; if the needles move significantly, use it for the rest of the flight [[24:363|AFH 18-14]] [[24:364|AFH 18-15]]."
+    },
+    {
+     "p": "With no alternate static source in an unpressurized airplane, breaking the VSI glass gives the altimeter and airspeed indicator static air; the VSI is not required for instrument flight, but this adds errors [[23:333|IFH 11-8]]. In many light glass airplanes the backup instruments share the same pitot and static inputs, so both can fail together, and where ADC and AHRS are combined a blockage may affect attitude too [[24:364|AFH 18-15]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Application: you cannot safely block a real pitot tube or static port in flight. Teach it with the figure, a demonstration of the alternate static source, and 'what failed?' questions at each phase of flight: 'The altimeter has not moved in two minutes and the VSI is flat, but the airspeed keeps changing. What failed, and what do you do?'"
+     }
+    }
+   ],
+   "check": {
+    "q": "During a descent, your learner's instruments show the airplane higher, faster and descending more slowly than she planned. What do you suspect and how does she confirm it?",
+    "a": "A partial static blockage. Open the alternate static source while descending; if the needles move significantly, a static problem exists and she uses the alternate source for the rest of the flight [[24:364|AFH 18-15]]."
+   }
+  },
+  {
+   "title": "Attitude indicator and turn instruments",
+   "kind": "knowledge",
+   "codes": [
+    "FII.II.A.K1",
+    "FII.II.A.K1b",
+    "FII.II.A.K1e"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "**Attitude indicator.** A gyro with a vertical spin axis in a double gimbal holds the horizon disc still while the airplane pitches and rolls around it; an erection mechanism keeps the gyro upright [[23:114|IFH 5-19]]. The wings and center dot of the miniature aircraft stand for about 2° of pitch, and the knob raises or lowers the miniature aircraft for trim changes with airspeed [[23:114|IFH 5-19]]."
+    },
+    {
+     "bullets": [
+      "Erection: normally 2 to 3 minutes, up to 5 [[23:114|IFH 5-19]].",
+      "Errors: slight nose-up in a rapid acceleration, nose-down in a rapid deceleration, and a small pitch and bank error after a 180° turn; they correct within a minute or so of straight-and-level flight [[23:114|IFH 5-19]].",
+      "Limits: older units tumble beyond about 60° pitch or 100° roll and have a caging knob [[23:114|IFH 5-19]]; some units peg at ±25° pitch or tumble past their limits [[1:221|PHAK 8-19]].",
+      "Bank scale: on some models it moves opposite to the bank, so read direction from the miniature aircraft against the horizon bar [[1:221|PHAK 8-19]].",
+      "Taxi check: if the horizon bar tips more than 5° in taxi turns, the instrument is unreliable [[23:133|IFH 5-38]]."
+     ]
+    },
+    {
+     "p": "**Turn-and-slip indicator/turn coordinator.** Both are rate gyros that work by precession [[23:115|IFH 5-20]]. The turn-and-slip senses rotation only about the vertical axis. The turn coordinator's gimbal is angled about 30°, so it shows the rate of roll first and then, once the bank is stable, the rate of turn [[23:116|IFH 5-21]]. It gives no pitch information [[23:117|IFH 5-22]], and neither instrument shows a bank angle [[1:219|PHAK 8-17]]. Both back up bank information if the attitude indicator fails [[1:218|PHAK 8-16]]."
+    },
+    {
+     "p": "A standard-rate turn is 3° per second. On a '2 MIN' instrument that is the doghouse mark; a '4 MIN' instrument needs two needle widths [[23:116|IFH 5-21]]. Some turn coordinators can run on air or electricity [[23:116|IFH 5-21]]. The ball shows only the relationship between bank and rate of yaw: toward the outside of the turn is a skid, toward the inside a slip [[23:116|IFH 5-21]]. Preflight: the tube is full of fluid with no bubbles, and in taxi turns the turn indicator shows the turn while the ball moves the other way [[1:220|PHAK 8-18]] [[23:132|IFH 5-37]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "For partial panel, teach the learner to calibrate the turn indicator: time a standard-rate turn between two cardinal headings. 90° should take 30 seconds; if not, fly slightly above or below the standard-rate mark [[23:214|IFH 7-53]]. The lessons in Area VI build on this."
+     }
+    }
+   ],
+   "check": {
+    "q": "In a brisk roll-in, your learner's turn coordinator shows standard rate before the heading starts to move. Is the instrument faulty?",
+    "a": "No. Its canted gyro senses roll as well as yaw, so it first shows the rate of roll and then the rate of turn once the bank is stable [[23:116|IFH 5-21]]."
+   }
+  },
+  {
+   "title": "Heading indicator, HSI and RMI",
+   "kind": "knowledge",
+   "codes": [
+    "FII.II.A.K1",
+    "FII.II.A.K1c"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Heading indicator.** A gyro with a horizontal spin axis held rigid in space. Except for slaved units it is not north-seeking, so it is set from the magnetic compass [[23:114|IFH 5-19]] [[23:115|IFH 5-20]]. Earth's rotation makes it drift 15° per hour, so compare and reset it at least every 15 minutes [[23:115|IFH 5-20]]; worn or dirty bearings add drift [[1:222|PHAK 8-20]]. Older drum-card units are read from the back, which invites a turn the wrong way [[23:115|IFH 5-20]]."
+    },
+    {
+     "p": "**Horizontal situation indicator.** The HSI combines a flux-valve-driven compass card with the VOR/LOC course deviation bar and a glideslope pointer, drawn as if you were above the airplane [[23:118|IFH 5-23]]. The TO/FROM triangle points to the head of the course arrow when the selected course leads to the station; a glideslope pointer below center means the airplane is above the glideslope [[23:118|IFH 5-23]]. The flux valve sits remotely, usually in a wingtip; a slaving meter shows any difference from magnetic heading, and in 'free gyro' mode the card is set by hand [[23:111|IFH 5-16]]. Where there is no fluxgate, or in emergency operation, check the card against the compass now and then and reset it [[23:118|IFH 5-23]]."
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "**Radio magnetic indicator.** The RMI card is driven by the flux valve, and its two needles show ADF or VOR bearings [[23:111|IFH 5-16]]. With the ADF, the needle head gives the magnetic bearing to the station and the tail the bearing from it; with the VOR, the needle points to the station on the card and the tail shows the radial [[23:247|IFH 9-4]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Teach two errors by name. Not keeping the heading indicator set to the corrected compass: an ADF approach started that way can put a pilot into terrain while he believes he is on course. And ignoring the RMI slaving warning flag [[23:251|IFH 9-8]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "In a turn, your learner's slaving meter swings to full deflection. Is the slaving system broken?",
+    "a": "Not by itself. Whenever the airplane turns and the card rotates, the slaving meter shows full deflection to one side; check it again in straight flight [[23:111|IFH 5-16]]."
+   }
+  },
+  {
+   "title": "Magnetic compass",
+   "kind": "knowledge",
+   "codes": [
+    "FII.II.A.K1",
+    "FII.II.A.K1d"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Magnetic compass.** Two magnets on a float in fluid; the pilot sees the card from behind, so 33 sits to the right of north [[23:106|IFH 5-11]]. The pivot lets the float tilt to about 18° of bank; steeper, the readings are erratic [[23:106|IFH 5-11]]. In most small airplanes it is the only direction instrument independent of other instruments and power [[23:182|IFH 7-21]], and in a glass airplane it is the heading source after an AHRS or magnetometer failure [[23:214|IFH 7-53]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Error",
+       "What the learner sees",
+       "What you teach"
+      ],
+      "rows": [
+       [
+        "Variation",
+        "The angle between true and magnetic north; it does not change with heading [[23:107|IFH 5-12]]",
+        "Apply it to turn a true course into a magnetic course [[23:108|IFH 5-13]]"
+       ],
+       [
+        "Deviation",
+        "Error from the airplane's own magnetic fields; changes with heading, not location; what is left is on the correction card [[23:107|IFH 5-12]] [[23:108|IFH 5-13]]",
+        "Read the card. An electrically heated windshield can cause deviation of up to 40° [[1:201|PHAK 7-41]]"
+       ],
+       [
+        "Turning error",
+        "Starting a turn from north, the card lags or shows a turn the other way; from south, it shows more turn than is happening [[23:183|IFH 7-22]]",
+        "IFH 5-13 rule of thumb: turning to north, stop 15° plus half the latitude early; turning to south, let the card pass by the same amount [[23:108|IFH 5-13]]. IFH 7-22 instead uses about the latitude, plus (to north) or minus (to south) the normal roll-out lead [[23:183|IFH 7-22]]"
+       ],
+       [
+        "Acceleration",
+        "On east or west headings: speeding up shows a turn north, slowing shows a turn south (ANDS) [[23:109|IFH 5-14]]",
+        "Abrupt attitude or speed changes make it very hard to read [[23:183|IFH 7-22]]"
+       ],
+       [
+        "Oscillation",
+        "The card swings around the heading [[23:109|IFH 5-14]]",
+        "Set the heading indicator to the average of the swings [[23:109|IFH 5-14]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Other things that upset it: precipitation static can cause erroneous compass readings [[23:246|IFH 9-3]]. Preflight: the bowl is full of fluid and the correction card is in place and current; after start, the card moves freely and agrees with a known heading [[23:132|IFH 5-37]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Teach compass turns and timed turns as the backup to a failed heading indicator. Timed turns are simpler because they avoid the compass errors [[23:214|IFH 7-53]]. The lesson FII.VI.F covers the flying."
+     }
+    }
+   ],
+   "check": {
+    "q": "At about 40° north latitude your learner turns left from east toward north using only the magnetic compass. When should she stop the turn?",
+    "a": "By the IFH 5-13 rule of thumb, about 35° before north on the compass: 15° plus half the latitude [[23:108|IFH 5-13]]. The IFH 7-22 method (the latitude plus half the bank angle) gives about 47° with a 15° bank [[23:183|IFH 7-22]]. Teach one method, name its page, and check it against a timed turn."
+   }
+  },
+  {
+   "title": "Vacuum system and its failure picture",
+   "kind": "knowledge",
+   "codes": [
+    "FII.II.A.K1",
+    "FII.II.A.K1g"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Vacuum system.** An engine-driven pump pulls filtered air through the instrument cases to spin the gyros; a suction-relief valve keeps the suction where it should be, shown on the panel gauge [[23:112|IFH 5-17]] [[23:332|IFH 11-7]]. The normal range is usually 4.5 to 5.5 \"Hg [[1:218|PHAK 8-16]]; a typical run-up value is 4.8 to 5.2 \"Hg at 2,000 rpm, but use the POH [[24:59|AFH 2-22]]. Wet pumps use oil-lubricated steel vanes; dry pumps use carbon vanes and serve high-flying airplanes [[23:112|IFH 5-17]]. Airplanes without a pump can use venturi tubes instead: the attitude gyros get about 4 \"Hg and the turn-and-slip 2 \"Hg, and ice can clog the venturi just when the instruments are needed most [[23:112|IFH 5-17]]."
+    },
+    {
+     "p": "In some airplanes the pump's air also inflates the deice boots [[23:112|IFH 5-17]] [[1:218|PHAK 8-16]], so ask what else the POH ties to the pump."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "**The failure picture.** When the pump fails, the attitude and heading indicators fail progressively: the gyros slow down and wander, and an autopilot or flight director connected to them can move the wrong way [[23:332|IFH 11-7]]. In the IFH figure the airplane is level at 2,000 feet, not turning left; a pilot who misses the OFF flags can turn a benign situation into a hazardous one [[23:332|IFH 11-7]]. Many small airplanes have no vacuum failure warning, so the suction gauge belongs in the scan [[23:332|IFH 11-7]] [[23:333|IFH 11-8]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Compare the attitude indicator with the turn indicator and the VSI. That one comparison checks the vacuum, static and electrical systems against each other [[23:332|IFH 11-7]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner's attitude indicator shows a slow left bank, but the electric turn coordinator is level and the VSI is at zero. What do you teach?",
+    "a": "Believe the instruments that agree. Comparing the attitude indicator with the turn indicator and VSI identifies the failed system; then check the suction gauge, because a failing vacuum gyro wanders and can show a turn that is not happening [[23:332|IFH 11-7]]."
+   }
+  },
+  {
+   "title": "Electrical system and alternator failure",
+   "kind": "knowledge",
+   "codes": [
+    "FII.II.A.K1",
+    "FII.II.A.K1f"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Electrical system.** Most airplanes have a 14- or 28-volt DC system: alternator or generator, battery, master and alternator switches, bus bar, fuses or circuit breakers, voltage regulator and an ammeter or loadmeter [[1:190|PHAK 7-30]]. The alternator keeps the battery charged, and the battery gives limited power if the alternator fails [[1:190|PHAK 7-30]]. Electric items include radios, the turn indicator, pitot heat and the stall warning system [[1:190|PHAK 7-30]] [[1:191|PHAK 7-31]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Indication",
+       "Meaning"
+      ],
+      "rows": [
+       [
+        "Ammeter on the plus side",
+        "The battery is charging [[1:191|PHAK 7-31]]"
+       ],
+       [
+        "Ammeter on the minus side",
+        "More current is drawn from the battery than replaced; full-scale minus means the alternator or generator has malfunctioned [[1:191|PHAK 7-31]]"
+       ],
+       [
+        "Ammeter full-scale plus",
+        "Voltage regulator malfunction [[1:191|PHAK 7-31]]"
+       ],
+       [
+        "Loadmeter",
+        "The load on the alternator; with everything off it shows only battery charging [[1:191|PHAK 7-31]]"
+       ],
+       [
+        "Warning light",
+        "Alternator or generator malfunction [[1:191|PHAK 7-31]]; on some airplanes it sits where open charts can hide it [[23:330|IFH 11-5]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**The failure.** Expect roughly 40 minutes of battery, but do not count on it. Never continue the flight: shed load and land at the nearest suitable airport [[23:330|IFH 11-5]]. Battery time depends on the load: a 25-amp-hour battery might give 5 amps for 5 hours, 10 amps for perhaps 2 hours, and 40 amps for 10 or 15 minutes, and electric flaps or gear on a weak battery can cause an immediate total power loss [[24:362|AFH 18-13]]."
+    },
+    {
+     "p": "In a glass airplane the AHRS, ADC and engine indicating system need electricity, so an alternator failure is an emergency, not an abnormal [[23:331|IFH 11-6]]. A standby battery comes on near 19 volts to power the essential bus, but generally only if its switch is in ARM, so arm it before departure; after that come the standby attitude indicator, altimeter, airspeed indicator and compass [[23:331|IFH 11-6]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Simulating it: brief beforehand how simulated emergencies will be introduced. The AFH warns that pulling circuit breakers for training is not recommended and can lead to a gear-up landing; many procedures can be practiced on the ground with the engine off, with every item restored afterward [[24:284|AFH 13-35]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "After an alternator failure in a glass trainer, your learner wants to continue 40 minutes to her destination because the battery 'lasts 40 minutes'. What do you teach?",
+    "a": "The 40 minutes is only an approximation and may be far less; a pilot should never continue after the charging system fails, but shed load and land at the nearest suitable airport. In a glass airplane it is an emergency [[23:330|IFH 11-5]] [[23:331|IFH 11-6]]."
+   }
+  },
+  {
+   "title": "Primary flight display and electronic engine display",
+   "kind": "knowledge",
+   "codes": [
+    "FII.II.A.K1",
+    "FII.II.A.K1h",
+    "FII.II.A.K1i"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Primary flight display, if installed.** The PFD shows attitude, airspeed, altitude, vertical speed, heading, trim and trend information on one screen [[23:122|IFH 5-27]]. Attitude and heading come from the AHRS [[23:117|IFH 5-22]] [[1:222|PHAK 8-20]]; airspeed and altitude come from the ADC, which uses pitot, static and temperature inputs [[1:216|PHAK 8-14]]. Trend vectors show where airspeed and altitude will be in 6 seconds [[1:216|PHAK 8-14]]. Unlike an analog attitude indicator, the pilot cannot move the yellow chevron [[23:196|IFH 7-35]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "table": {
+      "head": [
+       "Failure",
+       "What the pilot sees",
+       "What is left"
+      ],
+      "rows": [
+       [
+        "AHRS",
+        "All attitude and heading indications on the PFD are lost, and so is unusual-attitude protection [[23:217|IFH 7-56]]",
+        "Airspeed, altitude and VSI tapes [[23:219|IFH 7-58]]; autopilot roll and altitude hold only. The slip/skid indicator is gone too, and the IFH example has no standby turn coordinator [[23:217|IFH 7-56]]"
+       ],
+       [
+        "AHRS and ADC",
+        "No attitude indication on the PFD [[23:219|IFH 7-58]]",
+        "Standby airspeed, attitude indicator, altimeter and compass; in the IFH example, no standby turn coordinator [[23:219|IFH 7-58]]"
+       ],
+       [
+        "A display screen",
+        "Reversionary mode: flight instruments and engine data on one screen [[23:329|IFH 11-4]]",
+        "No moving map, so position comes from the chart [[23:329|IFH 11-4]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Electronic engine instrument display.** In the common two-screen layout the tachometer is on the MFD; if a screen fails, it appears on the remaining screen with the flight instruments [[1:215|PHAK 8-13]]. The engine indicating system needs electrical power like the AHRS and ADC [[23:331|IFH 11-6]]. In the preflight, check that the Xs over the engine indicators go away as each sensor comes on line [[24:42|AFH 2-5]] [[24:43|AFH 2-6]]. Keep the engine indications in the scan, and adjust the radial scan if they are on a separate MFD [[23:157|IFH 6-24]] [[23:159|IFH 6-26]]."
+    },
+    {
+     "p": "Teach what the engine page tells an instrument pilot: induction ice shows as an rpm drop with a fixed-pitch propeller and a manifold pressure drop with a constant-speed propeller [[1:170|PHAK 7-10]] [[38:58|AC 91-74B App 2]]."
+    }
+   ],
+   "check": {
+    "q": "In a glass trainer in IMC the MFD goes dark. Where are the engine indications now, and what has your learner lost?",
+    "a": "The remaining screen reverts: it combines the PFD with the engine indications and drops the moving map, so she follows her position on the chart [[23:329|IFH 11-4]] [[1:215|PHAK 8-13]]."
+   }
+  },
+  {
+   "title": "VOR, DME and ADF",
+   "kind": "knowledge",
+   "codes": [
+    "FII.II.A.K2",
+    "FII.II.A.K2a",
+    "FII.II.A.K2b",
+    "FII.II.A.K2e"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "These are the ground-based receivers. For each one, teach what it measures, how to prove it works, and how it can lie."
+    },
+    {
+     "table": {
+      "head": [
+       "Item",
+       "Operating characteristics",
+       "Failure modes and checks"
+      ],
+      "rows": [
+       [
+        "**VHF omnirange (VOR)**",
+        "108.0 to 117.95 MHz, line of sight, range grows with altitude [[33:68|AIM 1-1-3]]; indications do not depend on heading [[23:254|IFH 9-11]]; full-scale CDI deflection is 10° or more off course, about 2° per dot (IFH 9-11 prints 12°; FAA's IFH errata of July 25, 2013 corrects it to 10°) [[23:254|IFH 9-11]]; course alignment generally ±1° [[33:69|AIM 1-1-3]]",
+        "The only positive ID is the Morse code or voice ID; maintenance may send T-E-S-T or no code [[33:68|AIM 1-1-3]] [[33:69|AIM 1-1-3]]. Some propeller rpm settings swing the CDI ±6° [[33:69|AIM 1-1-3]]. Never use a reading taken while transmitting on the same NAV/COM [[23:259|IFH 9-16]]"
+       ],
+       [
+        "**DME**",
+        "The airborne unit interrogates, the ground station replies, and the time becomes slant-range distance, better than 1/2 mile or 3 percent of the distance, whichever is greater, out to 199 NM [[33:72|AIM 1-1-7]]; groundspeed is right only straight to or from the station [[23:260|IFH 9-17]]",
+        "Slant-range error is negligible at 1 NM or more per 1,000 feet above the station [[23:262|IFH 9-19]]. One ID about every 30 seconds means the DME works but the VOR or LOC does not [[23:260|IFH 9-17]]. Disregard auto-tuned DME when the VOR or ILS has none [[33:73|AIM 1-1-7]]"
+       ],
+       [
+        "**ADF**",
+        "The needle points to the NDB (190 to 535 kHz); relative bearing is measured clockwise from the nose; MH + RB = MB [[23:246|IFH 9-3]] [[23:247|IFH 9-4]]",
+        "No warning flag, so keep listening to the ID; a noisy ID usually means an erratic needle [[33:68|AIM 1-1-2]]. Lightning, precipitation static and night interference cause errors [[33:68|AIM 1-1-2]]; AM broadcast stations are not approved for navigation [[23:246|IFH 9-3]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Name the errors you will see: careless tuning and identification, not checking the TO/FROM indicator so corrections go the wrong way, and chasing the CDI so the airplane homes instead of tracking [[23:257|IFH 9-14]] [[23:259|IFH 9-16]]. With the ADF: homing instead of tracking, and chasing the needle near the station [[23:251|IFH 9-8]]. Near the horizon, the DME usually drops out before the VOR [[23:246|IFH 9-3]]."
+    },
+    {
+     "p": "Quick sensitivity check: turning the OBS to move the CDI from center to the last dot should take no more than 10° or 12° [[23:259|IFH 9-16]]."
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "To use VOR under IFR, the equipment must have been checked within the preceding 30 days [[60:470|14 CFR 91.171(a)]]: ±4° with a VOT or ground checkpoint, ±6° with an airborne checkpoint [[60:470|14 CFR 91.171(b)]], or within 4° between two VORs [[60:471|14 CFR 91.171(c)]]. Log the date, place, bearing error and signature [[60:471|14 CFR 91.171(d)]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner hears one Morse identifier about every 30 seconds on a VOR/DME and nothing else. What does it tell her?",
+    "a": "The DME is working but the associated VOR is not [[23:260|IFH 9-17]] [[33:73|AIM 1-1-7]]."
+   }
+  },
+  {
+   "title": "ILS and marker beacons",
+   "kind": "knowledge",
+   "codes": [
+    "FII.II.A.K2",
+    "FII.II.A.K2c",
+    "FII.II.A.K2d"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**ILS.** The basic components are the localizer, the glideslope and the outer marker, plus an inner marker for Category II or III [[33:78|AIM 1-1-9]]. The typical VOR receiver is also the localizer receiver [[23:281|IFH 9-38]], and in a typical installation the glideslope tunes itself when the localizer is tuned [[23:282|IFH 9-39]]."
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "table": {
+      "head": [
+       "Signal",
+       "Characteristics",
+       "How it can mislead"
+      ],
+      "rows": [
+       [
+        "Localizer",
+        "108.10 to 111.95 MHz, odd tenths; the ID starts with I [[23:279|IFH 9-36]]; normally 5° wide, full scale at 2.5° each side [[23:280|IFH 9-37]]; 700 feet wide at the threshold [[33:78|AIM 1-1-9]]; the OBS has no effect on the needle [[23:283|IFH 9-40]]",
+        "Reverse sensing inbound on the back course or outbound on the front course unless the receiver has reverse sensing [[33:79|AIM 1-1-9]]. Vehicles and aircraft near the antennas can disturb it, and critical areas are not protected in better weather or at nontowered airports [[33:84|AIM 1-1-9]] [[33:85|AIM 1-1-9]]"
+       ],
+       [
+        "Glideslope",
+        "Front course only, about 1.4° thick [[23:280|IFH 9-37]]; normally 3°, crossing the MM about 200 feet and the OM about 1,400 feet above the runway [[33:81|AIM 1-1-9]]",
+        "False courses and reverse sensing occur at angles well above the published path [[33:81|AIM 1-1-9]]. IFH Addendum B (November 2019, replacing the IFH 9-40 false-course text) puts them at about 6° to 12°, warns there may be no indication before crossing one, and notes a reversed signal can make the autopilot pitch up. Captured from below at the charted altitudes, they are not met [[23:283|IFH 9-40]]. Near a back course, false signals can make the flag disappear [[33:81|AIM 1-1-9]]"
+       ],
+       [
+        "Flags",
+        "Localizer and glideslope flags show an unstable signal or a receiver failure [[23:283|IFH 9-40]]",
+        "Localizer out: no ILS approach. Glideslope out: it becomes a localizer approach [[33:83|AIM 1-1-9]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Marker beacon receiver/indicators.** All markers transmit on 75 MHz [[23:54|IFH 2-3]]. Outer marker: low tone, two dashes per second, blue light. Middle: dots and dashes, amber light. Inner: high tone, six dots per second, white light [[23:283|IFH 9-40]]. Use LOW sensitivity on the approach for the sharpest fix; HIGH gives earlier warning [[23:283|IFH 9-40]] [[33:82|AIM 1-1-9]]. A middle marker is no longer required, and an OM or a suitable substitute identifies the FAF for nonprecision approaches [[33:82|AIM 1-1-9]]."
+    },
+    {
+     "p": "Marker failure modes to teach: some receivers take power from another radio, often the ADF, which then must be on; one HIGH/LOW/OFF switch both powers the receiver and sets sensitivity; and the test usually checks only the bulbs, so the only real proof may be flying over a marker [[23:285|IFH 9-42]]."
+    }
+   ],
+   "check": {
+    "q": "Your learner's marker beacon test lights all three lamps. Does that prove the receiver works?",
+    "a": "No. Usually the test checks only the bulbs; in some installations the only way to know is to fly over a marker and get the tone and light [[23:285|IFH 9-42]]."
+   }
+  },
+  {
+   "title": "Transponder, GPS and FMS",
+   "kind": "knowledge",
+   "codes": [
+    "FII.II.A.K2",
+    "FII.II.A.K2f",
+    "FII.II.A.K2h",
+    "FII.II.A.K2j"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "**Transponder/altitude encoding.** The ground interrogator triggers the transponder, which replies with its code and data such as altitude [[23:289|IFH 9-46]] [[23:290|IFH 9-47]]. The encoder sends pressure altitude referenced to 29.92 in 100-foot steps, so the Kollsman setting does not change what is sent [[23:102|IFH 5-7]] [[33:222|AIM 4-1-20]]. It must be tested to report within 125 feet of the altimeter used to fly [[60:495|14 CFR 91.217(a)(2)]], and the transponder tested within the preceding 24 calendar months [[60:525|14 CFR 91.413(a)]]."
+    },
+    {
+     "bullets": [
+      "'Stop altitude squawk, altitude differs by...' can mean bad transmitted data or a wrong altimeter setting, so have the learner check the altimeter [[33:223|AIM 4-1-20]].",
+      "Code changes: avoid passing through 7500, 7600 or 7700 [[33:223|AIM 4-1-20]].",
+      "Coverage is line of sight; low altitude or the airplane shielding its own antenna can cost radar contact [[33:222|AIM 4-1-20]]."
+     ]
+    },
+    {
+     "p": "**GPS.** The receiver needs at least four satellites for a three-dimensional position [[33:89|AIM 1-1-17]]. RAIM needs 5 satellites, or 4 with baro-aiding, to detect a bad one, and 6, or 5 with baro-aiding, to exclude it [[33:89|AIM 1-1-17]]. One RAIM message means there are not enough satellites to check; the other means an error was detected; without RAIM there is no assurance of the position [[33:90|AIM 1-1-17]]. IFR equipment must be TSO-C129, C196, C145 or C146; VFR and hand-held units are not for IFR navigation [[33:91|AIM 1-1-17]] [[33:92|AIM 1-1-17]]. Approaches must be loaded by name from a current database [[33:92|AIM 1-1-17]]."
+    },
+    {
+     "table": {
+      "head": [
+       "GPS behavior to teach",
+       "What the source says"
+      ],
+      "rows": [
+       [
+        "CDI scaling",
+        "±5 NM en route; armed by 30 NM it goes to ±1 NM; from 2 NM before the FAWP it narrows to ±0.3 NM, which can make a good intercept look like it is drifting away [[33:96|AIM 1-1-17]]"
+       ],
+       [
+        "Approach not active 2 NM out",
+        "The equipment flags: do not descend to the MDA; fly to the MAWP and go missed [[33:96|AIM 1-1-17]]"
+       ],
+       [
+        "Signal loss",
+        "The antenna shadowed by the airplane in a bank, high terrain, or interference from devices in the cabin [[23:274|IFH 9-31]]"
+       ],
+       [
+        "Jamming or spoofing",
+        "Erroneous winds and groundspeed, clock changes, wrong FMS position, large position shifts: cross-check with VOR or DME and tell ATC [[33:119|AIM 1-2-4]] [[33:120|AIM 1-2-4]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**FMS.** An FMS is not a navigation system itself; it manages the onboard navigation sensors [[23:287|IFH 9-44]]. It combines a database of navaids, airways, departures, arrivals and approaches with what the pilot enters on the control display unit, then sends course guidance to the HSI and roll steering to the autopilot and flight director [[23:122|IFH 5-27]]. Databases are updated every 28 days [[23:122|IFH 5-27]]. Its weak point is the entry: one crew entered a waypoint one degree wrong, and the FMS flew them 60 NM off course into a mountain, exactly as programmed [[1:71|PHAK 2-32]]."
+    }
+   ],
+   "check": {
+    "q": "On vectors, your learner intercepts the GPS final approach course 1 NM outside the FAWP and the CDI suddenly shows more deflection. What is happening?",
+    "a": "Inside 2 NM of the FAWP the full-scale CDI narrows from ±1 NM to ±0.3 NM, so the same offset shows as more deflection. Being established before the ramp-down avoids the confusion [[33:96|AIM 1-1-17]]."
+   }
+  },
+  {
+   "title": "Electronic flight display, MFD and automatic pilot",
+   "kind": "knowledge",
+   "codes": [
+    "FII.II.A.K2",
+    "FII.II.A.K2g",
+    "FII.II.A.K2i",
+    "FII.II.A.K2k"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Electronic flight instrument display.** For the practical test standards, any flight instrument display that uses LCD or picture-tube screens is an 'electronic flight instrument display' or glass flight deck, usually a PFD and an MFD [[23:122|IFH 5-27]]. As pilots get comfortable, the display tends to become their primary navigation source instead of the supplement it was meant to be; it does not replace en route charts [[23:329|IFH 11-4]]."
+    },
+    {
+     "p": "**Multifunction display, if installed.** The MFD shows information beyond the primary flight data: moving map, approach charts, terrain awareness and weather, and in reversionary mode either screen can show the other's critical information [[23:123|IFH 5-28]]. AFMs prohibit using the moving map, terrain, traffic and datalink weather displays as the primary data source [[1:69|PHAK 2-30]]."
+    },
+    {
+     "p": "**Automatic pilot.** Autopilots can control roll, pitch and yaw; most GA autopilots control roll and pitch [[23:120|IFH 5-25]]. Position-based autopilots sense attitude from a gyro; rate-based ones use the turn-and-bank sensor [[23:120|IFH 5-25]]. Autopilots have a disconnect and can be manually overridden; use the AFM/POH instructions for your system [[1:160|PHAK 6-12]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Autopilot trap",
+       "What to teach"
+      ],
+      "rows": [
+       [
+        "Armed versus engaged",
+        "Know at all times which modes are engaged and which are armed, and verify that armed modes engage [[25:23|AIH 1-19]] [[1:70|PHAK 2-31]]"
+       ],
+       [
+        "Changing the nav source",
+        "On some systems, switching the HSI from GPS to LOC or VOR in NAV mode drops the autopilot to ROL until NAV is re-engaged [[1:70|PHAK 2-31]]"
+       ],
+       [
+        "A failing sensor",
+        "A wandering vacuum gyro feeding the autopilot can drive it the wrong way [[23:332|IFH 11-7]]; after an AHRS failure in the IFH example only roll and altitude hold remain [[23:217|IFH 7-56]]"
+       ],
+       [
+        "Climbing in ice",
+        "In VS mode it holds the climb rate until stall as ice builds; VS climbs in icing are highly discouraged [[38:48|AC 91-74B 5-6c, 5-6d]]"
+       ],
+       [
+        "Thunderstorm",
+        "Disengage altitude hold and speed hold; they increase maneuvering and structural stress [[34:121|AIM 7-1-27]]"
+       ],
+       [
+        "Flight director",
+        "A flight director on does not mean the autopilot is flying [[23:119|IFH 5-24]]; when hand flying without it, turn it off so the bars leave the display [[24:257|AFH 13-8]]"
+       ]
+      ]
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner switches the CDI from GPS to LOC during a coupled approach, and the airplane holds wings level right through the localizer. What happened?",
+    "a": "On some autopilots changing the navigation source in NAV mode disengages NAV and the autopilot defaults to ROL until NAV is re-engaged [[1:70|PHAK 2-31]]."
+   }
+  },
+  {
+   "title": "Ice protection: airframe, propeller, intake, fuel and pitot-static",
+   "kind": "knowledge",
+   "codes": [
+    "FII.II.A.K3",
+    "FII.II.A.K3a",
+    "FII.II.A.K3b",
+    "FII.II.A.K3c",
+    "FII.II.A.K3d",
+    "FII.II.A.K3e"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "Anti-icing equipment prevents ice; deicing equipment removes it after it forms [[1:200|PHAK 7-40]]. AC 91-74B draws the line the same way: a deicing system goes on after ice starts and lets some ice build before shedding it, while an anti-icing system goes on before the encounter and keeps the surface free of ice [[38:23|AC 91-74B 3-4]] [[38:25|AC 91-74B 3-5]]. Most light airplanes have only pitot heat and are not certificated for icing [[1:200|PHAK 7-40]]. Equipment, however complete it looks, is not an approval; only the AFM/POH and the certification basis tell you [[24:258|AFH 13-9]] [[38:31|AC 91-74B 3-12c]]. The lesson IR.II.A covers icing operations from the pilot's side."
+    },
+    {
+     "table": {
+      "head": [
+       "Item",
+       "How it works",
+       "Failure modes and teaching points"
+      ],
+      "rows": [
+       [
+        "**Airframe**",
+        "Deicing: pneumatic boots, held flat by suction and inflated by a timer to crack the ice [[38:23|AC 91-74B 3-4a]], and electroimpact or cycling electrothermal systems [[38:24|AC 91-74B 3-4b, 3-4c]]. Anti-icing: bleed-air heat and fluid (running wet) systems [[38:25|AC 91-74B 3-5a]] [[38:26|AC 91-74B 3-5b]]; a fluid weeping wing can also deice [[1:201|PHAK 7-41]]",
+        "Cycle boots at the first sign of ice; early and often never leaves more ice than waiting [[38:24|AC 91-74B 3-4a(2)]]. Some ice always remains between cycles [[38:23|AC 91-74B 3-4a(1)]]. Pinholes draw in moisture that can freeze [[38:33|AC 91-74B 3-14]]"
+       ],
+       [
+        "**Propeller or rotor**",
+        "Electrothermal boots heat the inboard section, then the outboard, shown on the prop ammeter [[1:201|PHAK 7-41]]. AC 91-74B classes them as deicing: the heat breaks the ice bond and centrifugal force throws the ice off, with sections heated symmetrically [[38:24|AC 91-74B 3-4c]] [[38:25|AC 91-74B 3-4c(1)]]. Alcohol slingers keep ice from forming [[1:201|PHAK 7-41]]. Prop boots are typically used as deice, but they can work as anti-ice: it depends on when they are turned on. Turned on after ice forms, they remove it; turned on before, they keep it from building up [[38:23|AC 91-74B 3-4]] [[38:25|AC 91-74B 3-5]]",
+        "A boot that does not heat on one blade gives unequal ice and severe vibration [[1:201|PHAK 7-41]]. On a constant-speed prop, ice can cost thrust with no rpm change [[38:28|AC 91-74B 3-8]]"
+       ],
+       [
+        "**Air intake**",
+        "Carburetor heat is an anti-icing system [[1:170|PHAK 7-10]]; alternate air bypasses a blocked filter, automatically on some engines [[1:167|PHAK 7-7]] [[1:171|PHAK 7-11]]",
+        "Carburetor ice from 20 °F to 70 °F [[23:90|IFH 4-13]]; impact ice shows as rpm loss (fixed pitch) or manifold pressure loss (constant speed) [[24:258|AFH 13-9]]; carb heat can serve as alternate air if the filter ices [[1:170|PHAK 7-10]]"
+       ],
+       [
+        "**Fuel system**",
+        "Heated or non-icing fuel vents [[24:258|AFH 13-9]]; anti-icing additives approved for some airplanes [[1:188|PHAK 7-28]]",
+        "Water in the fuel can freeze into crystals that block screens, strainers and filters; drain the sumps every preflight; additives never replace carb heat [[1:188|PHAK 7-28]]"
+       ],
+       [
+        "**Pitot-static system**",
+        "Pitot heat, heated static ports on many airplanes, and an alternate static source [[38:28|AC 91-74B 3-11a]] [[38:29|AC 91-74B 3-11b]]",
+        "Even light icing can block the pitot entry hole [[38:28|AC 91-74B 3-11a]]. Check pitot heat on the ammeter in preflight [[23:132|IFH 5-37]]; turn it on and verify the airspeed in the climb [[38:47|AC 91-74B 5-6a]]"
+       ]
+      ]
+     }
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "Anti-ice systems go on before entering icing, and using them as deicers may damage them [[38:25|AC 91-74B 3-5]]; a rule of thumb is anti-ice at the first visible moisture in icing conditions and deice at the first sign of ice [[38:26|AC 91-74B 3-5b]] [[38:59|AC 91-74B App 2]]. None of this equipment is meant for long flight in icing [[1:201|PHAK 7-41]]; it buys time to get out [[23:327|IFH 11-2]]."
+    }
+   ],
+   "check": {
+    "q": "During a deice check, the prop deice ammeter stays steady instead of fluctuating as the boot sections cycle. Why does it matter?",
+    "a": "The ammeter should fluctuate as each boot section cycles. If a boot fails to heat on one blade, unequal ice loading can cause severe vibration [[1:201|PHAK 7-41]]."
+   }
+  },
+  {
+   "title": "Weather detection: radar, lightning and datalink weather",
+   "kind": "knowledge",
+   "codes": [
+    "FII.II.A.K3",
+    "FII.II.A.K3f",
+    "FII.II.A.K3g"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Radar/lightning detection system.** Airborne weather radar is for avoiding severe weather, not for penetrating it [[28:275|AWH 22-20]]. Teach its limits:"
+    },
+    {
+     "bullets": [
+      "Most aircraft radars run under 50 kW at a 3 cm wavelength, so small targets are hard to see [[28:173|AWH 15-3]]; heavy rain absorbs the beam, so the radar may show only the leading edge of an extreme echo and a 'shadow' behind it [[28:175|AWH 15-5]] [[28:276|AWH 22-21]].",
+      "Range compensation usually works only to 50 to 75 NM; farther targets look weaker than they are [[28:175|AWH 15-5]].",
+      "Beam widths of 3° to 10° mean that cells close together may show as one [[28:176|AWH 15-6]].",
+      "Radar shows precipitation; the AIM says it does not detect turbulence [[34:119|AIM 7-1-26]]. Doppler turbulence modes see turbulence only in precipitation, never clear-air turbulence, and a clear display does not mean clear of cloud [[28:276|AWH 22-21]].",
+      "It cannot see cloud-size or drizzle-size drops, so it cannot warn of icing in cloud or freezing drizzle [[38:45|AC 91-74B 5-3e]].",
+      "Tilt the antenna up and down now and then to find storms at other altitudes [[34:121|AIM 7-1-27]]."
+     ]
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "p": "Our sources say little about onboard lightning detectors. On one common MFD, NEXRAD and STORMSCOPE cannot be shown at the same time, and lightning information can be layered with NEXRAD [[1:329|PHAK 13-19]]. Vivid and frequent lightning indicates the probability of a severe thunderstorm [[34:120|AIM 7-1-27]]."
+    },
+    {
+     "p": "**Other inflight weather systems.** FIS-B broadcasts weather and aeronautical information over the 978 MHz UAT link [[34:80|AIM 7-1-9]], and subscription satellite services also exist [[38:45|AC 91-74B 5-3f]]. FIS supports strategic decisions (20 minutes or more ahead), not tactical avoidance (under 3 minutes), and is never the only source [[34:81|AIM 7-1-9]]. NEXRAD imagery shows where the weather was, and may be 15 to 20 minutes older than the age on the display [[34:120|AIM 7-1-27]] [[1:329|PHAK 13-19]]. Electronic ice detectors are usually advisory, so the pilot still must detect ice and turn on the protection [[38:33|AC 91-74B 3-15a]]; a frozen OAT probe can read a false 0 °C [[38:30|AC 91-74B 3-11f]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "When a learner zooms in on datalink weather to find a gap between cells, stop and teach strategic versus tactical use: never use NEXRAD imagery as the sole means of getting through a thunderstorm area [[34:120|AIM 7-1-27]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "On the tablet, your learner sees a gap between two red cells 5 NM ahead; the image age shows 2 minutes. What do you teach?",
+    "a": "The mosaic shows where the weather was and may be 15 to 20 minutes older than the age shown; it is for route selection well ahead, not for picking a path through cells [[34:120|AIM 7-1-27]] [[34:81|AIM 7-1-9]]."
+   }
+  },
+  {
+   "title": "Teaching it: simulating failures and how the Task is tested",
+   "kind": "skills",
+   "codes": [
+    "FII.II.A.K1",
+    "FII.II.A.K2",
+    "FII.II.A.K3"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "Use the telling-and-doing technique: you explain and demonstrate, the learner tells while you do, then the learner tells and does. Thinking aloud shows whether an error comes from a misconception or from a lack of skill [[25:177|AIH 9-7]] [[25:178|AIH 9-8]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Failure",
+       "How to simulate it safely",
+       "What the learner should do"
+      ],
+      "rows": [
+       [
+        "Vacuum",
+        "Cover the attitude and heading indicators; every maneuver but the instrument takeoff can be flown this way [[23:162|IFH 7-1]]",
+        "Compare with the turn indicator and VSI, check suction, cover the failed gyros, tell ATC [[23:332|IFH 11-7]]"
+       ],
+       [
+        "AHRS (glass)",
+        "Fly with the AHRS 'simulated or rendered inoperative' [[23:194|IFH 7-33]]; the method depends on the avionics, so use the AFM",
+        "Altitude tape and trend as primary pitch, small inputs [[23:197|IFH 7-36]]; autopilot as a wing leveler if available [[23:219|IFH 7-58]]"
+       ],
+       [
+        "Static blockage",
+        "Discussion and the alternate static demonstration (Application)",
+        "Alternate static; with none, break the VSI glass [[23:333|IFH 11-8]]"
+       ],
+       [
+        "Alternator",
+        "Brief it and talk it through; do not pull circuit breakers [[24:284|AFH 13-35]]",
+        "Shed load, tell ATC, land at the nearest suitable airport [[23:330|IFH 11-5]] [[24:363|AFH 18-14]]"
+       ],
+       [
+        "GPS loss",
+        "Brief it, then finish the flight on VOR and ILS (Application)",
+        "Check position with VOR or DME, tell ATC, use conventional navaids [[33:119|AIM 1-2-4]] [[33:120|AIM 1-2-4]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Brief before the flight how simulated emergencies will be introduced and what the learner is expected to do; surprising a learner without a briefing creates a hazard [[24:284|AFH 13-35]]. Lessons with simulated emergencies and a heavy workload are a good way to assess judgment [[25:32|AIH 1-28]], and the learner must know how to fly without the automation as well as with it [[25:23|AIH 1-19]]."
+    },
+    {
+     "p": "How it is tested: Task A is one the evaluator must select [[FAA-S-8081-9E:26|PTS Area II NOTE]]. Expect 'what fails with what' questions from the POH of the test airplane, how you would teach a learner to recognize each failure, and how you would simulate it. The partial panel and backup-instrument flying itself is tested in Areas VI and IX [[FAA-S-8081-9E:17|PTS Introduction]] [[FAA-S-8081-9E:45|PTS IX.B]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: keep a one-page failure card for each training airplane: instrument, power source, failure picture, first action, what to tell ATC. Use it for oral review and in the debrief after every partial panel lesson."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner asks why you will not just pull the vacuum pump or pitot heat circuit breaker to make the failure 'real'. What do you answer?",
+    "a": "Pulling circuit breakers for training is not recommended and can lead to a gear-up landing; brief the simulation, cover instruments or talk it through, and restore every item afterward [[24:284|AFH 13-35]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "FII.II.A-1.jpg",
+   "res": "1",
+   "page": 214,
+   "caption": "Figure 8-11. Blocked static system. (PHAK 8-12)",
+   "alt": "A diagram of a pitot-static system. A static port at lower left has a black blockage just downstream of it. A blue static line runs to an altimeter labeled Frozen altimeter, a vertical speed indicator labeled Constant zero indication on VSI, and an airspeed indicator labeled Inaccurate airspeed indications. A red line connects the airspeed indicator to a pitot tube at lower right.",
+   "source": "PHAK, PDF p. 214"
+  },
+  "f2": {
+   "file": "FII.II.A-2.jpg",
+   "res": "23",
+   "page": 333,
+   "caption": "Figure 11-8. Vacuum failure. (IFH 11-8)",
+   "alt": "A light-airplane instrument panel. The attitude indicator shows a left bank with a red OFF flag, and the heading display below it shows a red flag. The D.C. electric turn coordinator shows wings level, the altimeter reads 2,000 feet, and the vertical speed indicator reads zero. A combined vacuum and ammeter gauge at the left shows the vacuum needle below its green band. Engine gauges and switches fill the rest of the panel.",
+   "source": "IFH, PDF p. 333"
+  },
+  "f3": {
+   "file": "FII.II.A-3.jpg",
+   "res": "23",
+   "page": 118,
+   "caption": "Figure 5-38. Horizontal situation indicator (HSI). (IFH 5-23)",
+   "alt": "An HSI with labels: lubber line at the top, heading select bug, compass warning flag, TO/FROM indicator, symbolic aircraft in the center, course select pointer, NAV warning flag, compass card, dual glideslope pointers and glideslope deviation scale on the left, course deviation bar and scale, course select knob at lower left and heading select knob at lower right.",
+   "source": "IFH, PDF p. 118"
+  },
+  "f4": {
+   "file": "FII.II.A-4.jpg",
+   "res": "23",
+   "page": 219,
+   "caption": "Figure 7-73. AHRS unit failed. (IFH 7-58)",
+   "alt": "A glass primary flight display. The attitude area is covered by a large red X with the words ATTITUDE FAIL, and a red HDG flag sits above the heading display. The airspeed tape on the left reads 134 knots and the altitude tape on the right reads about 2,880 feet with the vertical speed tape beside it.",
+   "source": "IFH, PDF p. 219"
+  },
+  "f5": {
+   "file": "FII.II.A-5.jpg",
+   "res": "23",
+   "page": 279,
+   "caption": "Figure 9-33. Instrument landing systems. (IFH 9-36)",
+   "alt": "A large ILS diagram. The runway and localizer antenna are at the upper left, with the glideslope transmitter beside the runway. Localizer and glideslope beams in blue and orange stretch to the right. Boxes give the localizer band of 108.10 to 111.95 MHz and the glideslope band of 329.3 to 335.0 MHz, the middle marker with an amber light and 95 dot-dash combinations per minute, and the outer marker with a blue light and two dashes per second, 4 to 7 miles out. Course indicators show the needles at points along the approach, and a rate of descent table sits at lower left.",
+   "source": "IFH, PDF p. 279"
+  },
+  "f6": {
+   "file": "FII.II.A-6.jpg",
+   "res": "1",
+   "page": 201,
+   "caption": "Figure 7-50. Prop ammeter and anti-ice boots. (PHAK 7-41)",
+   "alt": "Top: a PROP DEICER AMPS gauge from 0 to 20 with a green arc, beside a note that the ammeter shows normal range and fluctuates as each boot section cycles. Bottom: a photo of a propeller blade with a black heating boot, labeled inboard section and outboard section, and a note that a boot that fails to heat on one blade can cause unequal ice loading and severe vibration.",
+   "source": "PHAK, PDF p. 201"
+  },
+  "f7": {
+   "file": "FII.II.A-7.jpg",
+   "res": "28",
+   "page": 175,
+   "caption": "Figure 15-5. Precipitation attenuation versus wavelength. (AWH 15-5)",
+   "alt": "Two round radar displays side by side. Left, labeled WSR-88D and 10 CM, shows many solid green echoes at all ranges. Right, labeled AIRCRAFT and 3 CM, shows the same storms mostly as dotted outlines, with solid green only on the near edges of a few cells.",
+   "source": "AWH, PDF p. 175"
+  }
+ },
+ "scenario": {
+  "title": "A wet winter IFR lesson in a six-pack trainer",
+  "codes": [
+   "FII.II.A.K1a",
+   "FII.II.A.K1g",
+   "FII.II.A.K2c",
+   "FII.II.A.K2d",
+   "FII.II.A.K3c",
+   "FII.II.A.K3e",
+   "FII.II.A.K3g"
+  ],
+  "setup": "You are a CFII with an instrument learner who has 25 hours of instrument time. The airplane is a carbureted, fixed-pitch single with vacuum attitude and heading indicators, an electric turn coordinator, pitot heat, an alternate static source, one VOR/LOC/GS receiver with marker beacons, a WAAS GPS and a tablet with FIS-B weather. It is not approved for flight in icing. The plan is an IFR flight to an ILS. Tops are about 5,000 feet, the freezing level 6,000 feet, with light rain along the route.",
+  "questions": [
+   {
+    "q": "What should your learner check before flight on the systems this Task covers?",
+    "a": "Pitot cover off, static ports clean, the 24-month static and altimeter check and the navaid NOTAMs [[23:131|IFH 5-36]]; compass fluid and card, alternate static working and closed, pitot heat on the ammeter; after start, gyro spin-up and suction, compass, heading indicator and turn coordinator in taxi [[23:132|IFH 5-37]]; attitude indicator tipping no more than 5° [[23:133|IFH 5-38]]; and a VOR check within 30 days [[60:470|14 CFR 91.171(a)]]."
+   },
+   {
+    "q": "Climbing in cloud at +1 °C, the airspeed slowly unwinds to zero while the altimeter and VSI look normal. What happened, and what do you teach?",
+    "a": "A pitot blockage with the drain open, likely ice; even light icing can block the entry hole [[38:28|AC 91-74B 3-11a]] [[1:212|PHAK 8-10]]. Check pitot heat on, fly pitch and power, and leave the icing: an airplane not certificated for ice must exit immediately [[38:32|AC 91-74B 3-13b]]."
+   },
+   {
+    "q": "In rain the rpm slowly drops and the engine roughens. Which system, and what is the fix?",
+    "a": "Carburetor or intake ice: with a fixed-pitch propeller it shows as an rpm drop. Apply full carburetor heat and leave it on until power returns, expecting roughness as the ice melts [[1:170|PHAK 7-10]] [[24:258|AFH 13-9]]."
+   },
+   {
+    "q": "On the tablet a red cell sits 8 NM ahead with a gap beside it. Your learner wants to fly through the gap. What do you say?",
+    "a": "Datalink NEXRAD shows where the weather was, up to 15 to 20 minutes old, and must not be the sole means of getting through a thunderstorm area; without airborne radar, stay out of cloud masses with embedded storms and ask ATC for help around them [[34:120|AIM 7-1-27]] [[34:81|AIM 7-1-9]]."
+   },
+   {
+    "q": "On the ILS the localizer and glideslope are centered, but no marker light or tone appears at the outer marker. Is the marker receiver broken?",
+    "a": "Maybe not. Some receivers need another radio, often the ADF, turned on; one switch powers the receiver and sets sensitivity; and the test lights only the bulbs [[23:285|IFH 9-42]]. And the outer marker can be replaced by an authorized substitute, such as a DME fix or a suitable GPS, so check the chart [[33:78|AIM 1-1-9]]."
+   },
+   {
+    "q": "In the debrief, how do you turn these events into learning?",
+    "a": "Have her talk through each failure picture while you guide, so you can tell a misconception from a skill problem [[25:178|AIH 9-8]], then plan a briefed partial panel lesson with the gyros covered [[23:162|IFH 7-1]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "FII.II.A.K1",
+   "do": "Explain aloud, for your training airplane, the power source and failure picture of each flight instrument, how a learner recognizes each failure, and how you would simulate it safely.",
+   "practice": "Build the failure map from the POH, since it is where the power source of every instrument is found [[23:114|IFH 5-19]], then give it as a 15-minute ground lesson to another applicant who plays the examiner and asks 'what fails with what?'"
+  },
+  {
+   "code": "FII.II.A.K3",
+   "do": "Explain the airplane's ice protection and weather detection equipment, what each item can and cannot do, and whether the airplane is approved for icing.",
+   "practice": "Check the AFM/POH and type certificate data sheet with the AC 91-74B tests for icing certification [[38:31|AC 91-74B 3-12c]], then brief a learner on what the equipment means for a go/no-go decision."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "In cloud, your learner's airspeed rises steadily as she climbs and falls as she descends, while the altimeter works normally. What does this picture indicate?",
+   "options": [
+    "The static ports are blocked and the altimeter lags",
+    "The pitot tube and its drain hole are both blocked",
+    "The pitot tube is blocked but its drain hole is open",
+    "The alternate static source has been left open"
+   ],
+   "answer": 1,
+   "why": "With the pitot opening and drain blocked, the airspeed indicator acts like an altimeter [[23:98|IFH 5-3]]. With the drain open it would drop to zero [[1:212|PHAK 8-10]], and a static blockage would freeze the altimeter [[23:98|IFH 5-3]]."
+  },
+  {
+   "q": "Your learner selects the cabin alternate static source in level flight in an unpressurized trainer. What should you have told her to expect?",
+   "options": [
+    "Altimeter a little low, airspeed low, a brief VSI descent",
+    "No change, because the cabin is at outside air pressure",
+    "Altimeter a little high, airspeed high, a brief VSI climb",
+    "Altimeter frozen and VSI at zero until it is closed"
+   ],
+   "answer": 2,
+   "why": "Cabin pressure is lower than outside, so the altimeter reads slightly high, the airspeed reads high and the VSI shows a momentary climb [[23:98|IFH 5-3]]."
+  },
+  {
+   "q": "Taxiing out, your learner's attitude indicator tips about 8° in each taxi turn but stays level going straight. What do you tell her?",
+   "options": [
+    "That is normal for a vacuum gyro until it warms up in the air",
+    "That is fine, as long as it erected within 5 minutes of start",
+    "Recage it now, and then recheck it level during the run-up",
+    "Unreliable: over 5° of tip in taxi turns fails it"
+   ],
+   "answer": 3,
+   "why": "If the horizon bar tips more than 5° during taxi turns, the instrument is unreliable [[23:133|IFH 5-38]]. Erection time is a separate check [[23:114|IFH 5-19]]."
+  },
+  {
+   "q": "Why can a turn coordinator show a standard-rate indication before the heading starts to change?",
+   "options": [
+    "Its gimbal is canted about 30°, so it senses roll as well as yaw",
+    "It is driven by the attitude gyro, which senses bank directly",
+    "Its ball reacts to the roll before the turn needle can move",
+    "Its electric motor speeds up during the roll into the turn"
+   ],
+   "answer": 0,
+   "why": "The turn coordinator's gimbal is angled about 30°, so it shows roll rate first and turn rate once the bank is stable [[23:116|IFH 5-21]]."
+  },
+  {
+   "q": "Your learner set the heading indicator 45 minutes ago. Ignoring bearing friction, how much could it have drifted from Earth's rotation, and what is the habit?",
+   "options": [
+    "None, because a rigid gyro drifts only from bearing friction",
+    "About 11°; compare it with the compass every 15 minutes",
+    "About 45°; reset it to the compass once every hour",
+    "About 4°; one check each hour of flight is enough"
+   ],
+   "answer": 1,
+   "why": "Apparent drift is 15° per hour, so 45 minutes allows about 11°; compare with the compass at least every 15 minutes [[23:115|IFH 5-20]]. Worn bearings add to it [[1:222|PHAK 8-20]]."
+  },
+  {
+   "q": "Flying west at a steady altitude, your learner accelerates from 90 to 120 knots. What does the magnetic compass show?",
+   "options": [
+    "It shows a turn toward the south",
+    "No error, since it is on a west heading",
+    "It shows a turn toward the north",
+    "It lags, then shows a turn to the east"
+   ],
+   "answer": 2,
+   "why": "On east or west headings, acceleration shows a turn toward north and deceleration a turn toward south: ANDS [[23:109|IFH 5-14]]. The east-west heading has no turning error, but it does have acceleration error [[23:183|IFH 7-22]]."
+  },
+  {
+   "q": "In IMC your learner's attitude indicator slowly shows a left bank. The electric turn coordinator is level, the altimeter and VSI are steady, and suction is below the green arc. What do you teach?",
+   "options": [
+    "Roll right to level the attitude indicator, then recheck",
+    "Open the alternate static source and watch the needles",
+    "Trust the attitude indicator; it is the most reliable gyro",
+    "Cover the failed vacuum gyros and fly by the turn coordinator"
+   ],
+   "answer": 3,
+   "why": "Compare the attitude indicator with the turn indicator and VSI, identify the failed vacuum gyros, fly on the instruments that work, and cover the failed ones [[23:332|IFH 11-7]]."
+  },
+  {
+   "q": "In a glass-cockpit trainer the alternator fails. What makes the standby battery power the essential bus?",
+   "options": [
+    "It switches in near 19 volts, if its switch is in ARM",
+    "The pilot must cycle the master switch off and on",
+    "It comes on by itself the moment the alternator light shows",
+    "ATC must be told first, then the pilot selects it ON"
+   ],
+   "answer": 0,
+   "why": "The standby battery comes on line when the main battery drops to about 19 volts, but generally only with its switch in ARM, so arm it before departure [[23:331|IFH 11-6]]."
+  },
+  {
+   "q": "Your learner tunes a VOR/DME and hears one Morse identifier about every 30 seconds and nothing else. What does it tell her?",
+   "options": [
+    "The VOR works but the DME has failed",
+    "The DME works but the VOR is not operating",
+    "Both work; the VOR identifier is just muted",
+    "The station is in maintenance and sends T-E-S-T"
+   ],
+   "answer": 1,
+   "why": "A single identifier about every 30 seconds means the DME is operating but the associated VOR is not [[23:260|IFH 9-17]] [[33:73|AIM 1-1-7]]."
+  },
+  {
+   "q": "Why must your learner keep listening to the NDB identifier during an NDB approach?",
+   "options": [
+    "The ID tells her when she has crossed the station for the turn",
+    "Regulations require identifying the NDB at every fix on the approach",
+    "The ADF has no flag, and a noisy ID usually means an erratic needle",
+    "The ID changes pitch when the needle points behind the wingtip"
+   ],
+   "answer": 2,
+   "why": "ADF receivers have no flag to warn of erroneous bearings, and noisy identification usually occurs when the needle is erratic, so monitor the ID continuously [[33:68|AIM 1-1-2]]."
+  },
+  {
+   "q": "On an ILS, your learner's marker beacon sensitivity switch is in HIGH. What is the effect?",
+   "options": [
+    "A sharper fix, which is why it is used on approaches",
+    "It only tests the marker lamps, not the receiver",
+    "It also tunes the compass locator at that marker",
+    "An earlier warning, but a less precise position fix"
+   ],
+   "answer": 3,
+   "why": "HIGH gives earlier warning of the marker; LOW gives the sharpest position and should be used on the approach [[23:283|IFH 9-40]] [[33:82|AIM 1-1-9]]."
+  },
+  {
+   "q": "ATC says 'stop altitude squawk, altitude differs by 300 feet.' Your learner's altimeter is set correctly and shows the assigned altitude. What is the likely problem?",
+   "options": [
+    "The encoder is sending incorrect altitude data",
+    "Her altimeter setting is changing what ATC sees",
+    "The transponder is on the wrong Mode 3/A code",
+    "The VSI lag is confusing the altitude encoder output"
+   ],
+   "answer": 0,
+   "why": "The instruction may mean the transmitted altitude is wrong or the altimeter setting is wrong; the setting itself does not change the transmitted altitude [[33:223|AIM 4-1-20]], which is referenced to 29.92 [[23:102|IFH 5-7]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "Descending for an approach, your learner's instruments show the airplane higher, faster and descending more slowly than planned. What should she do first?",
+   "options": [
+    "Increase the descent rate until the altimeter catches up",
+    "Open the alternate static source while still descending",
+    "Turn on pitot heat and wait for the airspeed to settle",
+    "Level off and fly the rest of the approach on GPS altitude"
+   ],
+   "answer": 1,
+   "why": "That is the picture of a partial static blockage; confirm it by opening the alternate static source while climbing or descending, and keep it on if the needles move [[24:364|AFH 18-15]]."
+  },
+  {
+   "q": "Why can one pitot-static blockage take out both the PFD airspeed and the standby airspeed in many light glass airplanes?",
+   "options": [
+    "The standby instruments run on the ADC's power",
+    "The AHRS drives both through the same computer",
+    "Both often use the same pitot and static lines",
+    "The standby gauges are slaved to the PFD tapes"
+   ],
+   "answer": 2,
+   "why": "Many light glass airplanes feed the backup instruments from the same pitot-static inputs, so both can fail together [[24:364|AFH 18-15]]."
+  },
+  {
+   "q": "In a glass trainer the AHRS fails in IMC. Per the IFH example, what is left on the PFD and autopilot?",
+   "options": [
+    "Attitude only; the heading moves to the standby compass",
+    "Nothing; the PFD goes dark and the MFD takes over",
+    "Everything, because the ADC can compute the attitude",
+    "Air data tapes; autopilot roll and altitude hold only"
+   ],
+   "answer": 3,
+   "why": "An AHRS failure removes all heading and attitude indications and the unusual-attitude protection; the autopilot keeps only roll and altitude hold [[23:217|IFH 7-56]]."
+  },
+  {
+   "q": "The PFD fails and the MFD now shows the flight instruments and engine data. What is your teaching point at that moment?",
+   "options": [
+    "Its map is gone, so track position on the chart",
+    "Nothing is lost, so the flight continues as planned",
+    "Cycle the avionics master to bring back the PFD",
+    "Engine data is lost, so use the standby gauges"
+   ],
+   "answer": 0,
+   "why": "Reversionary mode combines the PFD with the engine indications and removes the moving map; the display does not replace the en route chart [[23:329|IFH 11-4]]."
+  },
+  {
+   "q": "Your learner's carbureted, fixed-pitch trainer slowly loses rpm in moist, cool air. What is it, and what is the fix?",
+   "options": [
+    "Fuel ice: switch tanks and turn on the electric fuel pump",
+    "Carb ice: apply full carb heat and leave it until power returns",
+    "Impact ice on the filter: lean the mixture to bring back the rpm",
+    "Vacuum failure: the tachometer is driven by the vacuum pump"
+   ],
+   "answer": 1,
+   "why": "With a fixed-pitch propeller the first sign of carburetor ice is an rpm drop; apply full heat and leave it on until power returns [[1:170|PHAK 7-10]]."
+  },
+  {
+   "q": "Your learner is 6,000 feet above a VORTAC, and the DME reads about 1 NM as she crosses overhead. What do you teach?",
+   "options": [
+    "The DME has failed, because it should read exactly zero overhead",
+    "She is 1 NM short of the station; wait for station passage",
+    "It is slant range; overhead, it shows her height above it",
+    "DME groundspeed error has corrupted the distance reading"
+   ],
+   "answer": 2,
+   "why": "DME measures slant range; close to the station the error is greatest and overhead it displays height above the facility in NM [[23:262|IFH 9-19]] [[33:72|AIM 1-1-7]]."
+  },
+  {
+   "q": "Before an IFR flight your learner uses a VOT. With the CDI centered the OBS reads 183° with a TO indication. Is the receiver usable for IFR?",
+   "options": [
+    "No; a VOT check must read exactly 0° FROM",
+    "No; the airborne limit of ±6° applies on the ground",
+    "Yes, but only if she adds 3° to every radial she flies",
+    "Yes; the 3° error is within the ±4° VOT limit"
+   ],
+   "answer": 3,
+   "why": "With a VOT the OBS should read 180° TO or 0° FROM [[33:70|AIM 1-1-4]], and the limit is ±4° [[60:470|14 CFR 91.171(b)(1)]]. No correction other than the maker's card is applied [[33:71|AIM 1-1-4]]."
+  },
+  {
+   "q": "On a localizer back course approach with no glideslope charted, your learner's glideslope flag disappears and the needle moves. What do you teach?",
+   "options": [
+    "Disregard it: false glideslope signals can occur there",
+    "Follow it, since the flag cleared and the signal is good",
+    "Use it only above the published minimum descent altitude",
+    "Reverse it, because back course glideslopes are reversed"
+   ],
+   "answer": 0,
+   "why": "False glideslope signals near the back course can make the flag disappear; disregard all glideslope indications unless one is specified on the chart [[33:81|AIM 1-1-9]]. The glideslope serves only the front course [[23:280|IFH 9-37]]."
+  },
+  {
+   "q": "Before a flight with TSO-C129 GPS, RAIM is predicted unavailable at the destination ETA. What are your learner's options?",
+   "options": [
+    "Go anyway; RAIM is needed only in the en route phase",
+    "Use other approved navigation, reroute, delay or cancel",
+    "Use the tablet's GPS position as the integrity check",
+    "Enter the approach waypoints by hand to restore RAIM"
+   ],
+   "answer": 1,
+   "why": "If RAIM is predicted unavailable, the flight must rely on other approved equipment, re-route, delay or cancel [[33:92|AIM 1-1-17]]. Hand-entered approaches are not permitted, and hand-held GPS is not for IFR [[33:92|AIM 1-1-17]]."
+  },
+  {
+   "q": "Your learner's GPS navigator is loaded and the route on the map looks right at a glance. Which verification should become her habit before departure?",
+   "options": [
+    "Check only that the destination is spelled right",
+    "Trust the database, since it is updated every 28 days",
+    "Compare each leg with the chart and with her paper navigation log",
+    "Fly the first leg and see whether the course looks right"
+   ],
+   "answer": 2,
+   "why": "Check that the programmed route matches the planned route on a paper log, and if they differ, do not assume the computer is right [[1:70|PHAK 2-31]]; a crew that did not check flew into a mountain [[1:71|PHAK 2-32]]."
+  },
+  {
+   "q": "Climbing in light icing with the autopilot in vertical speed mode, what risk do you teach?",
+   "options": [
+    "It will level off by itself when ice is detected on the wing",
+    "VS mode adds power automatically to protect the airspeed",
+    "Ice cannot form while the autopilot holds a steady climb",
+    "As ice builds, it holds the rate until the airplane stalls"
+   ],
+   "answer": 3,
+   "why": "With ice reducing climb performance, an autopilot in VS mode keeps the rate until stall; VS climbs in icing are highly discouraged, so watch the airspeed [[38:48|AC 91-74B 5-6c, 5-6d]]."
+  },
+  {
+   "q": "During a deice check, one blade's prop boot does not heat. What is the in-flight consequence in ice?",
+   "options": [
+    "Unequal ice loading and severe vibration",
+    "A gradual loss of rpm and nothing more",
+    "Ice forms only on the spinner, harmlessly",
+    "The tachometer stops reading correctly"
+   ],
+   "answer": 0,
+   "why": "If a boot fails to heat properly on one blade, unequal ice loading may cause severe vibration [[1:201|PHAK 7-41]]."
+  },
+  {
+   "q": "Your learner's airplane has a fluid anti-icing system. By the AC 91-74B rule of thumb, when should it go on?",
+   "options": [
+    "After about 1/2 inch of ice has built on the wing",
+    "At the first visible moisture in conditions conducive to icing",
+    "Only after the stall warning horn has sounded",
+    "When the ice evidence probe is fully covered in ice"
+   ],
+   "answer": 1,
+   "why": "Anti-icing systems go on before entering icing, and a rule of thumb is the first visible moisture in conditions conducive to icing [[38:25|AC 91-74B 3-5]] [[38:26|AC 91-74B 3-5b]]. Fluid systems may take several minutes to prime [[38:47|AC 91-74B 5-4b]]."
+  },
+  {
+   "q": "Your learner's airplane has airborne weather radar. Why can't she count on it to show icing in cloud?",
+   "options": [
+    "It shows only lightning, not precipitation",
+    "Its beam is too narrow to see clouds ahead",
+    "It cannot see cloud or drizzle-size drops",
+    "Radar returns are blocked by the propeller"
+   ],
+   "answer": 2,
+   "why": "Airborne radar detects raindrops but not drizzle-size or cloud-size drops, so it should not be relied on to detect icing in clouds or freezing drizzle [[38:45|AC 91-74B 5-3e]]."
+  },
+  {
+   "q": "For which kind of decision is FIS-B weather designed?",
+   "options": [
+    "Tactical gaps between cells less than 3 minutes ahead",
+    "Replacing the preflight briefing when time is short",
+    "Confirming icing in a specific cloud you are entering",
+    "Strategic route selection, 20 minutes or more ahead"
+   ],
+   "answer": 3,
+   "why": "FIS supports strategic decisions (about 20 minutes or more), not tactical avoidance (under 3 minutes), and never replaces a preflight briefing [[34:81|AIM 7-1-9]]."
+  }
+ ],
+ "takeaways": [
+  "Build a failure map for the training airplane: each instrument, its power source and its failure picture.",
+  "Pitot blocked: airspeed only. Static blocked: altimeter, VSI and airspeed. A partial static blockage shows up in the descent.",
+  "Vacuum gyros fail slowly and often with no warning light: compare the attitude indicator with the turn indicator and VSI.",
+  "In a glass airplane an alternator failure is an emergency: arm the standby battery and know what reversion leaves.",
+  "Every receiver can lie: reverse sensing, slant range, an ADF with no flag, false glideslopes, marker tests that check only bulbs, RAIM loss.",
+  "Know which autopilot modes are armed and engaged, and what a failing sensor or ice does to them.",
+  "Ice protection buys time to get out; equipment is not approval.",
+  "Radar shows rain, not turbulence or icing cloud; datalink weather is old and strategic."
+ ],
+ "cfi_notes": [
+  "The IFH is inconsistent on compass turning error. IFH 5-13 calls the northerly error a 'lead' of the card, and FAA's IFH errata (July 2, 2014) removes its references to Figure 5-20 and says to disregard that figure; IFH 7-22 says the card lags when a turn starts from north and leads when it starts from south [[23:108|IFH 5-13]] [[23:183|IFH 7-22]]. The two pages agree on the direction (roll out early turning to north, late turning to south) but not on the amount: IFH 5-13 says 15° plus half the latitude (35° at 40° N), while IFH 7-22 says about the latitude plus the normal roll-out lead of half the bank angle (37° turning from east to north at 30° N; about 47° at 40° N with a 15° bank). Teach one method, name its page, and check it against a timed turn. IFH 5-13's southerly example also has a typo ('15° + 15° + 30°').",
+  "IFH 9-11 says full CDI deflection is 12° or more off course with 2° per dot [[23:254|IFH 9-11]]; FAA's IFH errata (July 25, 2013) changes the 12° to 10°, which matches five dots of 2°. Teach 10° and expect older study material to say 12°. The VOR sensitivity check on IFH 9-16 ('10° or 12° either side') was not changed by the errata [[23:259|IFH 9-16]].",
+  "IFH Addendum B (November 2019) replaces the IFH 9-40 false-course paragraph: false glideslopes occur between about 6° and 12° (signal reversals near 9°, false nulls near 12°, both possible near 6°), some steeper than normal and some reversed, which can make an autopilot pitch up, and there may be no warning; capturing from below at the charted altitudes avoids them, and intercepting from above raises the risk. The printed IFH page still says 9° to 12°, so teach the Addendum. It is not one of our cited resources, so the lesson names it in text and cites the AIM and the parts of IFH 9-40 it keeps [[33:81|AIM 1-1-9]] [[23:283|IFH 9-40]].",
+  "Markers: the IFH describes outer and middle markers as normally used [[23:280|IFH 9-37]], but the current AIM says a middle marker is no longer required and none are being installed [[33:82|AIM 1-1-9]]. The IFH puts the glideslope antenna 400 to 600 feet from the centerline, the AIM 250 to 650 feet [[23:280|IFH 9-37]] [[33:81|AIM 1-1-9]]. Teach the AIM.",
+  "Identifiers: the IFH says to listen to the identifier before relying on a VOR [[23:254|IFH 9-11]]; the AIM adds that if the equipment automatically decodes and displays the identifier, listening is not necessary [[33:69|AIM 1-1-3]].",
+  "Terms differ: the PHAK calls electrically heated propeller boots 'propeller anti-ice' [[1:201|PHAK 7-41]] and the AFH lists them, with alcohol slingers, as anti-icing equipment [[24:258|AFH 13-9]], while AC 91-74B classes them as electrothermal deicing because the heat cycles and sheds ice that has already formed [[38:24|AC 91-74B 3-4c]] [[38:25|AC 91-74B 3-4c(1)]]. Both fit: prop boots are typically deice but can be anti-ice, depending on when they are turned on. A deice system is turned on after icing is met and removes ice that has formed [[38:23|AC 91-74B 3-4]]; an anti-ice system is turned on before icing and keeps the surface free of ice [[38:25|AC 91-74B 3-5]] [[38:58|AC 91-74B App 2]]. Teach them as typically deice, and operate the system by the AFM for your airplane.",
+  "Smaller differences: DME frequencies are 962 to 1213 MHz in the IFH [[23:260|IFH 9-17]] and the ICAO 960 to 1215 MHz in the AIM [[33:72|AIM 1-1-7]]; the IFH names only TSO C-129 for IFR GPS [[23:269|IFH 9-26]], the AIM C129, C196, C145 and C146 [[33:91|AIM 1-1-17]]; and with the pitot blocked and the drain open the IFH says the airspeed 'slowly' drops to zero [[23:98|IFH 5-3]] while the PHAK says the loss is not usually instantaneous but happens very quickly [[1:212|PHAK 8-10]]. Teach the AIM numbers, and that the airspeed decay may be quick or slow.",
+  "The PTS is not consistent on Area II: its NOTE says the evaluator selects Tasks A and D and at least one other, while its table for adding an instrument instructor rating lists Area II as Tasks A and C for an applicant who holds an airplane flight instructor rating, and Task C only for one who already holds an instrument instructor rating in another category [[FAA-S-8081-9E:26|PTS Area II NOTE]] [[FAA-S-8081-9E:18|PTS Additional Rating Table]]. For the usual CFI-Airplane applicant, Task A is required either way.",
+  "Examiners commonly probe: which instruments fail with a vacuum or electrical failure in the test airplane, pitot versus static blockage pictures, alternate static effects, glass failure modes and reversion, 'what mode is the autopilot in now?', RAIM, and radar versus datalink weather. Answer from that airplane's POH."
+ ],
+ "gaps": [
+  "No source here describes how onboard lightning detectors work or their limits; the PHAK only mentions STORMSCOPE and a lightning layer on one MFD [[1:329|PHAK 13-19]]. Use the AFM supplement and the equipment manual.",
+  "No source gives a safe way to simulate a pitot or static blockage in flight; this lesson uses discussion and the alternate static demonstration.",
+  "Failure annunciations, reversion and standby battery details differ by avionics, and electronic failure indications are not standardized [[24:364|AFH 18-15]]; the IFH describes one example system.",
+  "Airplane-specific facts (power source of each instrument, normal suction, battery capacity, icing approval, autopilot modes) come only from the POH/AFM.",
+  "The IFH says partial panel is flown with the gyros 'covered or inoperative' [[23:162|IFH 7-1]] but does not say what covers to use or how to fit them.",
+  "The sources give little on rotor ice protection; AC 91-74B notes only that electrothermal deicing is common on propellers and helicopter main rotors [[38:24|AC 91-74B 3-4c]]."
+ ],
+ "activities": [
+  {
+   "type": "match",
+   "key": "h1",
+   "after": 3,
+   "title": "What the gyro instruments are telling you",
+   "intro": "Tap a situation, then what the instrument shows or means.",
+   "pairs": [
+    {
+     "l": "Rapid acceleration in level flight",
+     "r": "Slight nose-up on the attitude indicator"
+    },
+    {
+     "l": "Brisk roll into a turn",
+     "r": "Turn coordinator shows roll rate first"
+    },
+    {
+     "l": "Ball toward the outside of the turn",
+     "r": "A skid"
+    },
+    {
+     "l": "Needle on the doghouse of a '2 MIN' instrument",
+     "r": "Standard rate, 3° per second"
+    },
+    {
+     "l": "Horizon bar tips over 5° in taxi turns",
+     "r": "Attitude indicator unreliable"
+    },
+    {
+     "l": "Gyro just started spinning after engine start",
+     "r": "Allow 2 to 3 minutes, up to 5, to erect"
+    }
+   ],
+   "why": "Attitude indicator errors and erection [[23:114|IFH 5-19]]; turn coordinator, standard rate and the ball [[23:116|IFH 5-21]]; taxi check [[23:133|IFH 5-38]]."
+  },
+  {
+   "type": "label",
+   "key": "h2",
+   "after": 6,
+   "title": "Read the vacuum failure panel",
+   "figure": "f2",
+   "intro": "Drag each label to its numbered pin on the panel.",
+   "pins": [
+    {
+     "x": 51,
+     "y": 22,
+     "label": "Failed vacuum gyro: shows a turn that is not happening"
+    },
+    {
+     "x": 51,
+     "y": 62,
+     "label": "Second vacuum gyro: flagged, heading not reliable"
+    },
+    {
+     "x": 33,
+     "y": 60,
+     "label": "Electric rate gyro: wings level is the truth"
+    },
+    {
+     "x": 70,
+     "y": 22,
+     "label": "Static instrument: steady at 2,000 feet"
+    },
+    {
+     "x": 70,
+     "y": 62,
+     "label": "Static instrument: zero confirms level flight"
+    },
+    {
+     "x": 15,
+     "y": 55,
+     "label": "Suction below the green band: the cause"
+    }
+   ],
+   "why": "In IFH Figure 11-8 the airplane is level at 2,000 feet; the vacuum gyros wander and show flags. Compare them with the turn indicator and VSI, and scan the suction gauge, because many small airplanes have no vacuum warning [[23:332|IFH 11-7]] [[23:333|IFH 11-8]]."
+  },
+  {
+   "type": "order",
+   "key": "h3",
+   "after": 7,
+   "title": "When the attitude indicator disagrees",
+   "intro": "Put the IFH steps for an instrument failure in order, first to last, then tap Check.",
+   "steps": [
+    "Maintain aircraft control while you find the failed component",
+    "Speed up the cross-check and include all flight instruments",
+    "Compare the attitude indicator with the turn indicator and VSI",
+    "Identify the failed component and fly on the instruments that work",
+    "Try to restore it: power source, backup system, reset",
+    "Advise ATC and, if necessary, declare an emergency"
+   ],
+   "why": "From IFH 11-7: keep control while identifying the failure, expedite the cross-check, compare the attitude indicator with the rate-of-turn indicator and VSI, use the remaining instruments, and try to restore the failed ones. The same page says the next step is usually to advise ATC and, if necessary, declare an emergency [[23:332|IFH 11-7]]."
+  },
+  {
+   "type": "tf",
+   "key": "h4",
+   "after": 8,
+   "title": "True or false: glass display failures",
+   "intro": "Decide whether each statement is true or false.",
+   "cards": [
+    {
+     "s": "On a PFD the pilot can raise or lower the yellow chevron for cruise, as on an analog attitude indicator.",
+     "a": false,
+     "why": "False. The EFD attitude indicator does not allow moving the chevron; its position is fixed [[23:196|IFH 7-35]]."
+    },
+    {
+     "s": "In the IFH example, an AHRS failure removes attitude and heading, and the autopilot keeps only roll and altitude hold.",
+     "a": true,
+     "why": "True [[23:217|IFH 7-56]]."
+    },
+    {
+     "s": "In many light glass airplanes the backup instruments share the same pitot-static inputs as the primary displays.",
+     "a": true,
+     "why": "True, so one blockage can affect both [[24:364|AFH 18-15]]."
+    },
+    {
+     "s": "Electronic display failure indications are standardized, so a learner trained on one system can read any other.",
+     "a": false,
+     "why": "False. Electronic failure indications are not standardized and may differ from conventional instruments [[24:364|AFH 18-15]]."
+    },
+    {
+     "s": "A standby battery normally takes over the essential bus even with its switch left OFF.",
+     "a": false,
+     "why": "False. Generally the switch must be in ARM for the standby battery to come on line [[23:331|IFH 11-6]]."
+    },
+    {
+     "s": "In reversionary mode the remaining screen keeps the moving map and drops the engine data.",
+     "a": false,
+     "why": "False. Reversion combines the PFD with the engine indications and eliminates the moving map [[23:329|IFH 11-4]]."
+    }
+   ]
+  },
+  {
+   "type": "calc",
+   "key": "h5",
+   "after": 9,
+   "title": "Numbers you will teach",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "At 40° north latitude, turning to north on the magnetic compass alone, how many degrees before north should the turn be stopped by the IFH 5-13 rule of thumb?",
+     "answer": 35,
+     "tol": 0,
+     "unit": "degrees",
+     "why": "15° plus half the latitude: 15 + 20 = 35° [[23:108|IFH 5-13]]. IFH 7-22 uses a different lead, so name the page you teach from."
+    },
+    {
+     "q": "A timed turn from 120° to 360° (left) at standard rate. How many seconds?",
+     "answer": 40,
+     "tol": 0,
+     "unit": "seconds",
+     "why": "The difference is 120°; 120 / 3° per second = 40 seconds [[23:214|IFH 7-53]]."
+    },
+    {
+     "q": "Flying 3,000 feet above a VORTAC's elevation, how far out must you be for slant-range error to be negligible?",
+     "answer": 3,
+     "tol": 0,
+     "unit": "NM",
+     "why": "1 NM or more for each 1,000 feet above the facility: 3 x 1 = 3 NM [[23:262|IFH 9-19]]."
+    },
+    {
+     "q": "A 25-amp-hour battery feeds a 5-amp load. About how many hours could it last, per the AFH example?",
+     "answer": 5,
+     "tol": 0,
+     "unit": "hours",
+     "why": "25 amp-hours / 5 amps = 5 hours, as in the AFH example; heavier loads drain it much faster [[24:362|AFH 18-13]]."
+    }
+   ]
+  },
+  {
+   "type": "match",
+   "key": "h6",
+   "after": 11,
+   "title": "What does this indication mean?",
+   "intro": "Tap an indication, then what it means.",
+   "pairs": [
+    {
+     "l": "Low tone, two dashes per second, blue light",
+     "r": "Outer marker"
+    },
+    {
+     "l": "High tone, six dots per second, white light",
+     "r": "Inner marker"
+    },
+    {
+     "l": "Localizer needle does not move when the OBS is turned",
+     "r": "Normal: the OBS does not affect the localizer"
+    },
+    {
+     "l": "RAIM says there are not enough satellites",
+     "r": "Position may be fine, but integrity is unknown"
+    },
+    {
+     "l": "'Stop altitude squawk, altitude differs by 300 feet'",
+     "r": "Check the altimeter; the reported altitude may be wrong"
+    },
+    {
+     "l": "CDI deflection grows inside 2 NM of the FAWP",
+     "r": "Scaling narrows from ±1 to ±0.3 NM"
+    }
+   ],
+   "why": "Markers and the localizer [[23:283|IFH 9-40]]; RAIM messages [[33:90|AIM 1-1-17]]; altitude readout [[33:223|AIM 4-1-20]]; CDI scaling [[33:96|AIM 1-1-17]]."
+  },
+  {
+   "type": "sort",
+   "key": "h7",
+   "after": 13,
+   "title": "Anti-icing or deicing?",
+   "intro": "Tap each item, then the kind of protection it is.",
+   "buckets": [
+    "Anti-icing: prevents ice",
+    "Deicing: removes ice"
+   ],
+   "items": [
+    {
+     "t": "Heated pitot tube",
+     "b": 0
+    },
+    {
+     "t": "Pneumatic wing and tail boots",
+     "b": 1
+    },
+    {
+     "t": "Carburetor heat",
+     "b": 0
+    },
+    {
+     "t": "Heated static ports and fuel vents",
+     "b": 0
+    },
+    {
+     "t": "Bleed-air heated wing leading edges",
+     "b": 0
+    },
+    {
+     "t": "Electroimpact system",
+     "b": 1
+    },
+    {
+     "t": "Windshield alcohol spray",
+     "b": 0
+    },
+    {
+     "t": "Cycling electrothermal leading-edge heat",
+     "b": 1
+    }
+   ],
+   "why": "The AFH lists heated pitot, heated static ports and fuel vents and windshield alcohol spray as anti-icing, and boots as deicing [[24:258|AFH 13-9]]; carburetor heat is an anti-icing system [[1:170|PHAK 7-10]]; bleed air is anti-icing [[38:25|AC 91-74B 3-5a]]; electroimpact and cycling electrothermal systems deice [[38:24|AC 91-74B 3-4b, 3-4c]]; and AC 91-74B describes the windshield spray bar as preventing ice from forming [[38:30|AC 91-74B 3-11d]]."
+  },
+  {
+   "type": "decide",
+   "key": "h8",
+   "after": 14,
+   "title": "A wet IFR lesson, one decision at a time",
+   "intro": "You are a CFII with an instrument learner in a six-pack trainer not approved for icing. Make each call as the flight unfolds.",
+   "steps": [
+    {
+     "s": "Preflight at +5 °C with rain forecast. Your learner turns on pitot heat and the ammeter does not move.",
+     "options": [
+      "Fly; pitot heat matters only above the freezing level",
+      "Treat the check as failed and fix it before IFR in rain",
+      "Fly, and use alternate static if the airspeed fails",
+      "Fly, but stay low where the air should stay warmer"
+     ],
+     "answer": 1,
+     "why": "Before any flight by instrument reference, check all instruments and their power sources [[23:131|IFH 5-36]]. Pitot heat is checked by watching the ammeter [[23:132|IFH 5-37]], and even light icing can block the pitot entry hole [[38:28|AC 91-74B 3-11a]]. Alternate static does nothing for a blocked pitot tube [[23:98|IFH 5-3]]."
+    },
+    {
+     "s": "Repaired. In cloud at +1 °C, light rime appears on the wing strut.",
+     "options": [
+      "Continue; light rime does little at cruise angle of attack",
+      "Slow down so that less ice collects on the wing",
+      "Exit now: tell ATC and climb, descend or turn to warmer air",
+      "Turn on carb heat and continue to the destination"
+     ],
+     "answer": 2,
+     "why": "An airplane not certificated for icing must exit immediately [[38:32|AC 91-74B 3-13b]]. Ice that does little in cruise can stall the wing at approach angles of attack [[23:91|IFH 4-14]] [[23:92|IFH 4-15]]. Leave the precipitation or go to warmer air, and report the icing to ATC [[23:327|IFH 11-2]]."
+    },
+    {
+     "s": "Descending out of the ice, the attitude indicator shows a slow right bank. The turn coordinator is level, the VSI matches the planned descent and the suction is in the green.",
+     "options": [
+      "Roll left until the attitude indicator is level",
+      "Pull the turn coordinator breaker; it disagrees",
+      "Climb back up until the gyro settles down again",
+      "Cross-check: suspect the attitude indicator and cover it"
+     ],
+     "answer": 3,
+     "why": "Compare the attitude indicator with the turn indicator and VSI; the problem may be a single instrument rather than the vacuum system, so fly on the instruments that work and cover the failed one [[23:332|IFH 11-7]]."
+    },
+    {
+     "s": "Now on partial panel. The learner sees a gap between two cells on the tablet NEXRAD and wants to turn toward it.",
+     "options": [
+      "Accept; the tablet shows a clear path between them",
+      "Ask ATC for help around the cells and stay well away",
+      "Turn into the gap, using the tablet as tactical radar",
+      "Use the lightning layer to pick a lightning-free gap"
+     ],
+     "answer": 1,
+     "why": "NEXRAD imagery is not a means of getting through a thunderstorm area and may be 15 to 20 minutes old; ask ATC for help around the weather [[34:120|AIM 7-1-27]] [[34:81|AIM 7-1-9]]."
+    },
+    {
+     "s": "Cleared for the ILS, you are high, and the learner wants to capture the glideslope from above.",
+     "options": [
+      "Fly the charted altitudes so the glideslope is met as published",
+      "Capture the first glideslope signal and follow it down",
+      "Descend at 1,500 fpm to catch the glideslope quickly",
+      "Ignore the glideslope and fly the localizer minimums"
+     ],
+     "answer": 0,
+     "why": "False courses and reverse sensing occur at angles well above the published path; flown at the charted altitudes they are not encountered [[33:81|AIM 1-1-9]] [[23:283|IFH 9-40]]. IFH Addendum B (2019) adds that intercepting the glideslope from above raises the risk of an unstabilized approach and of capturing a false glideslope."
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,1823 @@
+{
+ "task_code": "FII.VII.A",
+ "task_title": "Intercepting and Tracking Navigational Systems and DME Arcs",
+ "area": "Area VII. Navigation Aids",
+ "minutes": 90,
+ "objective": "By the end of this lesson you can teach a learner to tune and identify VOR, NDB, DME and GPS sources, set a course or read a bearing on the RMI, find position, intercept and track a course, fly a DME arc and leave it for a radial or localizer, recognize station or waypoint passage and equipment failure, and use RNAV substitution and the MFD; and you can demonstrate it while explaining it, then name, explain and fix a learner's navigation errors.",
+ "why": "Navigation errors usually start before the intercept: the IFH's list of VOR errors opens with careless tuning and identification, and failure to check the TO/FROM indicator gives reverse sensing [[23:257|IFH 9-14]]. GPS can be jammed or spoofed, so pilots should be prepared to operate without it [[33:118|AIM 1-2-4a]]; the FAA keeps a minimum network of VORs for that case and calls VOR proficiency prudent [[33:70|AIM 1-1-3f]]. A DME arc is part of the approach, with its own obstacle clearance area [[29:183|IPH 4-43]]. The CFII PTS puts this Task on every CFII practical test unless you already hold an instrument instructor rating in another category [[FAA-S-8081-9E:18|PTS Additional Rating Table]] [[FAA-S-8081-9E:38|PTS Area VII NOTE]].",
+ "prereading": [
+  {
+   "res": "23",
+   "pages": [
+    246,
+    247,
+    248,
+    249,
+    250,
+    251
+   ],
+   "printed": "IFH 9-3 to 9-8",
+   "what": "NDB and ADF, the RMI, orientation, homing, tracking, intercepting bearings and the ADF error list.",
+   "label": "IFH 9-3 to 9-8"
+  },
+  {
+   "res": "23",
+   "pages": [
+    253,
+    254,
+    255,
+    256,
+    257,
+    258,
+    259,
+    260,
+    261,
+    262
+   ],
+   "printed": "IFH 9-10 to 9-19",
+   "what": "VOR, CDI and HSI, orientation, course interception, tracking, the VOR error list, DME, DME arcs, lead radials and the localizer from an arc.",
+   "label": "IFH 9-10 to 9-19"
+  },
+  {
+   "res": "23",
+   "pages": [
+    263,
+    264,
+    265,
+    269,
+    270,
+    271
+   ],
+   "printed": "IFH 9-20 to 9-22, 9-26 to 9-28",
+   "what": "The MFD picture of a localizer intercept from an arc, and GPS substitution for ADF and DME, including a DME arc.",
+   "label": "IFH 9-20 to 9-28"
+  },
+  {
+   "res": "33",
+   "pages": [
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    87,
+    88
+   ],
+   "printed": "AIM 1-1-1 to 1-1-8, 1-1-11, 1-1-13",
+   "what": "Identifying NDB, VOR and DME, maintenance identifiers, receiver checks and reporting navigation problems.",
+   "label": "AIM 1-1-1 to 1-1-13"
+  },
+  {
+   "res": "33",
+   "pages": [
+    116,
+    117,
+    118,
+    119,
+    120
+   ],
+   "printed": "AIM 1-2-3, 1-2-4",
+   "what": "Suitable RNAV systems on conventional procedures, including DME arcs, and GPS jamming and spoofing.",
+   "label": "AIM 1-2-3 to 1-2-4"
+  },
+  {
+   "res": "29",
+   "pages": [
+    157,
+    183
+   ],
+   "printed": "IPH 4-17, 4-43",
+   "what": "Changing NAVAIDs during an arc transition, RNAV substitution, and how DME arcs are designed.",
+   "label": "IPH 4-17, 4-43"
+  },
+  {
+   "res": "1",
+   "pages": [
+    412,
+    413,
+    414,
+    415
+   ],
+   "printed": "PHAK 16-25 to 16-28",
+   "what": "The RMI, VOR tracking tips, time and distance checks, angle of intercept and DME basics.",
+   "label": "PHAK 16-25 to 16-28"
+  }
+ ],
+ "warmup": "Think first: your instrument learner is cleared to join a 12 DME arc. She tunes the VOR but never listens to the identifier, starts the turn exactly at 12.0 DME and rolls out at 12.9. Later she switches to the localizer at the lead radial and the autopilot rolls the wings level. How many separate errors do you count, and which one would you debrief first?",
+ "key_terms": [
+  {
+   "term": "Radial",
+   "def": "A course oriented FROM the VOR station. VOR information is not affected by the aircraft's attitude or heading [[23:253|IFH 9-10]]."
+  },
+  {
+   "term": "TO/FROM indicator",
+   "def": "Shows whether the selected course, if intercepted and flown, takes the aircraft TO or FROM the station; it does not show which way the aircraft is heading [[23:254|IFH 9-11]]."
+  },
+  {
+   "term": "Reverse sensing",
+   "def": "The CDI reads backward when the VOR is set to the reciprocal of the intended course, so the pilot must turn away from the needle [[23:257|IFH 9-14]]."
+  },
+  {
+   "term": "Relative bearing (RB)",
+   "def": "Degrees measured clockwise from the aircraft's heading to the direction of the station [[23:246|IFH 9-3]]. On a fixed-card ADF, MH + RB = MB to the station [[23:247|IFH 9-4]]."
+  },
+  {
+   "term": "Radio magnetic indicator (RMI)",
+   "def": "A heading card that turns automatically to the aircraft's heading, with needles driven by the ADF or a VOR. The head shows the bearing TO the station; a VOR needle's tail shows the radial the aircraft is on [[23:247|IFH 9-4]]."
+  },
+  {
+   "term": "Interception angle",
+   "def": "Twice the difference between the radial wanted and the radial the aircraft is on, never less than 20° nor more than 90° [[23:257|IFH 9-14]]."
+  },
+  {
+   "term": "Homing",
+   "def": "Flying whatever heading keeps the ADF needle on the nose, or re-centering the CDI and flying the new course; in a crosswind it gives a circuitous path [[23:248|IFH 9-5]] [[23:257|IFH 9-14]]."
+  },
+  {
+   "term": "Zone of confusion",
+   "def": "The space above a VOR where the signal is inadequate, so the CDI swings side to side as the aircraft passes over or near the station [[23:257|IFH 9-14]]."
+  },
+  {
+   "term": "DME arc",
+   "def": "A track flown at a constant distance from a DME facility [[23:260|IFH 9-17]]. On an approach it is an approach segment, not a feeder route [[29:183|IPH 4-43]]."
+  },
+  {
+   "term": "Lead radial (LR)",
+   "def": "The radial at which the turn from the arc to the inbound course is started [[23:261|IFH 9-18]]."
+  },
+  {
+   "term": "Slant range",
+   "def": "DME measures the straight line from the aircraft to the ground station, not horizontal distance; over the station it shows height above it in NM [[23:262|IFH 9-19]]."
+  },
+  {
+   "term": "Suitable RNAV system",
+   "def": "An IFR-approved RNAV system, such as TSO-C129, -C145 or -C146 equipment authorized for en route and terminal use, that may stand in for an out-of-service VOR, DME or NDB, or for a missing or inoperative ADF or DME, including flying a DME arc [[33:116|AIM 1-2-3a]] [[33:117|AIM 1-2-3b]] [[33:117|AIM 1-2-3c]]."
+  }
+ ],
+ "chunks": [
+  {
+   "title": "Tuning and identifying the facility",
+   "kind": "knowledge",
+   "codes": [
+    "FII.VII.A.K1",
+    "FII.VII.A.K1a"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Tuning and identification of a navigational facility.** Every intercept starts here, and the IFH puts careless tuning and identification first in its list of VOR errors [[23:257|IFH 9-14]]. The Instrument lesson IR.V.A covers the pilot's side of this Task; this lesson adds how you teach it and how you catch a learner's errors."
+    },
+    {
+     "table": {
+      "head": [
+       "Facility",
+       "Tune",
+       "Identify",
+       "Watch for"
+      ],
+      "rows": [
+       [
+        "VOR, VOR/DME, VORTAC",
+        "108.0 to 117.95 MHz; from 108.0 to 112.0, VORs use even tenths and localizers odd tenths [[23:254|IFH 9-11]]",
+        "Morse code, or the recorded voice ID that ends in the word \"VOR\": the only positive methods [[33:68|AIM 1-1-3c]]. Turn up the volume; it does not affect the receiver [[23:254|IFH 9-11]]",
+        "Never identify by an FSS or approach voice on the frequency: one facility may run several VORs with different names [[33:69|AIM 1-1-3c]]"
+       ],
+       [
+        "NDB (ADF)",
+        "190 to 535 kHz; AM broadcast stations are not approved for navigation [[23:246|IFH 9-3]]",
+        "Listen to the Morse code identifier before relying on the ADF [[23:246|IFH 9-3]]",
+        "The ADF has no warning flag, so keep monitoring the identifier [[33:68|AIM 1-1-2d]]"
+       ],
+       [
+        "DME",
+        "Channeled by its VHF radio, or set to the VOR/DME or VORTAC frequency; a HOLD mode keeps it on the last station [[23:260|IFH 9-17]]",
+        "A higher tone heard once for every three or four VOR or LOC identifiers [[23:260|IFH 9-17]]",
+        "With automatic DME selection, disregard the distance when using a VOR or ILS that has no DME [[33:73|AIM 1-1-7g]]"
+       ],
+       [
+        "GPS",
+        "Waypoints and procedures come from a current database [[33:92|AIM 1-1-17]]",
+        "Check that waypoint names exactly match the chart and are in a logical order [[33:93|AIM 1-1-17]]",
+        "VFR and hand-held units are not authorized for IFR navigation [[33:92|AIM 1-1-17]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Decoded or only displayed?** Some receivers decode the identifier and show it for checking against the chart; others only show the identifier expected from the database, as an aid to checking the audio. If the unit really decodes it, listening is not necessary [[33:69|AIM 1-1-3c]]. Teach the learner to find out which kind his airplane has: an identifier taken from the database is a help for listening, not the station's own identification."
+    },
+    {
+     "p": "**Range.** VOR signals are line of sight, and range grows with the receiver's altitude [[33:68|AIM 1-1-3a]]. Service volume restrictions are published first in NOTAMs and then in the Chart Supplement [[33:73|AIM 1-1-8b]]. A weak signal, or none, when too low or too far is one of the PHAK's tips on using the VOR [[1:413|PHAK 16-26]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "No identifier, or a T-E-S-T code, warns that the facility is off the air for maintenance and may be unreliable even if signals are received. Do not fly a procedure that is NOTAMed out of service even if the identifier is present [[33:87|AIM 1-1-11]]."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: teach one spoken routine for every radio: \"Tuned, identified, no flag, course set.\" Have the learner read the identifier letters aloud against the chart. Saying it aloud is how you hear the step being skipped."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner tunes the VOR, sees the three-letter identifier on the navigator and says it is identified. What do you ask?",
+    "a": "Whether the unit decodes the Morse code or only shows the identifier expected from its database. If it decodes, listening is not necessary; if it only displays the database identifier, that is an aid for checking the audio, so he still listens [[33:69|AIM 1-1-3c]]."
+   }
+  },
+  {
+   "title": "Setting the course, and reading a bearing on the RMI",
+   "kind": "knowledge",
+   "codes": [
+    "FII.VII.A.K1",
+    "FII.VII.A.K1b"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Setting of a selected course on the navigation selector.** On a VOR indicator the pilot turns the OBS until the course sits under the index or shows in the course window [[23:254|IFH 9-11]]. On an HSI the course arrow is turned with the course select knob, and the picture shows the airplane against the course as if seen from above [[23:118|IFH 5-23]]."
+    },
+    {
+     "bullets": [
+      "The CDI centers when the airplane is on the selected radial or its reciprocal. Full deflection means 12° or more off course; the edge of the center circle is 2°, and each dot adds 2° [[23:254|IFH 9-11]].",
+      "TO/FROM says whether the selected course, if intercepted and flown, goes TO or FROM the station [[23:254|IFH 9-11]]. On an HSI a triangle pointing to the head of the course arrow means TO, to the tail FROM [[23:118|IFH 5-23]].",
+      "Set the course you intend to fly. Set to the reciprocal, the CDI gives reverse sensing and the pilot must turn away from the needle [[23:257|IFH 9-14]].",
+      "Most HSI cards are driven by a fluxgate; where they are not, or in emergency operation, check the heading against the magnetic compass and reset it [[23:118|IFH 5-23]]."
+     ]
+    },
+    {
+     "p": "**Correct identification of a selected bearing on the RMI.** The RMI card turns by itself to the airplane's heading, and each needle can be driven by the ADF or a VOR receiver. On either, the head of the needle is the magnetic bearing TO the station. The tail of a VOR needle is the radial the airplane is on or crossing [[23:247|IFH 9-4]]. No course is selected on an RMI: the needle simply points to the source chosen [[1:412|PHAK 16-25]]."
+    },
+    {
+     "figure": "f2"
+    },
+    {
+     "p": "On a fixed-card ADF the card always shows 0 at the top, so the pilot adds: magnetic heading plus relative bearing equals magnetic bearing to the station. In the IFH example, heading 045° and relative bearing 135° give 180° to the station [[23:247|IFH 9-4]]. On a VOT, an RMI driven by that VOR reads 180° whatever the OBS shows [[33:70|AIM 1-1-4b]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "RMI: head = bearing TO the station; VOR tail = the radial I'm on. Fixed card: MH + RB = MB."
+     }
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: on a dual-needle RMI, make the learner name the needle and its source before reading it. Confusing two similar things is one form of slip [[25:84|AIH 3-33]], and two needles on one card invite it."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner's RMI VOR needle head points to 040°. What two things can he read from it?",
+    "a": "The head gives the bearing TO the station, 040°, and the tail gives the radial he is on, the 220° radial [[23:247|IFH 9-4]]."
+   }
+  },
+  {
+   "title": "Where am I? Position relative to the facility",
+   "kind": "knowledge",
+   "codes": [
+    "FII.VII.A.K1",
+    "FII.VII.A.K1c"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Method for determining aircraft position relative to a facility.** With a VOR, turn the OBS until FROM shows and center the CDI. The index shows the radial the airplane is on; the course inbound is its reciprocal [[23:257|IFH 9-14]]. The heading does not matter: the VOR shows the same thing whichever way the nose points [[23:254|IFH 9-11]]."
+    },
+    {
+     "figure": "f1"
+    },
+    {
+     "p": "In Figure 9-15 both CDIs are centered on 180. With TO showing, the airplane is on the 360° radial and 180° takes it to the station; with FROM showing, it is on the 180° radial [[23:257|IFH 9-14]]. One NAVAID gives only a line; a second one fixes the spot on it [[23:257|IFH 9-14]]. VOR plus DME gives bearing and distance [[23:260|IFH 9-17]], and a DME/DME fix is more accurate than a VOR/DME fix [[23:262|IFH 9-19]]."
+    },
+    {
+     "table": {
+      "head": [
+       "Source",
+       "How to find position",
+       "Teaching point"
+      ],
+      "rows": [
+       [
+        "VOR",
+        "Center the CDI with FROM and read the radial [[23:257|IFH 9-14]]",
+        "Turning the wrong way during orientation is common until the learner pictures position rather than heading [[23:257|IFH 9-14]]"
+       ],
+       [
+        "RMI",
+        "The tail of the VOR needle is the radial [[23:247|IFH 9-4]]",
+        "No course to set, so it is the quickest picture [[1:412|PHAK 16-25]]"
+       ],
+       [
+        "ADF",
+        "Relate the relative bearing to the heading; the RB alone does not give position [[23:248|IFH 9-5]]",
+        "MH + RB = MB to the station [[23:247|IFH 9-4]]"
+       ],
+       [
+        "DME",
+        "Slant-range distance; the error is negligible at 1 NM or more from the station for each 1,000 feet above it [[23:262|IFH 9-19]]",
+        "Close to the station it shows height above it [[23:262|IFH 9-19]]"
+       ],
+       [
+        "GPS",
+        "Distance and track to the next active waypoint, not to a fixed NAVAID [[33:99|AIM 1-1-17]]",
+        "The nonsequencing mode stops the receiver from sequencing while being vectored [[33:99|AIM 1-1-17]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Time and distance from the station.** With an RMI, turn to put the needle on the nearest 90° index, note the time and hold the heading. When the needle has moved 10°, the seconds divided by the degrees give minutes to the station: 120 seconds for 10° means 12 minutes [[1:413|PHAK 16-26]]. Distance is that time multiplied by TAS or groundspeed in miles per minute: 7.5 minutes at 2 NM a minute is 15 NM. Wind, the bearing change and the timing all affect it, so the result is only an approximation [[1:414|PHAK 16-27]]. With a CDI, the PHAK uses the formulas in Figure 16-34 [[1:414|PHAK 16-27]]."
+    },
+    {
+     "figure": "f7"
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: before any intercept, have the learner sketch the station, the course and the airplane on the kneeboard. If the sketch is wrong, every heading after it will be wrong, and you have found the error before the airplane turned."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner centers the CDI on 270 with TO showing and says he is on the 270° radial. What do you say?",
+    "a": "With TO showing, 270° is the course TO the station, so he is on the 090° radial, east of it. To read his radial he centers the needle with FROM, which shows 090 [[23:257|IFH 9-14]]."
+   }
+  },
+  {
+   "title": "Intercepting a selected course",
+   "kind": "knowledge",
+   "codes": [
+    "FII.VII.A.K1",
+    "FII.VII.A.K1d"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Procedure for intercepting and maintaining a selected course.** First orient the airplane to the station and the course, then set up an intercept heading. The IFH steps follow; steps 1 to 3 may be left out when turning straight to an intercept heading without first paralleling the course [[23:257|IFH 9-14]]."
+    },
+    {
+     "bullets": [
+      "1. Find the difference between the radial to intercept and the radial you are on: 205° - 160° = 45° [[23:257|IFH 9-14]].",
+      "2. Double it for the interception angle, never less than 20° nor more than 90°: 45° × 2 = 90° [[23:257|IFH 9-14]].",
+      "3. Set the OBS to the desired radial or inbound course [[23:257|IFH 9-14]].",
+      "4. Turn to the interception heading [[23:257|IFH 9-14]].",
+      "5. Hold it until the CDI centers; with practice, lead the turn so you do not overshoot [[23:257|IFH 9-14]].",
+      "6. Turn to the magnetic heading of the course and track it [[23:257|IFH 9-14]]."
+     ]
+    },
+    {
+     "figure": "f3"
+    },
+    {
+     "p": "In Figure 9-16 the airplane is inbound on the 160° radial, heading 340°, and wants 025° inbound on the 205° radial. With a 90° angle it flies 295°, then leads the turn to 025° as the needle centers [[23:258|IFH 9-15]] [[23:257|IFH 9-14]]."
+    },
+    {
+     "p": "**Choosing the angle.** The angle of intercept must be greater than the degrees off course but should not exceed 90°. The rate of intercept depends on that angle, the groundspeed and the distance from the station: one degree is about 1 NM wide at 60 NM, 2 NM at 120 NM and ½ NM at 30 NM [[1:414|PHAK 16-27]]. That is why the same angle feels lazy far out and fast close in."
+    },
+    {
+     "p": "**ADF bearing.** Parallel the desired inbound bearing, note the needle's angle from the nose, double it and turn toward the bearing by that much: a needle 40° right gives an 80° intercept, heading 075° for the 355° bearing. Hold it until the needle is 80° left of the nose, the same number of degrees as the interception angle, minus a lead for how fast it is moving [[23:251|IFH 9-8]]. Any bearing pointer moves faster as the airplane nears the station or waypoint [[23:251|IFH 9-8]]."
+    },
+    {
+     "callout": {
+      "type": "memory",
+      "text": "Where am I? Where is the course? Double the difference, 20° to 90°. Set the course, then turn, then lead."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner is inbound on the 190° radial and must intercept the 205° radial inbound. What angle does the IFH method give, and why not 15°?",
+    "a": "The difference is 15°, doubled to 30°, inside the 20° to 90° limits [[23:257|IFH 9-14]]. 15° is too shallow: it is below the IFH's 20° minimum [[23:257|IFH 9-14]], and the angle of intercept must be greater than the degrees from course [[1:414|PHAK 16-27]]."
+   }
+  },
+  {
+   "title": "Maintaining the course: tracking, not homing",
+   "kind": "knowledge",
+   "codes": [
+    "FII.VII.A.K1",
+    "FII.VII.A.K1d"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Maintaining a VOR course.** Fly the course under the index. If the CDI moves left, the crosswind is from the left: follow the needle, starting with a 20° correction. When that brings the needle back to center, cut the correction in half; the needle should now move much more slowly, and smaller corrections follow [[23:257|IFH 9-14]]. With minor needle fluctuations, wait a moment before changing heading [[1:413|PHAK 16-26]]."
+    },
+    {
+     "p": "Do not change the OBS while tracking. Re-centering the needle and flying the new number is homing, which follows a circuitous route [[23:257|IFH 9-14]]. Just turning toward the needle makes S-turns across the radial [[1:413|PHAK 16-26]]."
+    },
+    {
+     "p": "**Maintaining an ADF bearing.** Turn to put the needle on the nose and hold that heading. When the needle moves a definite 2° to 5°, turn toward the deflection, initially doubling the relative bearing, and hold that heading until the needle is deflected the other way by the interception angle: needle 10° left, turn 20° left, and hold until it is 20° right. Then turn back by half and keep the rest as the wind correction angle. The intercept angle must be bigger than the drift, or the wind slowly wins [[23:248|IFH 9-5]]."
+    },
+    {
+     "p": "Close to the station, small errors give large needle movement, so find the drift correction early and keep corrections to 5° or less [[23:248|IFH 9-5]]. Outbound, the needle deflection grows while the airplane turns to set the correction angle, instead of shrinking as it does inbound, which surprises learners [[23:251|IFH 9-8]]."
+    },
+    {
+     "p": "**GPS.** The receiver shows the actual track; when track and bearing to the waypoint match, the airplane is going straight to it [[23:272|IFH 9-29]]. On RNP operations, pilots are expected to keep the centerline shown on the lateral deviation display unless ATC authorizes a deviation [[40:18|AC 90-105A 6.2]], and on an ATS route 91.181 requires the centerline unless ATC authorizes otherwise [[60:482|14 CFR 91.181(a)]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: teach heading discipline first. Put the heading bug on every correction so the learner flies a number, not a needle. Bugs are visible reminders of assigned headings and courses [[25:85|AIH 3-34]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "Tracking inbound, your learner's CDI drifts left. He turns 20° left, the needle centers, and he turns back to his original heading. What happens next, and what should he have done?",
+    "a": "With no wind correction left he drifts again and starts S-turning. When the needle centers he should cut the correction in half, not remove it [[23:257|IFH 9-14]] [[1:413|PHAK 16-26]]."
+   }
+  },
+  {
+   "title": "Joining and holding a DME arc",
+   "kind": "knowledge",
+   "codes": [
+    "FII.VII.A.K1",
+    "FII.VII.A.K1e"
+   ],
+   "minutes": 6,
+   "body": [
+    {
+     "p": "**Procedure for intercepting and maintaining a DME arc.** DME distance can be used to fly a track at a constant distance from the station, a DME arc [[23:260|IFH 9-17]]. On an approach the arc is an approach segment, not a feeder route: once on it, the airplane has left the en route phase. Arcs are based on a DME collocated with a facility that gives course information all around, such as a VOR, never on an ILS or LOC DME. For an initial segment, the primary area extends 4 NM either side of the arc with 1,000 feet of obstacle clearance [[29:183|IPH 4-43]]."
+    },
+    {
+     "figure": "f4"
+    },
+    {
+     "p": "**Joining the arc,** using the IFH example of the 10 DME arc of OKT [[23:260|IFH 9-17]]:"
+    },
+    {
+     "bullets": [
+      "1. Track inbound on the OKT 325° radial, checking the DME often [[23:260|IFH 9-17]].",
+      "2. At 150 knots groundspeed or less, a 0.5 NM lead is enough: start the turn at 10.5 DME. Faster, use a proportionately greater lead [[23:260|IFH 9-17]].",
+      "3. Turn about 90°; with no wind, the roll-out heading is 055° [[23:260|IFH 9-17]].",
+      "4. Watch the DME closely in the last part of the turn. Overshooting by more than 1.0 NM, keep turning past 055°; undershooting, roll out early [[23:260|IFH 9-17]].",
+      "Outbound to the same arc, the lead point is 10 NM minus 0.5 NM, or 9.5 NM [[23:261|IFH 9-18]]."
+     ]
+    },
+    {
+     "figure": "f5"
+    },
+    {
+     "p": "**Holding the arc with an RMI.** With no wind, a relative bearing of 90° or 270° would in theory fly an exact circle; in practice the pilot flies a series of short legs [[23:261|IFH 9-18]]:"
+    },
+    {
+     "bullets": [
+      "With the pointer on the wingtip reference at the arc distance, hold heading and let the pointer move 5° to 10° behind the wingtip; the range grows slightly [[23:261|IFH 9-18]].",
+      "Turn toward the station to put the pointer 5° to 10° ahead of the wingtip, hold heading until it is behind again, and repeat [[23:261|IFH 9-18]].",
+      "Wind drifting the airplane away from the station: keep the pointer ahead of the wingtip. Wind drifting it toward the station: keep the pointer behind [[23:261|IFH 9-18]].",
+      "Range corrections: change the relative bearing 10° to 20° for each half mile off the arc. With no wind, ½ to 1 mile outside and the pointer on the wingtip, turn 20° toward the station [[23:261|IFH 9-18]]."
+     ]
+    },
+    {
+     "p": "Staying slightly inside the arc is easier, because the arc curves toward the airplane and a straight heading rejoins it; outside, the arc turns away and needs a bigger correction. With wind, the drift correction changes all the way around the arc, so the learner needs a running picture of where the wind is [[23:261|IFH 9-18]]."
+    },
+    {
+     "p": "**Without an RMI.** After the 90° turn onto the arc, center the CDI; the heading reference is found near the 90° or 270° point of the instrument. Adjust heading for wind and distance, and re-center the CDI and note the new reference whenever the needle is 2° to 4° off center. Orientation is harder without an RMI because there is no direct azimuth reference [[23:261|IFH 9-18]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "The DME groundspeed readout is accurate only when tracking directly to or from the station [[23:260|IFH 9-17]]. On an arc it is not the airplane's groundspeed, so do not let a learner plan timing from it."
+     }
+    }
+   ],
+   "check": {
+    "q": "Your learner flies a 12 DME arc with the RMI pointer on the wingtip, but the wind is pushing him away from the station and the DME reads 12.6. What do you teach?",
+    "a": "Turn toward the station, about 10° to 20° for each half mile off (20° for ½ to 1 mile), then hold the pointer ahead of the wingtip to stay on the arc against the wind [[23:261|IFH 9-18]]."
+   }
+  },
+  {
+   "title": "Leaving the arc for a radial or the localizer",
+   "kind": "knowledge",
+   "codes": [
+    "FII.VII.A.K1",
+    "FII.VII.A.K1f"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Procedure for intercepting a course or localizer from a DME arc.** A lead radial is the radial at which the turn from the arc to the inbound course is started. The lead varies with the arc radius and the groundspeed; for most GA airplanes on charted arcs at 150 knots or less it is under 5°. Intercepting a radial from an arc is no different from intercepting it from a straight course [[23:261|IFH 9-18]]."
+    },
+    {
+     "bullets": [
+      "With an RMI, watch the rate of bearing movement, set the course of the radial to be intercepted as soon as possible, work out the approximate lead and start the turn there [[23:261|IFH 9-18]].",
+      "Without an RMI the technique is the same, but azimuth comes only from the OBS and CDI [[23:261|IFH 9-18]].",
+      "For a localizer: at the charted lead radial, a single VOR/LOC receiver is set to the localizer frequency; with two receivers, one keeps azimuth and the other is set to the localizer [[23:262|IFH 9-19]].",
+      "The IFH example lead radials give 7° of lead, so it uses a half-standard-rate turn until the localizer needle starts to move toward center [[23:262|IFH 9-19]]."
+     ]
+    },
+    {
+     "figure": "f6"
+    },
+    {
+     "p": "Figure 9-19 shows this on an MFD: the airplane heads southwest to intercept the localizer from the 16 NM DME arc, with the approach chart below the map [[23:263|IFH 9-20]]. Arc design helps too: an arc may join a course at or before the IF at up to 120°, and when the angle is over 90° a lead radial giving at least 2 NM of lead is charted [[29:183|IPH 4-43]]. Teach the learner to find the LR in the briefing, not on the arc."
+    },
+    {
+     "p": "**Changing NAVAIDs is the trap.** The IPH warns that using a DME arc as the transition to an ILS means changing from en route navigation to the arc's NAVAID and then to the ILS. Planning when each change happens prevents flying on the wrong NAVAID when workload is already high, and the approach's primary NAVAID should be set and positively identified before it is used for course guidance [[29:157|IPH 4-17]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Changing the navigation source can drop an autopilot to a lower mode, such as wings level [[30:52|RMH 7-3]]; with some autopilots, switching the e-HSI from GPS to LOC or VOR in NAV mode drops the autopilot to ROL [[1:70|PHAK 2-31]]. And an RNAV system may not provide lateral guidance on a localizer course without reference to raw localizer data [[33:117|AIM 1-2-3c]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "With one VOR/LOC receiver, your learner plans to switch from the VOR to the localizer when he reaches the localizer course. What is wrong with the plan?",
+    "a": "He would have no localizer guidance when the turn must start. The IFH has him set the localizer frequency at the lead radial and use a half-standard-rate turn until the needle moves [[23:262|IFH 9-19]], and the change should be planned and the localizer identified before he relies on it [[29:157|IPH 4-17]]."
+   }
+  },
+  {
+   "title": "Recognizing station or waypoint passage",
+   "kind": "knowledge",
+   "codes": [
+    "FII.VII.A.K1",
+    "FII.VII.A.K1g"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Recognition of navigation facility or waypoint passage.** Each source shows passage its own way, so teach the picture for each."
+    },
+    {
+     "table": {
+      "head": [
+       "Source",
+       "Passage looks like",
+       "Teaching point"
+      ],
+      "rows": [
+       [
+        "VOR",
+        "A steady needle drift means drifting off course; rapid or fluctuating movement means passage is near. Over the station the CDI swings through the zone of confusion [[23:257|IFH 9-14]]",
+        "Confirm positive passage with the TO/FROM; a few stations, usually in mountains, give brief swings that look like approaching the station [[33:69|AIM 1-1-3e]]"
+       ],
+       [
+        "VOR, passing to one side",
+        "The needle deflects toward the station as TO changes to FROM [[1:413|PHAK 16-26]]",
+        "Overcontrolling close to the station is a listed error [[23:259|IFH 9-16]]"
+       ],
+       [
+        "ADF",
+        "Near the station the needle starts turning steadily toward a wingtip or swinging left and right; passage is when it shows a wingtip position or settles at or near 180°. From the first signs to passage takes a few seconds at low altitude and up to 3 minutes at high altitude [[23:248|IFH 9-5]]",
+        "Hold the last corrected heading and time the passage; abeam is when the needle points 90° off the track [[23:248|IFH 9-5]]"
+       ],
+       [
+        "RMI",
+        "The pointer moves rapidly, or several corrections are needed to keep it on the wingtip [[1:414|PHAK 16-27]]",
+        "The same picture on a VOR or an ADF needle"
+       ],
+       [
+        "DME",
+        "Over the station it reads height above it in NM [[23:262|IFH 9-19]], about 1.0 NM at 6,076 feet AGL [[1:414|PHAK 16-27]] [[1:415|PHAK 16-28]]",
+        "Expect a reading, not zero, overhead"
+       ],
+       [
+        "GPS waypoint",
+        "Fly-by: the receiver turns before the waypoint (turn anticipation). Fly-over: no turn until it is crossed [[33:99|AIM 1-1-17]] [[29:158|IPH 4-18]]",
+        "Know the bank angle your receiver uses for turn anticipation [[33:96|AIM 1-1-17]]"
+       ],
+       [
+        "DME fix by GPS",
+        "Named fix as the active waypoint: when the GPS shows arrival. DME facility as the waypoint: when GPS distance equals the charted DME and the airplane is on the right bearing [[23:270|IFH 9-27]]",
+        "On overlay procedures a named DME fix may show an ATD of zero, not the charted DME [[33:97|AIM 1-1-17]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "**Misreading passage.** On receivers without an ON/OFF flag, a voice transmission on the NAV/COM in use can make the TO/FROM flicker as it does at station passage. Read the whole receiver, TO/FROM, CDI and OBS, before deciding, and do not use a VOR reading taken while transmitting [[23:259|IFH 9-16]]. The area directly above a NAVAID is generally not usable for navigation anyway [[33:73|AIM 1-1-8a]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: teach passage as a callout sequence: \"Needle getting lively... hold heading... FROM: station passage, time.\" Then turn, then talk. The same habit carries into the holding lesson FII.VII.B."
+     }
+    }
+   ],
+   "check": {
+    "q": "Inbound to the VOR, your learner keys the mike to report and the TO/FROM flickers, so he starts the outbound turn. What happened?",
+    "a": "On some receivers a transmission on the NAV/COM in use makes the TO/FROM fluctuate as it does at station passage. Read the whole receiver, don't use a reading taken while transmitting [[23:259|IFH 9-16]], and confirm passage by the TO/FROM change [[33:69|AIM 1-1-3e]]."
+   }
+  },
+  {
+   "title": "Recognizing receiver or facility failure",
+   "kind": "knowledge",
+   "codes": [
+    "FII.VII.A.K1",
+    "FII.VII.A.K1h"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "**Recognition of navigation receiver or facility failure.** Each source fails in its own way, and some fail with no flag at all."
+    },
+    {
+     "table": {
+      "head": [
+       "Source",
+       "Failure looks like",
+       "What the learner does"
+      ],
+      "rows": [
+       [
+        "VOR or LOC",
+        "An OFF flag in view, or a blank or OFF in the TO/FROM window: the signal is too weak for reliable indications [[23:254|IFH 9-11]]",
+        "Stop using it; check the identifier and the NOTAMs"
+       ],
+       [
+        "Any ground NAVAID",
+        "Momentary false indications when the transmitter's primary signal generator is out [[33:68|AIM 1-1-1b]]; identifier removed or T-E-S-T during maintenance [[33:87|AIM 1-1-11]]",
+        "Disregard any indication from a transmitter NOTAMed unusable, however valid it looks [[33:68|AIM 1-1-1b]]"
+       ],
+       [
+        "ADF",
+        "No flag. A noisy identifier with an erratic needle; voice, music or a wrong identifier with a steady false bearing [[33:68|AIM 1-1-2d]]",
+        "Monitor the identifier continuously [[33:68|AIM 1-1-2d]]; keep the heading indicator matched to the compass [[23:251|IFH 9-8]]"
+       ],
+       [
+        "DME",
+        "Only one identifier about every 30 seconds: the DME works but the VOR or LOC does not [[23:260|IFH 9-17]] [[33:73|AIM 1-1-7f]]",
+        "Do not take course guidance from that facility"
+       ],
+       [
+        "VOR receiver",
+        "A receiver whose circuits are deteriorating can read well close to a VOR or VOT and out of tolerance farther away [[33:71|AIM 1-1-4c]]",
+        "Keep the 30-day check current, and check sensitivity: moving the CDI from center to the last dot should take no more than 10° or 12° of OBS [[23:259|IFH 9-16]]"
+       ],
+       [
+        "GPS",
+        "A RAIM message: too few satellites to monitor integrity, or a possible error detected. Without RAIM there is no assurance of accuracy [[33:90|AIM 1-1-17]]. A banked antenna or high terrain can cost signals [[23:274|IFH 9-31]]",
+        "Treat the guidance as advisory only after a RAIM flag [[33:98|AIM 1-1-17]]"
+       ],
+       [
+        "GPS jamming or spoofing",
+        "A large shift in displayed position, clock changes, position-error warnings, other aircraft asking for vectors [[33:119|AIM 1-2-4f]] [[33:120|AIM 1-2-4f]]",
+        "Verify position with conventional NAVAIDs and be ready to revert to conventional procedures [[33:119|AIM 1-2-4f]] [[33:120|AIM 1-2-4f]]"
+       ]
+      ]
+     }
+    },
+    {
+     "callout": {
+      "type": "reg",
+      "text": "14 CFR 91.187: in controlled airspace under IFR, report to ATC as soon as practical any malfunction of navigational, approach or communication equipment in flight, giving the aircraft identification, the equipment affected, how far IFR capability is impaired, and the help wanted [[60:483|14 CFR 91.187(a)]] [[60:483|14 CFR 91.187(b)]]. For IFR, 91.205 requires navigation equipment suitable for the route to be flown [[60:488|14 CFR 91.205(d)(2)]]."
+     }
+    },
+    {
+     "p": "Receiver accuracy is also a rule: to fly IFR on VORs, the equipment must be maintained under an approved procedure or checked within the preceding 30 days within the 91.171 limits [[60:470|14 CFR 91.171(a)]], and the check is logged with date, place, bearing error and signature [[60:471|14 CFR 91.171(d)]]. The Instrument lesson IR.V.A walks through the checks."
+    },
+    {
+     "p": "When a navigation error shows up, transition to another source and ask ATC for an amended clearance as needed [[33:87|AIM 1-1-13c]]. Some failures give no warning: a faulty GPS re-radiator, in effect spoofing, can feed wrong, unflagged positions to the displays, RAIM is only partly effective against it, and ATC may be the only one to spot it [[33:87|AIM 1-1-13b]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: fail things on purpose, on the ground or in a simulator first. Tune a wrong frequency, take a VOR off the air in the simulator, or select a VOR without DME with automatic DME on, and ask: \"What do you see, what does it mean, what do you do, and who do you tell?\""
+     }
+    }
+   ],
+   "check": {
+    "q": "On an NDB approach your learner says the ADF must be fine because the needle is steady. Is that enough?",
+    "a": "No. The ADF has no flag, and a steady false bearing can come with voice, music or a wrong identifier, so he must monitor the identifier continuously [[33:68|AIM 1-1-2d]]."
+   }
+  },
+  {
+   "title": "RNAV substitution for arcs and out-of-service NAVAIDs",
+   "kind": "knowledge",
+   "codes": [
+    "FII.VII.A.K1",
+    "FII.VII.A.K1e",
+    "FII.VII.A.K1h"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "The Task NOTE says arcs may be tested only if charted and available, including RNAV substitution techniques if appropriate [[FAA-S-8081-9E:38|PTS VII.A NOTE]]. So teach both the rule and the technique."
+    },
+    {
+     "p": "**The rule.** A suitable RNAV system may be a substitute means of navigation when a VOR, DME, VORTAC, NDB or compass locator is out of service, or when the airplane has no ADF or DME or it is not working. It may also be an alternate means while the NAVAID works, for example flying a VOR-based route or procedure without monitoring the VOR [[33:116|AIM 1-2-3a]]. On the final approach segment of a VOR, TACAN or NDB approach, though, the NAVAID must be operating and monitored for course alignment [[33:118|AIM 1-2-3c]]. Suitable means, for example, TSO-C129, -C145 or -C146 equipment authorized for IFR en route and terminal operations; an RNAV system using DME/DME/IRU without GPS may substitute only where a NOTAM or other FAA guidance authorizes it [[33:117|AIM 1-2-3b]]."
+    },
+    {
+     "table": {
+      "head": [
+       "A suitable RNAV system may",
+       "It may not"
+      ],
+      "rows": [
+       [
+        "Find position relative to, or distance from, a VOR, NDB or DME fix [[33:117|AIM 1-2-3c]]",
+        "Provide lateral navigation on a localizer or back course without reference to raw localizer data [[33:117|AIM 1-2-3c]]"
+       ],
+       [
+        "Navigate to or from a VOR or NDB [[33:117|AIM 1-2-3c]]",
+        "Substitute for the NAVAID giving lateral guidance on the final approach segment (\"or GPS\" procedures excepted) [[33:118|AIM 1-2-3c]]"
+       ],
+       [
+        "Hold over a VOR, NDB or DME fix [[33:117|AIM 1-2-3c]]",
+        "Navigate on a procedure that a NOTAM marks NA without exception [[33:117|AIM 1-2-3c]]"
+       ],
+       [
+        "Fly an arc based upon DME [[33:117|AIM 1-2-3c]]",
+        "Use a database whose expiration is on or before the procedure's amendment date [[33:117|AIM 1-2-3]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "A pilot planning to use RNAV in place of an out-of-service NAVAID may need to tell ATC, and the database should be current for the whole flight [[33:117|AIM 1-2-3]]. More detail is in AC 90-108, which is not in this source set [[33:117|AIM 1-2-3]]."
+    },
+    {
+     "p": "**The technique.** The IFH steps for a DME arc with GPS: check that integrity monitoring is working, select from the database the DME facility on which the arc is based as the active waypoint (if it is not in the database, the operation is not authorized), and hold the arc by GPS distance instead of the DME readout [[23:270|IFH 9-27]]. The database must be current, and the CDI set to terminal (1 NM) sensitivity when tracking GPS guidance in the terminal area [[23:270|IFH 9-27]]."
+    },
+    {
+     "p": "GPS distance is horizontal while DME is slant range, so GPS can read a little less when high and close to the station [[23:262|IFH 9-19]]; the difference grows with altitude and closeness to the NAVAID [[33:100|AIM 1-1-17]]."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: have the learner fly the same arc twice in VMC, once on DME and the RMI and once on GPS distance, and compare the pictures. The AIM lists flying approaches, especially procedure turns and arcs, among the GPS skills to practice in VMC before IMC [[33:100|AIM 1-1-17]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "The VORTAC that defines an arc is NOTAMed out of service, and your learner's IFR-approved GPS has it in the database. Can he fly the arc to the ILS?",
+    "a": "Unless a NOTAM makes the procedure NA, he may fly the DME arc with a suitable RNAV system, advising ATC if needed [[33:117|AIM 1-2-3c]] [[33:117|AIM 1-2-3]]. The localizer itself must still be flown with raw localizer data [[33:117|AIM 1-2-3c]]."
+   }
+  },
+  {
+   "title": "The MFD and moving map: checking position against the path",
+   "kind": "knowledge",
+   "codes": [
+    "FII.VII.A.K3"
+   ],
+   "minutes": 4,
+   "body": [
+    {
+     "p": "**Uses of the MFD and other graphical navigational displays.** A moving map gives a picture of the airplane in relation to NAVAIDs, waypoints, airspace and terrain, which improves situational awareness [[23:29|IFH 1-10]]. An MFD can also show approach charts, terrain warning and weather [[23:123|IFH 5-28]]. Put the moving map in the scan; a smaller inset map on the PFD keeps the scan more centralized [[23:159|IFH 6-26]]."
+    },
+    {
+     "p": "Look again at Figure 9-19: the map shows the airplane's track against the arc and the localizer, and the top line shows XTK. AC 90-105A defines cross-track (XTK) error as the difference between the system's computed path and the airplane's position relative to it [[40:18|AC 90-105A 6.2]], and for RNP approaches requires displays selected so the pilot can monitor the desired track and XTK [[40:44|AC 90-105A A.7.2.2]]."
+    },
+    {
+     "bullets": [
+      "**The map is not the primary source.** AFMs prohibit using the moving map, terrain, traffic and weather displays as the primary data source [[1:69|PHAK 2-30]]. A pilot who only follows the magenta line can fly into terrain or prohibited airspace, or be lost if the display fails [[1:69|PHAK 2-30]] [[1:70|PHAK 2-31]].",
+      "**A map of a VOR approach is not a GPS approach.** The database may show a map of conventional approaches to help orientation; that must not be confused with a GPS overlay approach [[33:95|AIM 1-1-17]].",
+      "**When GPS is spoofed, the map is wrong too.** Jamming or spoofing can put the airplane in the wrong place on the moving map, and routine checks against VOR or DME can catch it [[33:119|AIM 1-2-4c]] [[33:119|AIM 1-2-4d]]. The PHAK says the same: use VOR to back up GPS and vice versa [[1:70|PHAK 2-31]]."
+     ]
+    },
+    {
+     "p": "The PTS wording for this element ends \"during holding\", the same words as in Task B [[FAA-S-8081-9E:38|PTS VII.A K3]] [[FAA-S-8081-9E:39|PTS VII.B K3]]. For this Task, teach the map as the cross-check on intercepts, tracking and arcs, and see FII.VII.B for the hold."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: fly the first lessons with the map covered or decluttered, so the learner builds the picture from the needles. Then uncover it and ask: \"Where does the map put you? Where do the needles? Do they agree?\" When they disagree, reassess and get more information from the navigation instruments or ATC [[23:337|IFH 11-12]]."
+     }
+    }
+   ],
+   "check": {
+    "q": "On the arc your learner keeps the airplane symbol on the magenta arc and ignores the DME. What do you tell him?",
+    "a": "The moving map is not the primary data source [[1:69|PHAK 2-30]]. Fly the arc on the DME and the RMI or CDI and use the map as a cross-check; if GPS is jammed or spoofed, the map position can be wrong [[33:119|AIM 1-2-4c]]."
+   }
+  },
+  {
+   "title": "Common errors: tuning, course setting, intercepts and tracking",
+   "kind": "skills",
+   "codes": [
+    "FII.VII.A.K2",
+    "FII.VII.A.K2a",
+    "FII.VII.A.K2b",
+    "FII.VII.A.K2c"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "For each error: what you see from the right seat, the usual cause, and the fix you teach."
+    },
+    {
+     "table": {
+      "head": [
+       "Error (PTS words)",
+       "What you see",
+       "Usual cause",
+       "Fix and how you teach it"
+      ],
+      "rows": [
+       [
+        "**Incorrect tuning and identification procedures**",
+        "The needle is alive and centered, but on the wrong station; or a DME distance that belongs to another facility",
+        "Careless tuning and identification [[23:257|IFH 9-14]]; homing or tracking to the wrong station is a listed ADF error [[23:251|IFH 9-8]]; automatically selected DME used with a VOR that has none [[33:73|AIM 1-1-7g]]",
+        "Make tune, identify, verify a spoken routine and have the learner read the letters against the chart. Demonstrate by tuning a nearby wrong frequency yourself"
+       ],
+       [
+        "**Failure to properly set the navigation selector on the course to be intercepted**",
+        "Corrections go the wrong way; the needle moves away as he turns toward it",
+        "The course set to the reciprocal, or the TO/FROM not checked, often on course reversals: reverse sensing [[23:257|IFH 9-14]]",
+        "Set the course to be intercepted before turning, and check the TO/FROM against it [[23:257|IFH 9-14]]"
+       ],
+       [
+        "**Course interception: not oriented first**",
+        "Turns the wrong way, or holds a heading that never intercepts",
+        "Not paralleling the desired radial first, so left and right of course get confused [[23:259|IFH 9-16]]",
+        "Parallel the course until the position is clear [[23:259|IFH 9-16]]; sketch it"
+       ],
+       [
+        "**Course interception: overshoot or undershoot**",
+        "Flies through the course, or turns too soon and stops short",
+        "Overshooting and undershooting is a listed error [[23:259|IFH 9-16]], often from forgetting the angle used or rushing the orientation [[23:251|IFH 9-8]]",
+        "Watch how fast the needle moves and lead the turn [[23:257|IFH 9-14]]"
+       ],
+       [
+        "**Tracking: chasing the needle**",
+        "S-turns and a curved path that becomes homing",
+        "Careless heading control and no bracketing; overcontrolling close to the station [[23:259|IFH 9-16]]",
+        "Hold a fixed heading and bracket with halved corrections [[23:257|IFH 9-14]]"
+       ],
+       [
+        "**Tracking: heading not held**",
+        "The needle moves after every wander in heading",
+        "Any heading change moves the ADF needle, so the instruments must be read together [[23:251|IFH 9-8]]",
+        "Bug the heading; read heading and needle together"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "The last four rows are the course half of **failure to use proper procedures for course or DME arc interception and tracking**; the arc half is in the next chunk."
+    },
+    {
+     "p": "**Demonstrating an error safely.** Application: fly the error yourself first and say what you are doing (\"I'm setting the reciprocal; watch the needle\"), let the learner see the effect, then fix it together. Safety permitting, it is often better to let a learner go part of the way into a mistake and find the way out [[25:182|AIH 9-12]]."
+    }
+   ],
+   "check": {
+    "q": "Your learner says, \"The needle went left, so I turned left, and it went further left.\" What error do you suspect first?",
+    "a": "Reverse sensing: the course set to the reciprocal, or the TO/FROM not checked, so corrections go the wrong way [[23:257|IFH 9-14]]."
+   }
+  },
+  {
+   "title": "Common errors: DME arcs and leaving the arc",
+   "kind": "skills",
+   "codes": [
+    "FII.VII.A.K2",
+    "FII.VII.A.K2c",
+    "FII.VII.A.K2d"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "table": {
+      "head": [
+       "Error",
+       "What you see",
+       "Usual cause",
+       "Fix and how you teach it"
+      ],
+      "rows": [
+       [
+        "**Arc interception: no lead**",
+        "Rolls out 0.5 to 1 NM outside the arc",
+        "The turn started at the arc distance [[23:260|IFH 9-17]]",
+        "0.5 NM lead at 150 knots or less, more if faster; watch the DME in the last part of the turn and turn past or roll out early [[23:260|IFH 9-17]]"
+       ],
+       [
+        "**Arc tracking: holding one heading**",
+        "The DME creeps up and the pointer falls behind the wingtip",
+        "A straight heading leaves the arc; outside it, the arc turns away [[23:261|IFH 9-18]]",
+        "Short legs: let the pointer go 5° to 10° behind, then turn to put it 5° to 10° ahead [[23:261|IFH 9-18]]"
+       ],
+       [
+        "**Arc tracking: wrong wind or range correction**",
+        "Corrections too small outside, or zigzags inside",
+        "No running picture of the changing wind [[23:261|IFH 9-18]]",
+        "10° to 20° per half mile off; stay slightly inside the arc [[23:261|IFH 9-18]]"
+       ],
+       [
+        "**Arc with a CDI only: needle left off center**",
+        "The heading reference drifts and the DME wanders",
+        "The CDI not re-centered [[23:261|IFH 9-18]]",
+        "Re-center whenever it is 2° to 4° off and take the new heading reference [[23:261|IFH 9-18]]"
+       ],
+       [
+        "**Arc on the wrong DME**",
+        "The distance does not match the chart",
+        "DME left in HOLD on another station [[23:260|IFH 9-17]], or an arc assumed on a LOC DME [[29:183|IPH 4-43]]",
+        "Check which facility drives the DME before the arc"
+       ],
+       [
+        "**Improper procedures for intercepting a course or localizer from a DME arc**",
+        "Turns late and flies through the course, or turns with no localizer signal",
+        "Course not set early and no lead worked out [[23:261|IFH 9-18]]; localizer not set at the lead radial [[23:262|IFH 9-19]]; the NAVAID change not planned [[29:157|IPH 4-17]]",
+        "Brief the LR; set and identify the localizer by the LR; half-standard-rate turn until the needle moves [[23:262|IFH 9-19]]"
+       ],
+       [
+        "**Automation surprise at the switch**",
+        "The autopilot goes to wings level after the source change",
+        "A change of navigation source can reduce the autopilot mode [[30:52|RMH 7-3]]",
+        "Anticipate, act, verify on every mode change [[30:51|RMH 7-2]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "The first five rows are the arc half of **failure to use proper procedures for course or DME arc interception and tracking**; the sixth and seventh are **improper procedures for intercepting a course or localizer from a DME arc**."
+    },
+    {
+     "p": "These errors stack. A learner who rolls out outside the arc, chases it with big turns and reaches the lead radial behind the airplane has no time left to change radios. Application: teach the arc as a plan made in the briefing: arc distance, lead point, roll-out heading, lead radial, localizer frequency and course."
+    }
+   ],
+   "check": {
+    "q": "Your learner turns onto a 15 DME arc at 15.0 DME at 120 knots and rolls out at 15.8. What is the error, and the fix?",
+    "a": "No lead. At 150 knots or less, start the turn 0.5 NM early, at 15.5 DME when inbound, and watch the DME in the last part of the turn, continuing past the planned heading if overshooting [[23:260|IFH 9-17]]."
+   }
+  },
+  {
+   "title": "Demonstrate and explain: a right-seat talk-through",
+   "kind": "skills",
+   "codes": [
+    "FII.VII.A.S1",
+    "FII.VII.A.K1"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "The PTS wants the demonstration flown to the instrument pilot skill level with an explanation that is clear, concise, technically accurate and complete, with no prompting [[FAA-S-8081-9E:15|PTS Unsatisfactory Performance]]. This is the first step of telling and doing: the demonstration should match the explanation, in the same order, and any deviation should be acknowledged and explained at once [[25:177|AIH 9-7]]. Brief the positive exchange of flight controls before flight [[25:178|AIH 9-8]]."
+    },
+    {
+     "p": "Sample talk-through, using the IFH example in Figure 9-19 (an old chart, for training only): join the 16 DME arc southbound from the 271° radial and leave it for the localizer, course 070°, at lead radial 223, with two VOR/LOC receivers."
+    },
+    {
+     "bullets": [
+      "\"Briefing: 16 DME arc, lead point 16.5 inbound, lead radial 223, localizer course 070. NAV 1 on the localizer, NAV 2 and the RMI needle on OMN for azimuth [[23:262|IFH 9-19]].\"",
+      "\"OMN tuned and identified by Morse code; DME identifier heard; no flags [[33:68|AIM 1-1-3c]] [[23:260|IFH 9-17]]. Localizer tuned and identified now, before I need it [[29:157|IPH 4-17]].\"",
+      "\"Inbound on the 271 radial at 120 knots: 16.5 DME, turning right about 90° onto the arc, watching the DME as I roll out [[23:260|IFH 9-17]].\"",
+      "\"Station off the left wingtip. I hold heading, let the pointer fall 5 to 10 behind, then turn left to put it 5 to 10 ahead. Half a mile out, I'd turn 10 to 20 toward the station [[23:261|IFH 9-18]].\"",
+      "\"Radials coming down toward 223; I watch the rate of bearing movement, with 070 already set [[23:261|IFH 9-18]]. At 223, half-standard-rate turn left toward 070 until the localizer needle moves [[23:262|IFH 9-19]].\"",
+      "\"Needle centering: roll out and track 070, checking the map and XTK agree with the needles [[23:159|IFH 6-26]].\""
+     ]
+    },
+    {
+     "p": "Then hand it over through telling and doing: the learner tells while you fly, which shows you what he understands before he is busy flying, and then the learner tells and flies [[25:178|AIH 9-8]]. If the airplane has no DME, the evaluator tests arcs orally [[FAA-S-8081-9E:38|PTS Area VII NOTE]], so practice saying this talk-through on the ground too."
+    },
+    {
+     "callout": {
+      "type": "tip",
+      "text": "Application: keep the words short in the turns and save the why for the straight legs. The PTS also calls for a realistic distraction during the flight [[FAA-S-8081-9E:16|PTS Use of Distractions]], so practice the talk-through with a radio call in the middle of the arc."
+     }
+    }
+   ],
+   "check": {
+    "q": "Halfway through your demonstration you let the DME drift to 16.7 while talking. What do you do?",
+    "a": "Say so at once and explain it: a deviation from the explained demonstration should be acknowledged and explained immediately [[25:177|AIH 9-7]]. Then turn about 20° toward the station to return to the arc [[23:261|IFH 9-18]]."
+   }
+  },
+  {
+   "title": "Analyze and correct: when the evaluator flies the errors",
+   "kind": "skills",
+   "codes": [
+    "FII.VII.A.S2",
+    "FII.VII.A.K2"
+   ],
+   "minutes": 5,
+   "body": [
+    {
+     "p": "During the flight the evaluator acts as a student in selected maneuvers to check that you can analyze and correct simulated common errors [[FAA-S-8081-9E:14|PTS Evaluator Responsibility]]. Expect a wrong frequency or a skipped identifier, the reciprocal set on the OBS, an arc entered with no lead, a needle chased into homing, or a turn toward the localizer with the VOR still tuned."
+    },
+    {
+     "table": {
+      "head": [
+       "Step",
+       "What you do"
+      ],
+      "rows": [
+       [
+        "Notice",
+        "Watch the needles, the DME and the heading, and say what you see: \"DME 16.8 and climbing.\""
+       ],
+       [
+        "Name it",
+        "Use the PTS words, such as \"failure to use proper procedures for DME arc interception and tracking.\""
+       ],
+       [
+        "Find the cause",
+        "Ask why it happened before you explain. A slip is an error of action, a mistake an error of thought [[25:84|AIH 3-33]]"
+       ],
+       [
+        "Fix and replay",
+        "Give the rule and its source, then have the learner fly it again; reteach by demonstrating, practice under direction, then observing [[25:181|AIH 9-11]]"
+       ]
+      ]
+     }
+    },
+    {
+     "p": "Some errors are slips that just show a need for more practice; others point to methods or habits that need to change [[25:85|AIH 3-34]]. To test real understanding, vary the task slightly or combine it with another: an outbound arc instead of an inbound one, a CDI-only arc, or an ADF bearing in place of a VOR radial [[25:182|AIH 9-12]]."
+    },
+    {
+     "callout": {
+      "type": "warn",
+      "text": "Under the PTS, any action or lack of action that makes the evaluator step in to keep the flight safe is a reason for failure, and so is poor visual scanning to clear the area [[FAA-S-8081-9E:15|PTS Unsatisfactory Performance]]. Teaching an error never replaces flying the airplane and watching outside."
+     }
+    }
+   ],
+   "check": {
+    "q": "The evaluator, as your student, flies the arc by holding one heading until the DME is a mile off, then turns 45° back. What do you say?",
+    "a": "Name it: improper DME arc tracking. Explain that the arc turns away from a straight heading, so fly short legs with the pointer 5° to 10° either side of the wingtip, and correct 10° to 20° for each half mile off [[23:261|IFH 9-18]]. Then have him fly the next part correctly [[25:181|AIH 9-11]]."
+   }
+  }
+ ],
+ "figures": {
+  "f1": {
+   "file": "FII.VII.A-1.jpg",
+   "res": "23",
+   "page": 256,
+   "caption": "Figure 9-15. CDI interpretation. The CDI as typically found on analog systems (right) and as found on electronic flight instruments (left). (IFH 9-13)",
+   "alt": "A VOR station sits in the middle of a green compass rose with a vertical orange line running through its 360 and 180 radials. North of the station, an airplane heading about 215 is connected to a red TO box; beside it, an electronic HSI shows heading 215 with the course set to 180, and an analog VOR indicator shows the needle centered on 180 with a TO flag. South of the station, an airplane heading about 330 is connected to a blue FROM box; its electronic HSI shows heading 330 with course 180, and the analog indicator shows the needle centered on 180 with a FROM flag. Labels at the bottom read Electronic flight instruments and Analog systems.",
+   "source": "IFH, PDF p. 256"
+  },
+  "f2": {
+   "file": "FII.VII.A-2.jpg",
+   "res": "23",
+   "page": 247,
+   "caption": "Figure 9-5. Radio magnetic indicator (RMI). (IFH 9-4)",
+   "alt": "A round RMI with a compass card showing N at the top, with 3, 6, E, 12, 15, S, 21, 24, W, 30 and 33 around it. A green needle labeled ADF needle points almost straight up, just right of N, about 005. A yellow outlined needle labeled VOR needle points to the right, toward E at about 095, with its tail toward W. A small orange airplane symbol is in the center.",
+   "source": "IFH, PDF p. 247"
+  },
+  "f3": {
+   "file": "FII.VII.A-3.jpg",
+   "res": "23",
+   "page": 258,
+   "caption": "Figure 9-16. Course interception (VOR). (IFH 9-15)",
+   "alt": "VOR A with orange lines for the 160 radial running to the lower right and the 205 radial running to the lower left. Airplane 1 at the lower right is inbound on the 160 radial, heading 340; its inset shows a heading of 340 with the course centered. Airplane 2 in the middle has turned to a heading of 295 toward the 205 radial, with a green arc showing a 90 degree angle; its inset shows the needle deflected and a note to maintain heading 295. Airplane 3 at the left has turned onto the 205 radial, inbound on course 025; its inset shows a heading of 025 with the needle centered. A box reads To intercept a course of 025, inbound of VOR A, and a note reads As VOR needle centers, lead the turn to track inbound.",
+   "source": "IFH, PDF p. 258"
+  },
+  "f4": {
+   "file": "FII.VII.A-4.jpg",
+   "res": "23",
+   "page": 261,
+   "caption": "Figure 9-17. DME arc interception. (IFH 9-18)",
+   "alt": "OKT VORTAC at the bottom. One airplane at the top left flies inbound toward the station on the 325 radial, and another at the bottom flies outbound from it on the same radial. Each turns about 90 degrees onto the 10 DME arc, shown as a brown line at the upper right, and rolls out on a heading of 055. Ring markers show the turn points: Lead points 10.5 NM for the inbound airplane and Lead points 9.5 NM for the outbound one.",
+   "source": "IFH, PDF p. 261"
+  },
+  "f5": {
+   "file": "FII.VII.A-5.jpg",
+   "res": "23",
+   "page": 262,
+   "caption": "Figure 9-18. Using DME and RMI to maintain an arc. (IFH 9-19)",
+   "alt": "A VORTAC at the bottom center with the 005 radial running straight up. Three blue arcs cross it: the 11 DME arc at the top, the desired 10 DME arc in the middle and the 9 DME arc at the bottom. At the left, an airplane on the desired arc has an RMI with the needle on the right wingtip and a DME reading 10.0. A green path climbs to an airplane between the 10 and 11 DME arcs, with a 20 degree wedge, an RMI and a DME reading 10.5. An orange path drops to an airplane between the 9 and 10 DME arcs, with a 10 degree wedge, an RMI and a DME reading 9.5. Notes read: Vary the amount of correction according to the rate of deviation and adjust as necessary according to the rate of correction; and Correct 10-20 degrees for each 1/2-mile deviation from arc.",
+   "source": "IFH, PDF p. 262"
+  },
+  "f6": {
+   "file": "FII.VII.A-6.jpg",
+   "res": "23",
+   "page": 263,
+   "caption": "Figure 9-19. An aircraft is displayed heading southwest to intercept the localizer approach, using the 16 NM DME arc. (IFH 9-20) The chart is old and is for training only.",
+   "alt": "Top: a Garmin multi-function display in map mode, with a top line reading GS 120 KT, XTK 8.15 NM, ETE 08:28 and ESA 3100 FT. The map shows waypoints BARBS and HANAV, a magenta course line running south from HANAV toward the waypoint D223P, a white line to TOMOK, a navaid symbol near Ormond Beach inside a blue circle, and a small airplane symbol. Bottom left: an approach chart excerpt labeled IAP. Ormond Beach 112.6 OMN is at the top. From the IAF BARBS on R-271, the OMN 16 DME arc curves south past R-260 to the localizer. Lead radials LR-223 and LR-212 and radials R-219 and R-216 meet the feathered localizer course labeled 070 degrees, with TIGAE at OMN 16 and the LOM/IAF TOMOK. A second arc, OMN 18, runs from the IAF MIKBE to WAMAL. Bottom right: an inset labeled B shows the map closer in, with the magenta line ending at D223P, just north of TIGAE.",
+   "source": "IFH, PDF p. 263"
+  },
+  "f7": {
+   "file": "FII.VII.A-7.jpg",
+   "res": "1",
+   "page": 414,
+   "caption": "Figure 16-34. Time-distance check formula using a CDI. (PHAK 16-27)",
+   "alt": "A box titled Time-Distance Check Formula. A: Time to station equals 60 times minutes flown between bearing change, divided by degrees of bearing change. B: Distance to station equals TAS times minutes flown, divided by degrees of bearing change.",
+   "source": "PHAK, PDF p. 414"
+  }
+ },
+ "scenario": {
+  "title": "An arc to the ILS, and the DME quits",
+  "codes": [
+   "FII.VII.A.K1a",
+   "FII.VII.A.K1e",
+   "FII.VII.A.K1f",
+   "FII.VII.A.K1h",
+   "FII.VII.A.K2c",
+   "FII.VII.A.K2d",
+   "FII.VII.A.K3"
+  ],
+  "setup": "You are a CFII flying with Sam, an instrument learner with about 25 hours of instrument time, in a Cessna 172. NAV 1 is an IFR-approved WAAS GPS navigator with a VOR/LOC receiver, driving an HSI; NAV 2 is a VOR/LOC with a CDI that also drives the RMI needle and channels a separate DME. The MFD shows a moving map. Sam is under a view-limiting device in VMC and you are also the safety pilot. The wind at 3,000 feet is from the west at 25 knots. Approach clears him to join the 14 DME arc of a VORTAC for the ILS (a made-up procedure with a charted lead radial).",
+  "questions": [
+   {
+    "q": "Before the arc, what setup do you expect to hear from Sam?",
+    "a": "The VORTAC tuned and identified by Morse code, or by a truly decoded identifier [[33:68|AIM 1-1-3c]] [[33:69|AIM 1-1-3c]], and the DME identifier heard [[23:260|IFH 9-17]]. With two receivers, one goes to the localizer and the other keeps the VORTAC for azimuth [[23:262|IFH 9-19]]. He should also brief the lead point, the lead radial and when he will change NAVAIDs, and identify the localizer before using it [[29:157|IPH 4-17]]."
+   },
+   {
+    "q": "He starts the turn at 14.0 DME and rolls out at 14.6. Then he holds that heading, the wind pushes him away from the station, and the DME reaches 14.8. What do you teach?",
+    "a": "Two errors. No lead: start the turn 0.5 NM early at 150 knots or less and watch the DME in the turn [[23:260|IFH 9-17]]. Holding one heading: turn toward the station, changing the relative bearing 10° to 20° for each half mile off (the IFH example: ½ to 1 mile outside with the pointer on the wingtip, turn 20°), then keep the pointer ahead of the wingtip against the wind [[23:261|IFH 9-18]]."
+   },
+   {
+    "q": "Halfway around, the DME readout drops out and Sam can no longer hear the DME identifier, though the VOR identifier is still there. What does he do?",
+    "a": "Recognize a DME failure and report it to ATC as soon as practical [[60:483|14 CFR 91.187(a)]]. The IFR GPS is a suitable RNAV system that may substitute for an inoperative DME and fly the arc [[33:116|AIM 1-2-3a]] [[33:117|AIM 1-2-3c]]: make the VORTAC the active waypoint and fly GPS distance [[23:270|IFH 9-27]], telling ATC if needed [[33:117|AIM 1-2-3]]."
+   },
+   {
+    "q": "On GPS distance, Sam says the map makes it easy and stops looking at the RMI. What do you say?",
+    "a": "The moving map is not the primary data source [[1:69|PHAK 2-30]], and a jammed or spoofed GPS can put the airplane in the wrong place on it; cross-checking against the VOR can catch that [[33:119|AIM 1-2-4c]] [[33:119|AIM 1-2-4d]]. GPS distance is horizontal and DME slant range, so they can differ slightly when high and close [[23:262|IFH 9-19]]."
+   },
+   {
+    "q": "At the lead radial NAV 1 changes from GPS to the localizer, the autopilot rolls wings level, and Sam asks whether he can simply fly the localizer on the GPS. Answer both.",
+    "a": "A change of navigation source can drop the autopilot to a lower mode such as wings level, so anticipate, act and verify each mode change [[30:52|RMH 7-3]] [[30:51|RMH 7-2]]. And no: an RNAV system may not provide lateral guidance on a localizer course without raw localizer data [[33:117|AIM 1-2-3c]]."
+   }
+  ]
+ },
+ "skills": [
+  {
+   "code": "FII.VII.A.S1",
+   "do": "From the right seat, tune and identify, find position, intercept and track a VOR course, then join a DME arc, hold it and leave it at the lead radial for the localizer, explaining each step in the order you fly it.",
+   "practice": "Fly the talk-through in a simulator or with a safety pilot using the IFH OKT and OMN examples, explaining in the same order you fly [[25:177|AIH 9-7]]. Fly the arc three ways: with the RMI, with the CDI only, and on GPS distance [[23:261|IFH 9-18]] [[23:270|IFH 9-27]]."
+  },
+  {
+   "code": "FII.VII.A.S2",
+   "do": "When the evaluator, as your student, makes navigation errors, notice each one, name it in the PTS words, find the cause, give the fix and have the student fly it again.",
+   "practice": "Have another applicant plant errors: a wrong station, the reciprocal on the OBS, no arc lead, a needle chased into homing, the localizer not set at the lead radial. Run notice, name, cause, fix, and ask why before you tell [[25:85|AIH 3-34]] [[25:86|AIH 3-35]]."
+  }
+ ],
+ "quiz": [
+  {
+   "q": "Your learner tunes a VOR, hears an approach controller on the frequency say the station's name, and calls it identified. What do you say?",
+   "options": [
+    "Fine: a controller's voice on that frequency is a positive ID",
+    "Not enough: only the Morse code or recorded voice ID counts",
+    "Fine, as long as the CDI centers with no flag in view",
+    "Not enough: he must also find the station on the MFD map"
+   ],
+   "answer": 1,
+   "why": "The only positive identification is the Morse code or the recorded automatic voice ID ending in \"VOR\"; never rely on FSS or approach voice transmissions, since one facility may run several VORs with different names [[33:68|AIM 1-1-3c]] [[33:69|AIM 1-1-3c]]. A centered needle with no flag says nothing about which station it is."
+  },
+  {
+   "q": "Approaching a VORTAC, your learner hears one DME identifier about every 30 seconds and no VOR identifier. What does that tell him?",
+   "options": [
+    "The VOR works, but the DME is off the air",
+    "Both work; the DME simply repeats less often",
+    "The DME works, but the VOR does not",
+    "The VOR is in test mode but is still usable"
+   ],
+   "answer": 2,
+   "why": "If only one identifier is heard about every 30 seconds, the DME is working but the associated VOR or LOC is not [[23:260|IFH 9-17]] [[33:73|AIM 1-1-7f]]. A facility in maintenance may send T-E-S-T, and it may be unreliable even though signals are received [[33:87|AIM 1-1-11]]."
+  },
+  {
+   "q": "Your learner's RMI VOR needle head points to 130°. He says he is on the 130° radial. What is correct?",
+   "options": [
+    "He's on the 310° radial; 130° is the bearing TO the station",
+    "He is right: the head of a VOR needle shows the radial",
+    "He is on the 130° radial only when a TO flag is showing",
+    "He must set 130 on the OBS before the needle means anything"
+   ],
+   "answer": 0,
+   "why": "On an RMI the head of a VOR needle is the bearing TO the station, and the tail is the radial the airplane is on [[23:247|IFH 9-4]]. No course is set on an RMI, so the OBS has nothing to do with it [[1:412|PHAK 16-25]]."
+  },
+  {
+   "q": "In Figure 9-15, the top airplane's CDI is centered on 180 with TO showing. Where is that airplane?",
+   "options": [
+    "On the 180° radial, south of the station",
+    "On the 360° radial, north of the station",
+    "Anywhere; TO and FROM depend on the heading",
+    "On the 215° radial, its present heading"
+   ],
+   "answer": 1,
+   "why": "A CDI centered on 180 means the 180° or 360° radial; TO resolves it: 180° takes the airplane TO the station, so it is on the 360° radial [[23:257|IFH 9-14]]. The VOR shows the same thing whatever the heading [[23:254|IFH 9-11]], so 215° is a distractor.",
+   "figure": "f1"
+  },
+  {
+   "q": "Your learner is inbound on the 160° radial and must intercept the 205° radial inbound. Using the IFH method, what interception angle should he use?",
+   "options": [
+    "45°, the difference between the two radials",
+    "20°, the smallest angle that the IFH method allows",
+    "135°, so that the turn ends pointing at the VOR",
+    "90°, twice the difference, within the limits"
+   ],
+   "answer": 3,
+   "why": "Double the difference (205° - 160° = 45°, × 2 = 90°), never less than 20° nor more than 90°, giving a heading of 295° in the IFH example [[23:257|IFH 9-14]] [[23:258|IFH 9-15]]."
+  },
+  {
+   "q": "Tracking to a VOR, your learner re-centers the CDI with the OBS every time it drifts and flies the new number. What is this, and the fix?",
+   "options": [
+    "Homing; leave the OBS alone and correct heading toward the needle",
+    "Bracketing; it is the IFH method for finding the wind correction",
+    "Tracking; the OBS should follow the wind, not the heading",
+    "Orienting; he should parallel the course before each change"
+   ],
+   "answer": 0,
+   "why": "Re-centering the CDI and flying the new course is homing, which follows a circuitous route. To track, the OBS is not changed: correct toward the needle, 20° to start, then halve it [[23:257|IFH 9-14]]."
+  },
+  {
+   "q": "Inbound on a radial at 110 knots to join a 10 DME arc, when should your learner start the turn onto the arc?",
+   "options": [
+    "At 10.0 DME, on the arc",
+    "At 11.0 DME, a full mile out",
+    "At 10.5 DME",
+    "At 9.5 DME"
+   ],
+   "answer": 2,
+   "why": "At 150 knots or less, a 0.5 NM lead is satisfactory, so the turn starts at 10.5 DME when inbound [[23:260|IFH 9-17]]. 9.5 is the lead point when joining the same arc outbound [[23:261|IFH 9-18]]."
+  },
+  {
+   "q": "On a DME arc with an RMI, a crosswind is drifting your learner toward the station. Where should he keep the bearing pointer?",
+   "options": [
+    "Ahead of the wingtip reference",
+    "Exactly on the wingtip reference",
+    "On the nose until back on the arc",
+    "Behind the wingtip reference"
+   ],
+   "answer": 3,
+   "why": "If the wind drifts the airplane toward the facility, turn until the bearing pointer is behind the wingtip; drifting away, keep it ahead [[23:261|IFH 9-18]]."
+  },
+  {
+   "q": "Your learner has one VOR/LOC receiver and is flying an arc to a localizer. When does the IFH have him set the localizer frequency?",
+   "options": [
+    "At the charted lead radial",
+    "When the DME shows the arc distance",
+    "Once he is established on the localizer",
+    "Before joining the arc, at the IAF"
+   ],
+   "answer": 0,
+   "why": "At the depicted lead radial, a pilot with a single VOR/LOC receiver sets it to the localizer frequency; with two receivers, one keeps azimuth and the other goes to the localizer [[23:262|IFH 9-19]]. Tuning it before the arc would leave no azimuth for the arc."
+  },
+  {
+   "q": "Passing over a VOR, your learner sees the CDI swing from side to side. What confirms positive station passage?",
+   "options": [
+    "The CDI centering again after the swings",
+    "The TO/FROM changing to FROM",
+    "The DME reading going to zero overhead",
+    "The OFF flag showing for a moment"
+   ],
+   "answer": 1,
+   "why": "The CDI swings in the zone of confusion over the station [[23:257|IFH 9-14]], and some stations give brief swings like approaching station, so use the TO/FROM for positive passage [[33:69|AIM 1-1-3e]]. Overhead, DME shows height above the station, not zero [[23:262|IFH 9-19]]."
+  },
+  {
+   "q": "Flying an NDB approach, your learner says the ADF must be fine because there is no warning flag showing. What do you teach?",
+   "options": [
+    "Right: the ADF flag shows on any bad bearing",
+    "Check the ADF only against the heading indicator",
+    "The ADF has no flag; monitor the identifier",
+    "Erratic needles are normal; ignore the identifier"
+   ],
+   "answer": 2,
+   "why": "ADF receivers have no flag to warn of erroneous bearings, so the NDB identifier must be monitored continuously; a steady false bearing can come with voice, music or a wrong identifier [[33:68|AIM 1-1-2d]]."
+  },
+  {
+   "q": "On the arc your learner flies by keeping the airplane symbol on the magenta arc of the moving map. What is the problem?",
+   "options": [
+    "The map is the most accurate source and should be primary",
+    "Nothing, as long as the GPS database is current",
+    "Maps are fine for arcs but not for VOR radials",
+    "AFMs prohibit using the moving map as the primary source"
+   ],
+   "answer": 3,
+   "why": "AFMs explicitly prohibit using the moving map and similar displays as the primary data source [[1:69|PHAK 2-30]]. GPS jamming or spoofing can also put the airplane in the wrong place on the map [[33:119|AIM 1-2-4c]]."
+  }
+ ],
+ "final_quiz": [
+  {
+   "q": "Your learner, with automatic DME selection, flies to a VOR that has no DME and quotes a DME distance from the display. What do you say?",
+   "options": [
+    "Disregard it: that distance is not from this VOR",
+    "Use it: automatic selection finds the correct DME",
+    "Use it for groundspeed only, not for distance",
+    "Use it if the identifier matches the airport"
+   ],
+   "answer": 0,
+   "why": "Pilots are cautioned to disregard distance displays from automatically selected DME when a VOR or ILS without DME is used for position [[33:73|AIM 1-1-7g]]."
+  },
+  {
+   "q": "Inbound on the 090° radial, course 270° to the station, your learner has 090 set on the OBS. The CDI drifts right. What is the right correction, and the fix?",
+   "options": [
+    "Turn right, toward the needle, and leave the OBS on 090",
+    "Turn right, toward the needle, then set 270 on the OBS",
+    "Turn left, away from the needle, and leave the OBS on 090",
+    "Turn left, away from the needle, then set 270 on the OBS"
+   ],
+   "answer": 3,
+   "why": "With the VOR set to the reciprocal of the intended course the CDI gives reverse sensing, so he turns away from the needle; to avoid it, set the VOR to agree with the intended course [[23:257|IFH 9-14]]."
+  },
+  {
+   "q": "Your learner turns straight toward an inbound course, loses track of which side of it he is on, and turns the wrong way. Which step did he skip?",
+   "options": [
+    "Doubling the angle to more than 90°",
+    "Paralleling the course to get oriented",
+    "Setting the OBS to the reciprocal",
+    "Timing a 10° bearing change first"
+   ],
+   "answer": 1,
+   "why": "Failure to parallel the desired radial on an interception problem is a listed error: pilots think in left and right of course, so aligning to the course first is essential [[23:259|IFH 9-16]]. The angle is never more than 90° [[23:257|IFH 9-14]]."
+  },
+  {
+   "q": "Inbound to an NDB in a crosswind, your learner keeps turning to hold the ADF needle on the nose. What is he doing, and what results?",
+   "options": [
+    "Tracking; a straight path to the station",
+    "Bracketing; small S-turns along the bearing",
+    "Homing; a curved path on the downwind side",
+    "Paralleling; a track offset by the drift"
+   ],
+   "answer": 2,
+   "why": "Homing keeps the needle at 0° relative bearing; with a crosswind the airplane follows a circuitous path on the downwind side of the direct track [[23:248|IFH 9-5]]. Dependence on homing rather than tracking is a listed ADF error [[23:251|IFH 9-8]]."
+  },
+  {
+   "q": "With the RMI needle on the wingtip, a 10° bearing change takes 90 seconds at 120 knots TAS. About how far is the station?",
+   "options": [
+    "9 NM",
+    "12 NM",
+    "180 NM",
+    "18 NM"
+   ],
+   "answer": 3,
+   "why": "90 seconds ÷ 10° = 9 minutes to the station [[1:413|PHAK 16-26]]; at 2 NM a minute, 9 × 2 = 18 NM. Wind and timing make it an approximation [[1:414|PHAK 16-27]]. 9 is the time in minutes, not the distance, and 180 comes from forgetting to divide by the 10°."
+  },
+  {
+   "q": "On a 12 DME arc, your learner holds one heading for two minutes and the DME rises to 12.7 with the pointer behind the wingtip. What correction do you teach?",
+   "options": [
+    "Turn toward the station, 10° to 20° per half mile off",
+    "Turn about 20° away from the station to slow the drift",
+    "Hold heading, since the arc will curve back to meet him",
+    "Turn 90° toward the station until the DME reads 12.0"
+   ],
+   "answer": 0,
+   "why": "Change the relative bearing 10° to 20° for each half mile off the arc, turning toward the facility; the IFH example is ½ to 1 mile outside with the pointer on the wingtip: turn 20° toward the facility. Outside the arc, the arc turns away, so holding heading makes it worse [[23:261|IFH 9-18]]."
+  },
+  {
+   "q": "Your learner has no RMI. How does the IFH have him hold an arc using the VOR CDI and the DME?",
+   "options": [
+    "Keep the CDI centered on one radial and fly that heading",
+    "Re-center the CDI at 2° to 4° off, noting the new heading",
+    "Fly 90° from the first radial and ignore the CDI after it",
+    "Set the OBS to the final course and wait for the needle"
+   ],
+   "answer": 1,
+   "why": "Center the CDI after the 90° turn onto the arc, use the heading near the 90° or 270° reference, adjust for wind and distance, and re-center the CDI and note the new heading whenever it is 2° to 4° from center [[23:261|IFH 9-18]]."
+  },
+  {
+   "q": "Flying an arc to a radial at 120 knots, with no lead radial charted, about how much lead does the IFH suggest for a typical GA airplane?",
+   "options": [
+    "About 2 NM before it",
+    "About 10° of radial",
+    "Under 5° of radial",
+    "None; turn on the radial"
+   ],
+   "answer": 2,
+   "why": "For the average GA airplane on charted arcs at 150 knots or less, the lead is under 5° [[23:261|IFH 9-18]]. The 2 NM figure is the IPH design lead charted when the arc meets the course at more than 90° [[29:183|IPH 4-43]]."
+  },
+  {
+   "q": "At the lead radial, your learner starts a standard-rate turn toward the localizer and flies through it. What does the IFH recommend with its 7° lead radials?",
+   "options": [
+    "A standard-rate turn started on the course itself",
+    "A 30° bank so the turn ends before the needle moves",
+    "Holding the arc until the needle is fully centered",
+    "A half-standard-rate turn until the needle moves"
+   ],
+   "answer": 3,
+   "why": "The IFH's lead radials provide 7° of lead, so a half-standard-rate turn is used until the localizer needle starts to move toward center [[23:262|IFH 9-19]]."
+  },
+  {
+   "q": "Before the final approach waypoint, your learner's GPS shows a RAIM failure annunciation. What should he do?",
+   "options": [
+    "Not descend; fly to the MAWP and fly the missed approach",
+    "Continue; GPS guidance stays accurate for 5 more minutes",
+    "Descend to the MDA first, then fly the missed approach",
+    "Set the CDI to 0.3 NM by hand and continue the approach"
+   ],
+   "answer": 0,
+   "why": "If a RAIM failure or status annunciation occurs before the FAWP, the pilot must not start the approach or descend, but proceed to the MAWP via the FAWP, fly the missed approach and tell ATC; the guidance is advisory only [[33:98|AIM 1-1-17]]."
+  },
+  {
+   "q": "The VORTAC that defines an arc is NOTAMed out of service. Your learner has a TSO-C146 GPS with the VORTAC in its database. Which plan is right?",
+   "options": [
+    "Fly the arc and the localizer final entirely on GPS guidance",
+    "Fly the arc by GPS, tell ATC if needed, and fly the LOC on raw data",
+    "Fly nothing; an arc needs a working VORTAC and its DME",
+    "Fly the arc only if a NOTAM names GPS as the substitute"
+   ],
+   "answer": 1,
+   "why": "A suitable RNAV system may substitute for an out-of-service VORTAC, including flying a DME arc, and the pilot may need to advise ATC [[33:116|AIM 1-2-3a]] [[33:117|AIM 1-2-3c]] [[33:117|AIM 1-2-3]]. It may not provide localizer guidance without raw localizer data [[33:117|AIM 1-2-3c]]. No separate NOTAM permission is needed, unless a NOTAM makes the procedure NA."
+  },
+  {
+   "q": "To fly a DME arc with GPS, which waypoint does the IFH say your learner should make active?",
+   "options": [
+    "The IAF where the arc begins",
+    "The airport reference point",
+    "The DME facility the arc is based on",
+    "The fix where the arc meets final"
+   ],
+   "answer": 2,
+   "why": "Select from the database the facility providing the DME arc as the active waypoint; the only acceptable facility is the DME the arc is based on, and if it is not in the database the operation is not authorized. Then hold the arc by GPS distance [[23:270|IFH 9-27]]."
+  },
+  {
+   "q": "Using Figure 9-19, your learner asks what the XTK value on the MFD's top line is telling him. What do you answer?",
+   "options": [
+    "Distance to the next waypoint",
+    "Track over the ground in degrees magnetic",
+    "Time to the next waypoint",
+    "Cross-track error off course"
+   ],
+   "answer": 3,
+   "why": "AC 90-105A defines cross-track (XTK) error as the difference between the system's computed path and the airplane's position relative to it [[40:18|AC 90-105A 6.2]], and expects it to be monitored on RNP approaches [[40:44|AC 90-105A A.7.2.2]]. Figure 9-19 shows XTK 8.15 NM beside GS and ETE [[23:263|IFH 9-20]].",
+   "figure": "f6"
+  },
+  {
+   "q": "During your demonstration of an arc, what you are saying and what the airplane is doing stop matching. What does the AIH say to do?",
+   "options": [
+    "Acknowledge and explain it right away",
+    "Finish, then explain it on the ground",
+    "Hand the controls to the learner to fix",
+    "Start the whole demonstration again"
+   ],
+   "answer": 0,
+   "why": "The demonstration should conform to the explanation, in the same sequence; if it does not, the deviation should be immediately acknowledged and explained [[25:177|AIH 9-7]]."
+  },
+  {
+   "q": "The evaluator, as your student, flies through the localizer after an arc. Asked why, he says he meant to switch NAV 1 at the lead radial but forgot. How does the AIH classify that?",
+   "options": [
+    "A mistake: an error of thought from a bad plan",
+    "A slip: he planned it right but didn't do it",
+    "A mistake, because the result was dangerous",
+    "Neither; it is only a lack of motor skill"
+   ],
+   "answer": 1,
+   "why": "A slip is planning to do one thing and doing something else, an error of action; simply neglecting to do something is one of the most common forms. A mistake is an error of thought: planning the wrong thing [[25:84|AIH 3-33]]."
+  },
+  {
+   "q": "Approaching a fly-by waypoint, the GPS starts the turn before reaching it. Your learner thinks the receiver has failed. What do you tell him?",
+   "options": [
+    "It is a fault; fly-by waypoints must be overflown",
+    "It is RAIM sequencing early because of weak signals",
+    "It is turn anticipation, allowed for in the design",
+    "It means he has the wrong waypoint set as active"
+   ],
+   "answer": 2,
+   "why": "Fly-by waypoints let the airplane turn before the waypoint to roll out on the next course; this turn anticipation is compensated for in the airspace and terrain clearances. The MAWP is always a fly-over waypoint [[33:99|AIM 1-1-17]]."
+  }
+ ],
+ "takeaways": [
+  "Tuned, identified, no flag, course set: every radio, every time, out loud.",
+  "RMI: the head is the bearing TO the station, a VOR tail the radial you're on.",
+  "Orient first: double the difference, 20° to 90°, and lead the turn.",
+  "Track, don't home: 20°, then half, and leave the OBS alone.",
+  "Arc: 0.5 NM lead at 150 knots or less, about 90° of turn, short legs, 10° to 20° per half mile, stay slightly inside.",
+  "Leave the arc at the lead radial with the localizer set and identified, and a half-standard-rate turn.",
+  "Some failures show no flag: listen to identifiers and cross-check GPS against VOR or DME.",
+  "A suitable RNAV system may fly the arc, but never the localizer without raw data."
+ ],
+ "cfi_notes": [
+  "This Task is on every CFII practical test unless you already hold an instrument instructor rating in another category [[FAA-S-8081-9E:18|PTS Additional Rating Table]]: the Area VII NOTE says the evaluator shall select Tasks A and B. If the airplane has no DME, arcs are tested orally, and arcs are tested in flight only if charted and available, including RNAV substitution techniques if appropriate [[FAA-S-8081-9E:38|PTS Area VII NOTE]] [[FAA-S-8081-9E:38|PTS VII.A NOTE]].",
+  "Element K3 ends with \"during holding\", the same wording as Task B's MFD element [[FAA-S-8081-9E:38|PTS VII.A K3]] [[FAA-S-8081-9E:39|PTS VII.B K3]]. Be ready to discuss the MFD for intercepts and arcs here and for holding in FII.VII.B.",
+  "NDB identifiers: the IFH says NDBs usually use two letters or a letter-number combination [[23:246|IFH 9-3]], while the AIM says all radio beacons except compass locators transmit a continuous three-letter identification [[33:68|AIM 1-1-2a]]. Whatever the length, teach the learner to check it against the chart.",
+  "IFH Figure 9-5: the text says the RMI shows heading 360°, 005° to the station and 185° from it, while the caption describes a relative and magnetic bearing of 095° [[23:247|IFH 9-4]]. They describe different needles in the drawing; use it as the reason to name the needle before reading it.",
+  "IFH 9-16 still says VOT and checkpoint locations are in the A/FD and mentions an endorsement for the 30-day check [[23:259|IFH 9-16]]. The current AIM says the Chart Supplement [[33:71|AIM 1-1-4f]], and 91.171(d) requires the date, place, bearing error and a signature [[60:471|14 CFR 91.171(d)]].",
+  "IFH 9-27 gives the older \"GPS substitution for ADF or DME\" procedure: GPS stands in only for ADF and DME receivers, and charted ADF or DME requirements may be met except as the principal approach navigation source [[23:270|IFH 9-27]]. The current AIM 1-2-3 policy on suitable RNAV systems governs and is broader: it also covers an out-of-service VOR or VORTAC, and use as an alternate means while the NAVAID works [[33:116|AIM 1-2-3a]]; it points to AC 90-108, which is not in this source set [[33:117|AIM 1-2-3]]. Teach the IFH steps as technique and the AIM as the rule.",
+  "Lead radials: the IFH says the lead from an arc is under 5° for most GA arcs at 150 knots or less [[23:261|IFH 9-18]], yet its own example lead radials give 7° [[23:262|IFH 9-19]], and the IPH charts a lead radial with at least 2 NM of lead when the arc meets the course at more than 90° [[29:183|IPH 4-43]]. Use the charted LR when there is one.",
+  "The IFH captions for Figures 9-19 and 9-20 call the arc's VOR \"ORM\", while the chart excerpt shows OMN, Ormond Beach [[23:263|IFH 9-20]] [[23:264|IFH 9-21]]. The chart is out of date and is for training only.",
+  "Likely oral questions: what one DME identifier every 30 seconds means [[23:260|IFH 9-17]], why the DME groundspeed is not accurate on an arc [[23:260|IFH 9-17]], and whether GPS may fly the localizer after an arc (it may not) [[33:117|AIM 1-2-3c]]."
+ ],
+ "gaps": [
+  "The Instrument Rating ACS standards for tracking and arcs: airspeed ±10 knots, altitude ±100 feet and selected headings ±5° [[FAA-S-ACS-8C:18|IR ACS IR.V.A.S5]], no more than ¾-scale CDI deflection on a course, and a DME arc held ±1 NM [[FAA-S-ACS-8C:18|IR ACS IR.V.A.S6]]; see the Instrument lesson IR.V.A.",
+  "No source gives a numeric lead for joining an arc above 150 knots beyond \"a proportionately greater lead\" [[23:260|IFH 9-17]].",
+  "AC 90-108 (suitable RNAV systems on conventional procedures) is not in the source set; RNAV substitution here comes from AIM 1-2-3 and IFH 9-27.",
+  "Navigator and autopilot button steps (OBS or HOLD mode, arc display, changing the navigation source, CDI scale) come from the installed equipment's AFM supplement and pilot guide, not these sources.",
+  "No source gives correction angles for flying an arc on GPS distance or on an MFD map; the IFH corrections are written for DME with an RMI or CDI.",
+  "No source gives a limit for how far a learner may drift off an arc in training before you take over; the IPH gives only the design width of the primary area [[29:183|IPH 4-43]]."
+ ],
+ "activities": [
+  {
+   "type": "match",
+   "key": "h1",
+   "after": 2,
+   "title": "Read the needle",
+   "intro": "Tap what the learner sees, then what it tells him.",
+   "pairs": [
+    {
+     "l": "Head of the RMI VOR needle",
+     "r": "Bearing TO the station"
+    },
+    {
+     "l": "Tail of the RMI VOR needle",
+     "r": "The radial he is on"
+    },
+    {
+     "l": "CDI centered with TO showing",
+     "r": "This course takes him to the station"
+    },
+    {
+     "l": "CDI centered with FROM showing",
+     "r": "He is on this radial"
+    },
+    {
+     "l": "Fixed-card ADF needle",
+     "r": "Relative bearing from the nose"
+    },
+    {
+     "l": "DME directly over the station",
+     "r": "Height above it in NM"
+    }
+   ],
+   "why": "From [[23:247|IFH 9-4]], [[23:257|IFH 9-14]], [[23:246|IFH 9-3]] and [[23:262|IFH 9-19]]."
+  },
+  {
+   "type": "calc",
+   "key": "h2",
+   "after": 4,
+   "title": "Numbers you will teach",
+   "intro": "Work it out, then type your answer.",
+   "items": [
+    {
+     "q": "Inbound on the 160° radial, the learner wants the 205° radial inbound. Interception angle by the IFH method?",
+     "answer": 90,
+     "tol": 0,
+     "unit": "degrees",
+     "why": "205 - 160 = 45; doubled, 90, within the 20° to 90° limits [[23:257|IFH 9-14]]."
+    },
+    {
+     "q": "On the 200° radial, the learner wants the 205° radial. Interception angle by the IFH method?",
+     "answer": 20,
+     "tol": 0,
+     "unit": "degrees",
+     "why": "The difference is 5°, doubled 10°, but the angle is never less than 20° [[23:257|IFH 9-14]]."
+    },
+    {
+     "q": "Fixed-card ADF: magnetic heading 045°, relative bearing 135°. Magnetic bearing to the station?",
+     "answer": 180,
+     "tol": 0,
+     "unit": "degrees",
+     "why": "MH + RB = MB: 045 + 135 = 180 [[23:247|IFH 9-4]]."
+    },
+    {
+     "q": "RMI time check: the needle moves 10° in 75 seconds. Minutes to the station?",
+     "answer": 7.5,
+     "tol": 0,
+     "unit": "minutes",
+     "why": "Seconds ÷ degrees: 75 ÷ 10 = 7.5 minutes [[1:414|PHAK 16-27]]."
+    },
+    {
+     "q": "Same check at a TAS of 120 knots (2 NM a minute). Distance to the station?",
+     "answer": 15,
+     "tol": 0,
+     "unit": "NM",
+     "why": "7.5 minutes × 2 NM per minute = 15 NM, an approximation [[1:414|PHAK 16-27]]."
+    },
+    {
+     "q": "CDI method: 1.5 minutes flown for a 10° bearing change at a TAS of 100 knots. Distance to the station by Figure 16-34?",
+     "answer": 15,
+     "tol": 0,
+     "unit": "NM",
+     "why": "TAS × minutes ÷ degrees: 100 × 1.5 ÷ 10 = 15 NM [[1:414|PHAK 16-27]]."
+    },
+    {
+     "q": "At 30 NM from a VOR, about how wide is a 4° slice between radials?",
+     "answer": 2,
+     "tol": 0,
+     "unit": "NM",
+     "why": "One degree is ½ NM wide at 30 NM, so 4° is about 2 NM [[1:414|PHAK 16-27]]."
+    },
+    {
+     "q": "Joining a 14 DME arc while inbound at 130 knots. At what DME should the turn start?",
+     "answer": 14.5,
+     "tol": 0,
+     "unit": "NM",
+     "why": "A 0.5 NM lead at 150 knots or less: 14 + 0.5 = 14.5 [[23:260|IFH 9-17]]."
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h3",
+   "after": 6,
+   "title": "Holding the arc",
+   "figure": "f5",
+   "intro": "Drag each label to its numbered pin on the figure.",
+   "pins": [
+    {
+     "x": 15,
+     "y": 47,
+     "label": "On the arc: pointer on the wingtip, DME 10.0"
+    },
+    {
+     "x": 47,
+     "y": 20,
+     "label": "Half a mile outside: the figure shows 20°"
+    },
+    {
+     "x": 46,
+     "y": 36,
+     "label": "Half a mile inside: the figure shows 10°"
+    },
+    {
+     "x": 50,
+     "y": 95,
+     "label": "The facility the arc is centered on"
+    }
+   ],
+   "why": "From IFH Figure 9-18 and its text: correct 10° to 20° for each half mile off, and outside the arc needs the bigger correction because the arc turns away [[23:261|IFH 9-18]] [[23:262|IFH 9-19]]."
+  },
+  {
+   "type": "order",
+   "key": "h4",
+   "after": 7,
+   "title": "From the arc to the localizer",
+   "intro": "Put the steps in order, first to last, then tap Check.",
+   "steps": [
+    "Brief the arc distance, lead point, lead radial and localizer course",
+    "Tune and identify the VORTAC and hear the DME identifier",
+    "Start the turn 0.5 NM before the arc and turn about 90°",
+    "Fly short legs with the pointer 5° to 10° either side of the wingtip",
+    "At the lead radial, set and identify the localizer (single receiver)",
+    "Half-standard-rate turn until the localizer needle moves",
+    "Roll out and track the localizer course"
+   ],
+   "why": "Sequence from [[29:157|IPH 4-17]], [[33:68|AIM 1-1-3c]], [[23:260|IFH 9-17]], [[23:261|IFH 9-18]] and [[23:262|IFH 9-19]]."
+  },
+  {
+   "type": "tf",
+   "key": "h5",
+   "after": 9,
+   "title": "True or false: passage and failures",
+   "intro": "Decide if each statement is true or false.",
+   "cards": [
+    {
+     "s": "A steady ADF needle shows that the NDB is working properly.",
+     "a": false,
+     "why": "False. The ADF has no flag, and a steady false bearing can come with voice, music or a wrong identifier [[33:68|AIM 1-1-2d]]."
+    },
+    {
+     "s": "One DME identifier about every 30 seconds means the DME works but the VOR or LOC does not.",
+     "a": true,
+     "why": "True [[23:260|IFH 9-17]]."
+    },
+    {
+     "s": "If the identifier can be heard, a procedure that is NOTAMed out of service may be flown.",
+     "a": false,
+     "why": "False. Do not fly it even if the identifier is present; it may be sent during testing [[33:87|AIM 1-1-11]]."
+    },
+    {
+     "s": "A voice transmission on the NAV/COM in use can make the TO/FROM flicker as at station passage.",
+     "a": true,
+     "why": "True, on receivers without an ON/OFF flag; don't use a reading taken while transmitting [[23:259|IFH 9-16]]."
+    },
+    {
+     "s": "Directly over a VORTAC, the DME reads zero.",
+     "a": false,
+     "why": "False. Over the facility the DME shows the height above it in NM [[23:262|IFH 9-19]]."
+    },
+    {
+     "s": "A VOR receiver can be accurate near a VOT and out of tolerance far from the station.",
+     "a": true,
+     "why": "True, if its gain control or modulation circuits deteriorate [[33:71|AIM 1-1-4c]]."
+    },
+    {
+     "s": "After a RAIM failure annunciation, the GPS may keep navigating, but its guidance is advisory only.",
+     "a": true,
+     "why": "True [[33:98|AIM 1-1-17]]."
+    }
+   ]
+  },
+  {
+   "type": "label",
+   "key": "h6",
+   "after": 11,
+   "title": "Read the arc on the chart and the MFD",
+   "figure": "f6",
+   "intro": "Drag each label to its numbered pin on the figure.",
+   "pins": [
+    {
+     "x": 9,
+     "y": 56,
+     "label": "IAF where the arc begins"
+    },
+    {
+     "x": 13,
+     "y": 73,
+     "label": "The 16 DME arc"
+    },
+    {
+     "x": 23,
+     "y": 72,
+     "label": "Lead radial: start the turn to the localizer"
+    },
+    {
+     "x": 30,
+     "y": 78,
+     "label": "Localizer course inbound"
+    },
+    {
+     "x": 40,
+     "y": 58,
+     "label": "NAVAID the arc is centered on"
+    },
+    {
+     "x": 39,
+     "y": 3,
+     "label": "Cross-track error readout"
+    }
+   ],
+   "why": "From IFH Figure 9-19 and its text: the lead radials (LR 223, LR 212) mark where to start the turn and switch a single receiver to the localizer [[23:262|IFH 9-19]] [[23:263|IFH 9-20]]; XTK is cross-track error [[40:18|AC 90-105A 6.2]]."
+  },
+  {
+   "type": "sort",
+   "key": "h7",
+   "after": 12,
+   "title": "Name the error in PTS words",
+   "intro": "Tap each thing the learner did, then the common error it belongs to.",
+   "buckets": [
+    "Incorrect tuning and identification",
+    "Navigation selector not set on the course",
+    "Improper interception or tracking procedure"
+   ],
+   "items": [
+    {
+     "t": "Tracks a station other than the one on the chart",
+     "b": 0
+    },
+    {
+     "t": "Uses an auto-selected DME distance at a VOR with no DME",
+     "b": 0
+    },
+    {
+     "t": "Takes the FSS voice on the frequency as the identifier",
+     "b": 0
+    },
+    {
+     "t": "Corrects the wrong way with the reciprocal set on the OBS",
+     "b": 1
+    },
+    {
+     "t": "Never checks the TO/FROM after a course reversal",
+     "b": 1
+    },
+    {
+     "t": "Re-centers the needle and flies each new number",
+     "b": 2
+    },
+    {
+     "t": "Starts the turn onto the arc at the arc distance",
+     "b": 2
+    },
+    {
+     "t": "Turns toward the needle without bracketing and S-turns",
+     "b": 2
+    }
+   ],
+   "why": "From [[23:251|IFH 9-8]], [[33:73|AIM 1-1-7g]], [[33:69|AIM 1-1-3c]], [[23:257|IFH 9-14]], [[23:259|IFH 9-16]] and [[23:260|IFH 9-17]]."
+  },
+  {
+   "type": "decide",
+   "key": "h8",
+   "after": 14,
+   "title": "Teaching the first arc lesson",
+   "intro": "You are the CFII. Make each call as the lesson unfolds.",
+   "steps": [
+    {
+     "s": "Ground briefing. Your learner's airplane has DME, an RMI and an IFR GPS, and the weather is good VMC. How do you start the arc lesson?",
+     "options": [
+      "Brief the arc on the whiteboard, lead point to lead radial, then fly it under the hood in VMC",
+      "Go straight to an arc in real IMC so the learner meets the real thing on day one",
+      "Have the learner fly it on the GPS map alone, to keep the first workload low",
+      "Skip the briefing and let the learner work out the technique in the air"
+     ],
+     "answer": 0,
+     "why": "Explain, then demonstrate in the same order [[25:177|AIH 9-7]]; the AIM lists arcs among the GPS skills to practice in VMC before IMC [[33:100|AIM 1-1-17]], and the map is not the primary data source [[1:69|PHAK 2-30]]."
+    },
+    {
+     "s": "Inbound at 100 knots, your learner starts the turn at 10.0 DME and rolls out at 10.9. What do you say?",
+     "options": [
+      "Good enough; the arc protection is wide, so 0.9 NM is fine",
+      "Next time start at 9.5, and roll out on the planned heading",
+      "Next time lead by 0.5 NM, and watch the DME late in the turn",
+      "Next time use a 30° bank so the turn finishes on the arc"
+     ],
+     "answer": 2,
+     "why": "At 150 knots or less, use a 0.5 NM lead (10.5 inbound) and monitor the DME in the last part of the turn, turning past the planned heading if overshooting [[23:260|IFH 9-17]]. 9.5 is the outbound lead point [[23:261|IFH 9-18]]."
+    },
+    {
+     "s": "He now holds one heading, the DME reads 11.0, and the pointer is well behind the wingtip.",
+     "options": [
+      "Turn 90° toward the station until the DME reads 10.0 again",
+      "Hold the heading; the arc will curve back to meet him soon",
+      "Turn away from the station to bring the pointer forward",
+      "Turn toward the station; put the pointer ahead of the wingtip"
+     ],
+     "answer": 3,
+     "why": "Outside the arc, turn toward the facility to put the pointer ahead of the wingtip, changing the relative bearing 10° to 20° for each half mile off; then fly short legs, letting the pointer go 5° to 10° behind the wingtip and turning to put it 5° to 10° ahead [[23:261|IFH 9-18]]. Turning away moves the pointer further behind."
+    },
+    {
+     "s": "Nearing the lead radial with one VOR/LOC receiver, he says he will switch to the localizer after rolling out on the course.",
+     "options": [
+      "Fine; switching after the rollout keeps the workload lowest",
+      "Switch and identify at the lead radial; turn at half standard rate",
+      "Switch at the IAF so the localizer is ready well ahead",
+      "Use the GPS for the localizer, so no switch is needed"
+     ],
+     "answer": 1,
+     "why": "At the lead radial a single receiver is set to the localizer, with a half-standard-rate turn until the needle moves [[23:262|IFH 9-19]]; switching at the IAF loses arc azimuth, and GPS may not replace raw localizer data [[33:117|AIM 1-2-3c]]."
+    },
+    {
+     "s": "Debrief. He says the overshoot of the arc \"just happened\".",
+     "options": [
+      "Agree; overshoots are normal and need no discussion",
+      "Tell him the correct answer and move to the next item",
+      "Ask him why it happened and what he would change next time",
+      "Note it for the stage check and say nothing about it now"
+     ],
+     "answer": 2,
+     "why": "When a learner makes an error, ask him to consider why it happened and what could be done differently [[25:85|AIH 3-34]]; point out errors and have the learner explain why they occurred [[25:86|AIH 3-35]]."
+    }
+   ]
+  }
+ ]
+}
