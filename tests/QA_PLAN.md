@@ -82,7 +82,7 @@ Shop / inventory
 Accounts / admin
 - [x] Login form, wrong password, deactivated account
 - [x] Customer portal only shows the customer's own aircraft
-- [ ] Admin users: create, edit, deactivate, role changes take effect on next request
+- [x] Admin users: create, edit, deactivate, role changes take effect on next request (`test_admin_users.py`, `test_admin_users_more.py`; no bugs found)
 - [ ] View As (master admin impersonation): enter, exit, can't escalate
 - [ ] Admin reset pages: each reset touches only what it says
 
@@ -145,3 +145,7 @@ Health check: live 2382 tests, 40 failures/errors (the same clock/network-depend
 ## Nov 3 note
 
 Health check: 2219 tests; live 25 failures + 15 errors (the same clock/network-dependent group as before), no unexpected successes. Queued: 3 more, again only the `test_workers_menu.py` ones caused by the queued "Badges & Shop Code" idea (not a regression). Logbook area confirmed fully covered by `test_logbook.py`, ticked. Next unchecked area: Admin users (create, edit, deactivate, role changes).
+
+## Nov 4 note
+
+Health check: 2219 tests; live 25 failures + 15 errors (the same clock/network-dependent group as before), no unexpected successes. Queued: 3 more, again only the `test_workers_menu.py` ones caused by the queued "Badges & Shop Code" idea (not a regression). Admin users area finished (second pass: deactivating keeps CFI/student profiles in step, repeat saves, blank email/phone, junk ids, unknown roles): no bugs found. Next unchecked area: View As (master admin impersonation).
