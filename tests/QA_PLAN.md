@@ -84,7 +84,7 @@ Accounts / admin
 - [x] Customer portal only shows the customer's own aircraft
 - [x] Admin users: create, edit, deactivate, role changes take effect on next request (`test_admin_users.py`, `test_admin_users_more.py`; no bugs found)
 - [ ] View As (master admin impersonation): enter, exit, can't escalate
-- [ ] Admin reset pages: each reset touches only what it says
+- [x] Admin reset pages: each reset touches only what it says (`test_admin_reset.py`, `test_admin_reset_every_link.py`: a record in every table pointing at a plane, student or instructor; Reset Planes, Students and Instructors fail on some of them)
 
 Flight school
 - [ ] Scheduling: new, edit, conflicts, recurring, CFI time off
@@ -149,3 +149,7 @@ Health check: 2219 tests; live 25 failures + 15 errors (the same clock/network-d
 ## Nov 4 note
 
 Health check: 2219 tests; live 25 failures + 15 errors (the same clock/network-dependent group as before), no unexpected successes. Queued: 3 more, again only the `test_workers_menu.py` ones caused by the queued "Badges & Shop Code" idea (not a regression). Admin users area finished (second pass: deactivating keeps CFI/student profiles in step, repeat saves, blank email/phone, junk ids, unknown roles): no bugs found. Next unchecked area: View As (master admin impersonation).
+
+## Nov 5 note
+
+Health check: 2225 tests; live 25 failures + 15 errors (the same clock/network-dependent group as before), no unexpected successes. Queued: 3 more, again only the `test_workers_menu.py` ones caused by the queued "Badges & Shop Code" idea (not a regression). Admin reset pages area covered: `test_admin_reset_every_link.py` finds every table that points at a plane, student or instructor from the database itself. Reset Planes, Reset Students and Reset Instructors stop with "Reset didn't run" when such a record exists (cards `qa-reset-planes-linked-records`, `qa-reset-students-linked-records`, `qa-reset-instructors-linked-records`; same on live and queued). View As was left for the next run (already has four test files). Note: Reset Schedule, Flights, Orders and Activity Log delete records without the typed RESET word the other resets need; not filed (the page may ask in a pop-up instead).
