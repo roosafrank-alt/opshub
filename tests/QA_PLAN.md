@@ -153,3 +153,7 @@ Health check: 2219 tests; live 25 failures + 15 errors (the same clock/network-d
 ## Nov 5 note
 
 Health check: 2225 tests; live 25 failures + 15 errors (the same clock/network-dependent group as before), no unexpected successes. Queued: 3 more, again only the `test_workers_menu.py` ones caused by the queued "Badges & Shop Code" idea (not a regression). Admin reset pages area covered: `test_admin_reset_every_link.py` finds every table that points at a plane, student or instructor from the database itself. Reset Planes, Reset Students and Reset Instructors stop with "Reset didn't run" when such a record exists (cards `qa-reset-planes-linked-records`, `qa-reset-students-linked-records`, `qa-reset-instructors-linked-records`; same on live and queued). View As was left for the next run (already has four test files). Note: Reset Schedule, Flights, Orders and Activity Log delete records without the typed RESET word the other resets need; not filed (the page may ask in a pop-up instead).
+
+## Nov 6 note
+
+Health check: 2231 tests; live 25 failures + 15 errors (the same clock/network-dependent group as before), no unexpected successes. Queued: 3 more, again only the `test_workers_menu.py` ones caused by the queued "Badges & Shop Code" idea (not a regression). No new area covered tonight (the full run takes ~9 minutes); View As is still the next unchecked area. Forge apps were not tested tonight.
