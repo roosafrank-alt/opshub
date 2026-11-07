@@ -51,7 +51,6 @@ class ResetEveryLinkTest(OpsHubTestCase):
         self.assertNotIn("Reset didn't run", html)
         self.assertNotIn("FOREIGN KEY constraint failed", html)
 
-    @open_finding("qa-reset-planes-linked-records")
     def test_reset_planes_with_a_record_in_every_linked_table(self):
         aid = self.make_asset("N7001R")
         self.exec("UPDATE assets SET is_flight_asset = 1 WHERE id = ?", (aid,))
@@ -62,7 +61,6 @@ class ResetEveryLinkTest(OpsHubTestCase):
         self.assertIsNone(self.q1("SELECT 1 FROM assets WHERE id = ?", (aid,)))
         self.assertIsNotNone(self.q1("SELECT 1 FROM assets WHERE id = ?", (shop,)), "shop-only aircraft must survive")
 
-    @open_finding("qa-reset-students-linked-records")
     def test_reset_students_with_a_record_in_every_linked_table(self):
         sid = self.q1("SELECT id FROM students WHERE user_id = ?", (self.users["flight_student"]["id"],))["id"]
         for t, c in self._linked("students"):
@@ -70,7 +68,6 @@ class ResetEveryLinkTest(OpsHubTestCase):
         self._reset("students")
         self.assertIsNone(self.q1("SELECT 1 FROM students WHERE id = ?", (sid,)))
 
-    @open_finding("qa-reset-instructors-linked-records")
     def test_reset_instructors_with_a_record_in_every_linked_table(self):
         cid = self.q1("SELECT id FROM cfis WHERE user_id = ?", (self.users["cfi"]["id"],))["id"]
         for t, c in self._linked("cfis"):

@@ -83,7 +83,7 @@ Accounts / admin
 - [x] Login form, wrong password, deactivated account
 - [x] Customer portal only shows the customer's own aircraft
 - [x] Admin users: create, edit, deactivate, role changes take effect on next request (`test_admin_users.py`, `test_admin_users_more.py`; no bugs found)
-- [ ] View As (master admin impersonation): enter, exit, can't escalate
+- [x] View As (master admin impersonation): enter, exit, can't escalate (`test_view_as*.py`, four files; no bugs found)
 - [x] Admin reset pages: each reset touches only what it says (`test_admin_reset.py`, `test_admin_reset_every_link.py`: a record in every table pointing at a plane, student or instructor; Reset Planes, Students and Instructors fail on some of them)
 
 Flight school
@@ -157,3 +157,7 @@ Health check: 2225 tests; live 25 failures + 15 errors (the same clock/network-d
 ## Nov 6 note
 
 Health check: 2231 tests; live 25 failures + 15 errors (the same clock/network-dependent group as before), no unexpected successes. Queued: 3 more, again only the `test_workers_menu.py` ones caused by the queued "Badges & Shop Code" idea (not a regression). No new area covered tonight (the full run takes ~9 minutes); View As is still the next unchecked area. Forge apps were not tested tonight.
+
+## Nov 7 note
+
+Health check (live and queued are now the same commit, e70816b): 2231 tests; 30 failures + 15 errors, the same clock/network-dependent group as before, no regressions. Fixes that went live: `qa-reset-planes-linked-records`, `qa-reset-students-linked-records`, `qa-reset-instructors-linked-records` (3 unexpected successes); markers removed. The queued 'Badges & Shop Code' idea is live, so `test_workers_menu.py` was updated to the new wording (one Badges & Shop Code item; the old shop-code address forwards to the badges page). View As confirmed fully covered by existing files, ticked. Forge apps (health check on main and forge-queue, identical): cleared-direct, control-tower, equipment-maintenance, marketface, realestate, sell-finder all pass. whats-for-dinner needs Python Playwright, which the cloud box lacks, so it was not run. House Build, Name Engine, Print and Route Weather still have no tests.

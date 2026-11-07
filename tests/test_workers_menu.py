@@ -10,19 +10,23 @@ class WorkersMenuTest(OpsHubTestCase):
         html = self.login("shop_admin").get("/laborers").get_data(as_text=True)
         self.assertNotIn("</i> Workers</a>", html.split("</nav>")[0])
         self.assertNotIn("</i> Laborers</a>", html)
-        self.assertIn("</i> Print Worker Badges</a>", html)
-        self.assertIn("</i> General Shop Code</a>", html)
+        # Idea "Badges & Shop Code become one page" is live: one menu item.
+        self.assertIn("</i> Badges &amp; Shop Code</a>", html)
+        self.assertNotIn("</i> Print Worker Badges</a>", html)
+        self.assertNotIn("</i> General Shop Code</a>", html)
 
     def test_workers_page_has_badge_and_code_buttons(self):
         html = self.login("shop_admin").get("/laborers").get_data(as_text=True)
         self.assertIn("/labor/badges", html)
-        self.assertIn("/labor/general-code", html)
-        # SHOP-23: both live in a Print dropdown now.
-        self.assertIn("Worker Badges</a>", html)
-        self.assertIn("General Shop Code</a>", html)
+        # SHOP-23: the badges link lives in a Print dropdown.
+        self.assertIn("Badges &amp; Shop Code</a>", html)
         self.assertIn("Add Worker", html)
 
-    def test_badge_and_code_pages_go_back_to_workers(self):
+    def test_badges_page_has_shop_code_and_old_code_address_forwards(self):
         c = self.login("shop_admin")
-        for path in ("/labor/badges", "/labor/general-code"):
-            self.assertIn("</i> Workers</a>", c.get(path).get_data(as_text=True))
+        r = c.get("/labor/general-code")
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(r.headers["Location"].endswith("/labor/badges"))
+        html = c.get("/labor/badges").get_data(as_text=True)
+        self.assertIn("Shop / General Time", html)
+        self.assertIn("GENERAL-SHOP", html)
