@@ -88,12 +88,11 @@
         {% if is_master_admin or shop_role in ('admin', 'tech') %}
         <li class="nav-item"><a class="nav-link {{ 'active' if sec == 'activity' }}" href="{{ url_for('activity_log') }}"><i class="bi bi-clock-history"></i> <span class="nav-label">Activity</span></a></li>
         {% endif %}
-      </ul>
       {#- Manage menu - same idea as the Fly with Kate! header's Manage:
          Workers, Labor Pay, Customers, Billing, Stats. Anyone logged in
          gets Labor Pay (their own hours/pay); the rest is shop admins. #}
       {% if not apprentice_limited %}
-      <div class="dropdown shop-nav-boxed">
+      <li class="nav-item dropdown">
         <a class="nav-link dropdown-toggle text-light {{ 'active' if sec == 'manage' }}" href="#" id="shop-manage-toggle" role="button" data-bs-toggle="dropdown" aria-expanded="false">
           <i class="bi bi-gear"></i> <span class="nav-label">Manage</span>
         </a>
@@ -126,8 +125,9 @@
           {% endif %}
           {% endif %}
         </ul>
-      </div>
+      </li>
       {% endif %}
+      </ul>
 {% endcall %}
 {% endif %}
 <div class="container-fluid py-3">
