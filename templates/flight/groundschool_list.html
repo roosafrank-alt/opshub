@@ -20,10 +20,16 @@
 <div class="card academy-card mb-3"><div class="card-body py-2">
   <div class="small text-muted mb-1"><i class="bi bi-box-seam"></i> Built-in courses</div>
   {% for c in builtins %}
-  <form method="post" action="{{ url_for('groundschool.builtin_install', code=c.code) }}" class="d-flex align-items-center justify-content-between gap-2 flex-wrap py-1">
+  <form method="post" action="{{ url_for('groundschool.builtin_install', code=c.code) }}" class="d-flex align-items-center justify-content-between gap-2 flex-wrap py-1 gs-builtin-row{{ ' gs-builtin-installed' if c.installed }}">
+    {% if c.installed %}
+    <div class="d-flex align-items-center gap-2 flex-wrap"><b>{{ c.name }}</b><span class="badge bg-success">Installed</span>
+      {% if c.about %}<a href="#gsAbout{{ loop.index }}" class="small" data-bs-toggle="collapse" role="button" aria-expanded="false">About</a>{% endif %}</div>
+    <button type="submit" class="btn btn-sm btn-secondary fw-bold"><i class="bi bi-arrow-repeat"></i> Update</button>
+    {% if c.about %}<div class="collapse small text-muted w-100" id="gsAbout{{ loop.index }}">{{ c.about }}</div>{% endif %}
+    {% else %}
     <div><b>{{ c.name }}</b>{% if c.about %}<div class="small text-muted">{{ c.about }}</div>{% endif %}</div>
-    <button type="submit" class="btn btn-sm {{ 'btn-outline-light' if c.installed else 'btn-primary' }} fw-bold">
-      {% if c.installed %}<i class="bi bi-arrow-repeat"></i> Update{% else %}<i class="bi bi-plus-lg"></i> Add course{% endif %}</button>
+    <button type="submit" class="btn btn-sm btn-primary fw-bold"><i class="bi bi-plus-lg"></i> Add course</button>
+    {% endif %}
   </form>
   {% endfor %}
 </div></div>
