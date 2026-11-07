@@ -170,7 +170,10 @@ document.addEventListener('DOMContentLoaded', function () {
    tells scan.html to switch straight to the Camera tab and start the
    camera, since a phone tapping this almost always means "scan with the
    camera", not "type a code". #}
-<a href="{{ url_for('scan_page', cam=1) }}" class="btn btn-warning rounded-circle d-lg-none no-print mobile-scan-fab" title="Scan"><i class="bi bi-upc-scan"></i></a>
+{#- QA fix ux-job-scan-button-carries-job: on a job's own page the button also
+   passes the job's code (?autoscan=, same as that page's "Scan a part"
+   button), so Scan opens with this job already set as Current Project. #}
+<a href="{{ url_for('scan_page', cam=1, autoscan=project.code) if request.endpoint == 'project_detail' and project is defined and project and project.code else url_for('scan_page', cam=1) }}" class="btn btn-warning rounded-circle d-lg-none no-print mobile-scan-fab" title="Scan"><i class="bi bi-upc-scan"></i></a>
 {% endif %}
 <script>
 // QA fix ux-camera-prompt-every-launch: on an iPhone, a home-screen app
