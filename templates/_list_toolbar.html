@@ -24,12 +24,14 @@
 {%- set title_slot = caller('title')|trim -%}
 {%- set search_slot = caller('search')|trim -%}
 {%- set extra_slot = caller('extra')|trim -%}
+{%- set note_slot = caller('note')|trim -%}
 {%- set add_slot = caller('add')|trim -%}
 <div class="list-toolbar{{ " " ~ cls if cls }}" data-change="DESIGN-9{{ ' ' ~ change if change }}">
   <h4 class="list-toolbar-title mb-0">
     {%- if icon %}<i class="bi bi-{{ icon }}"></i> {% endif -%}
     {%- if title_slot %}{{ title_slot }}{% else %}{{ title }}{% endif -%}
     {%- if count is not none %} (<span{% if count_id %} id="{{ count_id }}"{% endif %}{% if count_change %} data-change="{{ count_change }}"{% endif %}>{{ count }}</span>){% endif -%}
+    {%- if note_slot %}{{ note_slot }}{% endif -%}
   </h4>
   {% if search_slot %}<div class="list-toolbar-search">{{ search_slot }}</div>{% endif %}
   {% if extra_slot or add_slot %}<div class="list-toolbar-actions">

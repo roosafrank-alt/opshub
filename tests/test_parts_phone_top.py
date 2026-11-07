@@ -7,7 +7,9 @@ T = (Path(__file__).resolve().parent.parent / "templates" / "parts.html").read_t
 
 class PartsPhoneTop(unittest.TestCase):
     def test_total_parts_box_desktop_only(self):
-        self.assertIn('col-6 col-md-3 d-none d-md-block', T)
+        self.assertNotIn('Total Parts', T)
+        self.assertIn('col-6 col-md-3 d-md-none', T)
+        self.assertIn('in stock</span>', T)
 
     def test_no_category_button_row_and_laptop_opens_categories(self):
         self.assertNotIn('d-none d-md-flex flex-wrap gap-2 mb-3', T)

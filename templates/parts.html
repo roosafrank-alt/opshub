@@ -77,15 +77,9 @@
   .parts-one-table .table-stack tbody.collapsed tr.cat-row { margin-bottom: .3rem; }
 }
 </style>
-<div class="row g-3 mb-3">
-  <div class="col-6 col-md-3 d-none d-md-block" data-change="IDEA-parts-phone-top">
-    <div class="card stat-card p-3">
-      <div class="text-muted small">Total Parts</div>
-      <div class="display-6">{{ part_count }}</div>
-    </div>
-  </div>
+<div class="row g-3 mb-3{{ '' if expiry_stats else ' d-md-none' }}">
   {% if can_see_shop_costs %}
-  <div class="col-6 col-md-3">
+  <div class="col-6 col-md-3 d-md-none" data-change="ux-parts-laptop-top-boxes">
     <div class="card stat-card p-3">
       <div class="text-muted small">Inventory Value</div>
       <div class="display-6">${{ "%.2f"|format(total_value) }}</div>
@@ -110,6 +104,8 @@
 {% call(slot) list_toolbar(count=parts|length, count_id='parts-total-count') %}
   {%- if slot == 'title' -%}
     {% if show_retired %}Retired Parts{% elif show_low_stock %}Low Stock Items{% else %}Parts{% endif %}
+  {%- elif slot == 'note' -%}
+    {% if can_see_shop_costs and not show_retired and not show_low_stock %}<span class="d-none d-md-inline text-muted small fw-normal ms-2">${{ "{:,.2f}".format(total_value) }} in stock</span>{% endif %}
   {%- elif slot == 'search' and not show_retired and not show_low_stock -%}
     {#- The live filter below searches as you type; the form is the same search for when Enter is pressed. -#}
     <form method="get">
