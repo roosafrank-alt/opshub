@@ -240,7 +240,19 @@
         </div>
         </div>
         <div class="mb-2" id="quick-time-buttons">
-          <div class="form-text mb-1">Quick pick <span class="text-muted" id="quick-pick-label">(1.5-hr blocks)</span></div>
+          <div class="form-text mb-1" id="quick-pick-caption">Quick pick <span class="text-muted" id="quick-pick-label">(1.5-hr blocks)</span></div>
+          {#- Once a plane is picked, this replaces the caption above: the same
+             buttons become that plane's open times (taken ones crossed out), and
+             the other open planes are one tap away. Filled in by the script at
+             the bottom of the page. #}
+          <div class="small mb-1 d-none" id="open-times-line" aria-live="polite">
+            <div class="fw-semibold text-success" id="open-times-title"></div>
+            <div class="text-muted" id="open-times-also"></div>
+          </div>
+          <style>
+            .quick-time-btn.qt-free:not(.btn-primary){color:#198754;border-color:#198754}
+            .quick-time-btn.qt-taken{text-decoration:line-through;opacity:.45}
+          </style>
           {#- Intro flights are 1-hr blocks, so their quick picks are on the hour
              (shown instead of the 1.5-hr grid while the Intro Flight preset is on). #}
           <div class="d-flex flex-wrap gap-1 d-none" id="quick-times-intro">
@@ -801,9 +813,10 @@
       var match = !isPast && !noTimeCheck.checked && parseInt(b.dataset.hour24, 10) === hour24 && parseInt(b.dataset.minute, 10) === minute;
       b.classList.toggle('btn-primary', match);
       b.classList.toggle('btn-outline-primary', !match);
-      b.disabled = isPast;
+      var taken = b.classList.contains('qt-taken');
+      b.disabled = isPast || taken;
       b.classList.toggle('opacity-50', isPast);
-      b.title = isPast ? 'Already passed today' : '';
+      b.title = isPast ? 'Already passed today' : (taken ? 'Already booked for this plane' : '');
     });
   }
   if (dateField) { dateField.addEventListener('change', markActiveQuickBtn); }
@@ -818,6 +831,7 @@
     });
   });
   markActiveQuickBtn();
+  window.markQuickBtns = markActiveQuickBtn;
   noTimeCheck.addEventListener('change', markActiveQuickBtn);
   // Used by the "usual lesson" autofill below.
   window.setSchedTime = function (hhmm) {
@@ -1593,12 +1607,55 @@
   var box = document.getElementById('day-open-box');
   var planeSel = document.getElementById('plane-select');
   if (!input || !box) { return; }
-  var seq = 0;
+  var seq = 0, lastData = null, lastDay = '';
+  var line = document.getElementById('open-times-line');
+  var caption = document.getElementById('quick-pick-caption');
+  var lessonRow = document.getElementById('quick-times-lesson');
+  var qBtns = document.querySelectorAll('#quick-times-lesson .quick-time-btn');
+  function clearQuick() {
+    qBtns.forEach(function (b) { b.classList.remove('qt-free', 'qt-taken'); });
+    if (line) { line.classList.add('d-none'); }
+    if (caption) { caption.classList.remove('d-none'); }
+    if (window.markQuickBtns) { window.markQuickBtns(); }
+  }
+  // One set of time buttons: with a plane picked, the Quick pick row shows
+  // that plane's open times (taken ones crossed out) and the separate box
+  // under the calendar goes away. No plane yet: the box stays as it was.
+  function render() {
+    var pretty = lastDay ? new Date(lastDay + 'T00:00:00').toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }) : '';
+    var pid = planeSel ? planeSel.value : '';
+    var mine = null;
+    if (lastData) { lastData.planes.forEach(function (p) { if (String(p.id) === String(pid)) { mine = p; } }); }
+    var opt = planeSel && pid ? planeSel.options[planeSel.selectedIndex] : null;
+    var lessonOn = lessonRow && !lessonRow.classList.contains('d-none');
+    if (!lastData || !pid || !opt || !line || !lessonOn || input.hasAttribute('data-edit') || document.getElementById('own-plane-check') && document.getElementById('own-plane-check').checked) {
+      if (lastData) { box.classList.remove('d-none'); }
+      clearQuick();
+      return;
+    }
+    var tag = (opt.textContent || '').split(' - ')[0].replace(/\s*\(grounded\)\s*$/, '').trim();
+    var open = {};
+    if (mine) { mine.slots.forEach(function (s) { open[s.time] = true; }); }
+    qBtns.forEach(function (b) {
+      var t = ('0' + b.dataset.hour24).slice(-2) + ':' + ('0' + b.dataset.minute).slice(-2);
+      b.classList.toggle('qt-free', !!open[t]);
+      b.classList.toggle('qt-taken', !open[t]);
+    });
+    document.getElementById('open-times-title').textContent = 'Open times for ' + tag + ' on ' + pretty;
+    var also = lastData.planes.filter(function (p) { return String(p.id) !== String(pid); }).map(function (p) {
+      return '<a href="#" data-also-plane="' + esc(p.id) + '">' + esc(p.tag) + '</a> (' + p.slots.length + ' times)';
+    });
+    document.getElementById('open-times-also').innerHTML = also.length ? 'Also open: ' + also.join(', ') : '';
+    line.classList.remove('d-none');
+    if (caption) { caption.classList.add('d-none'); }
+    box.classList.add('d-none');
+    if (window.markQuickBtns) { window.markQuickBtns(); }
+  }
   function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function load() {
     var d = input.value, n = ++seq;
     var complete = document.getElementById('complete-check');
-    if (!d || (complete && complete.checked)) { box.classList.add('d-none'); return; }
+    if (!d || (complete && complete.checked)) { lastData = null; box.classList.add('d-none'); clearQuick(); return; }
     fetch({{ url_for('flight.schedule_open_slots')|tojson }} + '?date=' + encodeURIComponent(d), { credentials: 'same-origin' })
       .then(function (r) { return r.ok ? r.json() : null; })
       .then(function (data) {
@@ -1619,6 +1676,8 @@
         });
         box.innerHTML = html;
         box.classList.remove('d-none');
+        lastData = data; lastDay = d;
+        render();
       })
       .catch(function () {});
   }
@@ -1631,6 +1690,18 @@
     }
     if (window.setSchedTime) { window.setSchedTime(b.dataset.time); }
   });
+  if (line) {
+    line.addEventListener('click', function (e) {
+      var a = e.target.closest('a[data-also-plane]');
+      if (!a) { return; }
+      e.preventDefault();
+      if (planeSel) { planeSel.value = a.dataset.alsoPlane; planeSel.dispatchEvent(new Event('change', { bubbles: true })); }
+    });
+  }
+  if (planeSel) { planeSel.addEventListener('change', render); }
+  var ownCheck = document.getElementById('own-plane-check');
+  if (ownCheck) { ownCheck.addEventListener('change', render); }
+  document.querySelectorAll('.preset-btn').forEach(function (b) { b.addEventListener('click', function () { setTimeout(render, 0); }); });
   input.addEventListener('change', load);
   var completeToggle = document.getElementById('complete-check');
   if (completeToggle) { completeToggle.addEventListener('change', load); }
