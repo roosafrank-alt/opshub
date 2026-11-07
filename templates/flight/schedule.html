@@ -438,6 +438,8 @@
   .sch-fit .day-timeline-hours, .sch-fit .day-timeline-track { height: var(--sch-fit-h, 560px) !important; }
 </style>
 
+{#- On a phone this link lives in the More menu instead of taking its own row. #}
+{% set hide_on_phone = true %}
 {% include "flight/_phone_cal_button.html" %}
 <div id="schedule-live-region" data-live-url="{{ url_for('flight.schedule_live') }}">
 {% include "flight/_schedule_live.html" %}
@@ -548,7 +550,7 @@
     if (Math.abs(dy) > 1) window.scrollBy(0, dy);
   }
   window.schFit = function () {
-    var btn = document.getElementById('sch-fit-btn');
+    var btn = document.getElementById('sch-fit-btn'), icn = document.querySelectorAll('.sch-fit-icon');
     var fit = on() && !!document.querySelector('.day-timeline-track');
     de.classList.remove('sch-fit');
     // Week view: the hour labels must start level with the tracks. Each day
@@ -585,9 +587,12 @@
     fitMonth(on());
     if (btn) { btn.classList.toggle('active', on()); btn.setAttribute('aria-pressed', on() ? 'true' : 'false');
       btn.innerHTML = on() ? '<i class="bi bi-arrows-expand"></i> Expand' : '<i class="bi bi-arrows-collapse"></i> Fit to screen'; }
+    icn.forEach(function (b) { b.classList.toggle('active', on()); b.setAttribute('aria-pressed', on() ? 'true' : 'false');
+      b.innerHTML = on() ? '<i class="bi bi-arrows-expand"></i>' : '<i class="bi bi-arrows-collapse"></i>';
+      var t = on() ? 'Expand the hours' : 'Fit to screen'; b.title = t; b.setAttribute('aria-label', t); });
   };
   document.addEventListener('click', function (e) {
-    if (!e.target.closest('#sch-fit-btn')) return;
+    if (!e.target.closest('#sch-fit-btn, .sch-fit-icon')) return;
     try { localStorage.setItem('schFit', on() ? '0' : '1'); } catch (x) {}
     window.schFit();
   });

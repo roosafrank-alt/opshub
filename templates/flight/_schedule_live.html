@@ -481,7 +481,7 @@
   </div>
 </div>
 <div class="sch-views">
-    {% if view in ('day', 'week', 'month') %}<button type="button" id="sch-fit-btn" class="btn btn-sm btn-outline-secondary float-end ms-2" title="{{ 'Shrink each week so a whole week fits on the screen' if view == 'month' else 'Shrink the hours so the whole day fits on the screen' }}" aria-pressed="false"><i class="bi bi-arrows-collapse"></i> Fit to screen</button>{% endif %}
+    {% if view in ('day', 'week', 'month') %}<button type="button" id="sch-fit-btn" class="btn btn-sm btn-outline-secondary float-end ms-2 d-none d-sm-inline-block" title="{{ 'Shrink each week so a whole week fits on the screen' if view == 'month' else 'Shrink the hours so the whole day fits on the screen' }}" aria-pressed="false"><i class="bi bi-arrows-collapse"></i> Fit to screen</button>{% endif %}
     <div class="btn-group btn-group-sm" role="group" data-change="DESIGN-1">
       <a href="{{ url_for('flight.schedule_calendar', view='day', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-secondary' if view == 'day' else 'btn-outline-secondary' }}">Day</a>
       <a href="{{ url_for('flight.schedule_calendar', view='week', date=today.strftime('%Y-%m-%d'), plane_id=plane_id, cfi_id=cfi_id) }}" class="btn {{ 'btn-secondary' if view == 'week' else 'btn-outline-secondary' }}">Week</a>
@@ -546,9 +546,11 @@
        the same bookings. See flight.schedule_availability. #}
     <a href="{{ url_for('flight.schedule_availability', date=(day_str if view in ('day', 'week') else today.strftime('%Y-%m-%d')), plane_id=plane_id) }}" class="btn btn-outline-success btn-sm fw-bold"><i class="bi bi-calendar2-check"></i> Availability</a>
     {#- FLY-20: Waitlist, Weather cancellation, Flight Finder (and Year / Range on a phone) live in one More menu. #}
+    {% if view in ('day', 'week', 'month') %}<button type="button" class="btn btn-outline-secondary btn-sm sch-fit-icon d-sm-none" aria-label="Fit to screen" title="Fit to screen" aria-pressed="false"><i class="bi bi-arrows-collapse"></i></button>{% endif %}
     <div class="dropdown" data-change="FLY-20 FLY-02">
       <button type="button" class="btn btn-outline-secondary btn-sm fw-bold" data-bs-toggle="dropdown" aria-expanded="false"><i class="bi bi-three-dots"></i> More</button>
       <ul class="dropdown-menu dropdown-menu-end">
+        {% if session.get('cfi_id') or session.get('student_id') %}<li class="d-sm-none"><a class="dropdown-item" href="{{ url_for('flight.calendar_sync') }}"><i class="bi bi-calendar-plus"></i> Add to my phone calendar</a></li>{% endif %}
         <li><a class="dropdown-item" href="{{ url_for('flight.waitlist_page') }}"><i class="bi bi-hourglass-split"></i> Waitlist</a></li>
         {% if flight_admin %}
         <li><a class="dropdown-item" href="{{ url_for('flight.schedule_finder') }}"><i class="bi bi-search"></i> Flight Finder</a></li>
