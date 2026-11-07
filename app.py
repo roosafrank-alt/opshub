@@ -11287,6 +11287,14 @@ def _wipe_billing(conn):
     return n
 
 
+_STUDENT_OWN_TABLES = (
+    "pilot_logbook", "academy_entries", "academy_milestones", "academy_test_reports",
+    "academy_course_grants", "manual_landings", "flight_charge_requests", "weather_offers",
+    "acs_task_signoff", "acs_element_item_progress", "acs_element_completion",
+    "acs_task_reading_progress", "gs_assignments", "gs_lesson_time", "gs_chunk_time",
+    "gs_lesson_results", "gs_area_results", "gs_area_time")
+
+
 def _wipe_students(conn):
     """Deletes every student (not station accounts like "Shop") with their
     flights, bookings and account history, plus logins that were only for
@@ -11295,9 +11303,20 @@ def _wipe_students(conn):
     ids = [r["id"] for r in rows]
     if ids:
         ph = _ids_placeholders(ids)
+        conn.execute(f"DELETE FROM student_ledger_edits WHERE ledger_id IN "
+                     f"(SELECT id FROM student_ledger WHERE student_id IN ({ph}))", ids)
         conn.execute(f"DELETE FROM student_ledger WHERE student_id IN ({ph})", ids)
         _wipe_flight_log(conn, f"student_id IN ({ph})", ids)
         _wipe_schedule(conn, f"student_id IN ({ph})", ids)
+        # A student's own records (Academy, logbook pages, ground school,
+        # sign-offs, landings, weather offers) go with the student; an
+        # aircraft they own just loses its owner. Logbook pages go after the
+        # Academy milestone-flight links that point at them.
+        conn.execute(f"UPDATE assets SET owner_student_id = NULL WHERE owner_student_id IN ({ph})", ids)
+        conn.execute(f"DELETE FROM academy_milestone_flights WHERE student_id IN ({ph}) OR entry_id IN "
+                     f"(SELECT id FROM pilot_logbook WHERE student_id IN ({ph}))", ids + ids)
+        for t in _STUDENT_OWN_TABLES:
+            conn.execute(f"DELETE FROM {t} WHERE student_id IN ({ph})", ids)
         # Cancellation waitlist rows are the student's own requests/offers -
         # hard foreign keys to students, so they go with the student.
         conn.execute(f"DELETE FROM waitlist_offers WHERE student_id IN ({ph})", ids)
