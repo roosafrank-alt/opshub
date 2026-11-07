@@ -11347,6 +11347,11 @@ def _wipe_instructors(conn):
         conn.execute(f"UPDATE students SET created_by_cfi_id = NULL WHERE created_by_cfi_id IN ({ph})", ids)
         conn.execute(f"UPDATE flight_waitlist SET cfi_id = NULL WHERE cfi_id IN ({ph})", ids)
         conn.execute(f"UPDATE waitlist_offers SET cfi_id = NULL WHERE cfi_id IN ({ph})", ids)
+        # Time off goes with the instructor; logbook pages and ACS sign-offs
+        # stay (they belong to students) but lose the instructor's name.
+        conn.execute(f"DELETE FROM cfi_time_off WHERE cfi_id IN ({ph})", ids)
+        for t in ("pilot_logbook", "acs_task_signoff", "acs_element_completion", "acs_task_reading_progress"):
+            conn.execute(f"UPDATE {t} SET cfi_id = NULL WHERE cfi_id IN ({ph})", ids)
         conn.execute(f"DELETE FROM field_change_log WHERE entity_type = 'cfi' AND entity_id IN ({ph})", ids)
         conn.execute(f"DELETE FROM cfis WHERE id IN ({ph})", ids)
         _remove_flight_logins(conn, user_ids, "cfi")

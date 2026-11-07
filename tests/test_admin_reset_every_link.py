@@ -69,7 +69,6 @@ class ResetEveryLinkTest(OpsHubTestCase):
         self._reset("students")
         self.assertIsNone(self.q1("SELECT 1 FROM students WHERE id = ?", (sid,)))
 
-    @open_finding("qa-reset-instructors-linked-records")
     def test_reset_instructors_with_a_record_in_every_linked_table(self):
         cid = self.q1("SELECT id FROM cfis WHERE user_id = ?", (self.users["cfi"]["id"],))["id"]
         for t, c in self._linked("cfis"):
