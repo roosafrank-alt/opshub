@@ -9,7 +9,7 @@
 <div class="mb-3">
   <a href="{{ gs_url('groundschool.rating_list') }}" class="text-decoration-none small text-light"><i class="bi bi-arrow-left"></i> Ground School</a>
   <h4 class="mb-0 text-light">{{ rating.name }}</h4>
-  {% if rating.doc_number %}<div class="text-light small opacity-75">{{ rating.doc_number }}</div>{% endif %}
+  {% if rating.doc_number and not rating.doc_number.startswith("OPSHUB-") %}<div class="text-light small opacity-75">{{ rating.doc_number }}</div>{% endif %}
 </div>
 
 {% if resume %}

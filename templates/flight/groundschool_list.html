@@ -40,7 +40,7 @@
     <div class="card academy-card gs-card-link h-100 position-relative">
       <div class="card-body d-flex flex-column">
         <h5 class="card-title mb-1"{% if flight_admin %} style="padding-right:2.75rem;"{% endif %}>{{ r.name }}</h5>
-        {% if r.doc_number %}<div class="text-muted small mb-2">{{ r.doc_number }}</div>{% endif %}
+        {% if r.doc_number and not r.doc_number.startswith("OPSHUB-") %}<div class="text-muted small mb-2">{{ r.doc_number }}</div>{% endif %}
         <div class="mb-2">
           {% if r.status == 'parsed' %}
             <span class="badge bg-success">Ready</span>
