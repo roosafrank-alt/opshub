@@ -41,6 +41,9 @@ _BY_NAME = [
     (r"flight instructor|\bcfi\b", "25"),
 ]
 _NUMBER_RE = re.compile(r"ACS-(\d+)", re.I)
+# Practical Test Standards still in use, by FAA-S-8081 number (same FAA folder as the ACS).
+_PTS_BY_NUMBER = {"9": "cfi_instrument_pts_9.pdf"}
+_PTS_NUMBER_RE = re.compile(r"8081-(\d+)", re.I)
 
 # Which Resources section(s) an ACS is filed under.
 _CATEGORY_BY_NAME = [
@@ -68,6 +71,13 @@ def parse_pdf(path):
 
 def default_source_url(name, doc_number):
     """The FAA's own address for this ACS, or None when we aren't sure which one it is."""
+    # A Practical Test Standards book (FAA-S-8081-N) is never one of the ACS above: the CFII PTS
+    # would otherwise match "instrument" by name and be watched against the Instrument Rating ACS.
+    m = _PTS_NUMBER_RE.search(doc_number or "")
+    low = (name or "").lower()
+    if m or re.search(r"instructor.*instrument|\bcfii\b", low):
+        n = m.group(1) if m else "9"
+        return FAA_ACS_BASE + _PTS_BY_NUMBER[n] if n in _PTS_BY_NUMBER else None
     num = None
     m = _NUMBER_RE.search(doc_number or "")
     if m and m.group(1) in _BY_NUMBER:

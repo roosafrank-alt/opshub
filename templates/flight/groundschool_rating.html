@@ -68,6 +68,22 @@
 </script>
 {% endif %}
 <div>
+{#- GS-FOI-LINK: an Area this course leaves to another course (e.g. the CFII's Area I, Fundamentals of Instructing). #}
+{% for sa in see_also %}
+<div class="card academy-card mb-3 gs-foi-link" data-change="GS-FOI-LINK">
+  <div class="card-header fw-bold">Area {{ sa.area }}. {{ sa.title }}</div>
+  <div class="list-group list-group-flush">
+    {% if foi_course and sa.doc_number == 'OPSHUB-FOI' %}
+    <a href="{{ gs_url('groundschool.rating_detail', rating_id=foi_course.id) }}" class="task-row list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-2">
+      <span class="flex-grow-1"><i class="bi bi-box-arrow-up-right"></i> Taught in its own course: <b>{{ foi_course.name }}</b>{% if sa.note %}<div class="small text-muted">{{ sa.note }}</div>{% endif %}</span>
+      <i class="bi bi-chevron-right text-muted flex-shrink-0"></i>
+    </a>
+    {% else %}
+    <div class="list-group-item small text-muted">Taught in its own course{% if sa.course %}, {{ sa.course }}{% endif %}.{% if flight_admin %} Add it from the Ground School page (Built-in courses).{% endif %}{% if sa.note %} {{ sa.note }}{% endif %}</div>
+    {% endif %}
+  </div>
+</div>
+{% endfor %}
 {% for area in areas %}
 <div class="card academy-card mb-3">
   <div class="card-header fw-bold">
@@ -82,6 +98,12 @@
     {% endif %}
   </div>
   <div class="list-group list-group-flush">
+    {% if foi_course and is_foi_area(area.title) %}
+    <a href="{{ gs_url('groundschool.rating_detail', rating_id=foi_course.id) }}" class="task-row list-group-item list-group-item-action d-flex justify-content-between align-items-center gap-2 gs-foi-link" data-change="GS-FOI-LINK">
+      <span class="flex-grow-1 small"><i class="bi bi-box-arrow-up-right"></i> Also its own course: <b>{{ foi_course.name }}</b>, the FOI any instructor checkride can test.</span>
+      <i class="bi bi-chevron-right text-muted flex-shrink-0"></i>
+    </a>
+    {% endif %}
     {% for task in tasks_by_area.get(area.id, []) %}
     {% set tp = progress.areas.get(area.id, {}).get('tasks', {}).get(task.id) if progress else None %}
     <a href="{{ gs_url('groundschool.task_detail', task_id=task.id) }}"
