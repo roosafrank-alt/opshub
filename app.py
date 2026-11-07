@@ -11371,11 +11371,26 @@ def _wipe_planes(conn):
         # they go; a waitlist request just loses its plane preference.
         conn.execute(f"DELETE FROM waitlist_offers WHERE asset_id IN ({ph})", plane_ids)
         conn.execute(f"UPDATE flight_waitlist SET asset_id = NULL WHERE asset_id IN ({ph})", plane_ids)
+        # Squawks, logbook entries, ADs (with their compliance history) and
+        # customer links go with the plane; flight reports, pilot logbook
+        # pages and found items stay but lose the plane.
+        conn.execute(f"DELETE FROM plane_squawks WHERE asset_id IN ({ph})", plane_ids)
+        conn.execute(f"DELETE FROM logbook_entries WHERE asset_id IN ({ph})", plane_ids)
+        conn.execute(f"DELETE FROM customer_assets WHERE asset_id IN ({ph})", plane_ids)
+        conn.execute(f"UPDATE flight_reports SET asset_id = NULL WHERE asset_id IN ({ph})", plane_ids)
+        conn.execute(f"UPDATE pilot_logbook SET asset_id = NULL WHERE asset_id IN ({ph})", plane_ids)
+        conn.execute(f"UPDATE found_items SET asset_id = NULL WHERE asset_id IN ({ph})", plane_ids)
+        conn.execute(f"DELETE FROM ad_compliance WHERE ad_id IN (SELECT id FROM ads WHERE asset_id IN ({ph}))", plane_ids)
+        conn.execute(f"DELETE FROM ads WHERE asset_id IN ({ph})", plane_ids)
         item_ids = [r["id"] for r in conn.execute(
             f"SELECT id FROM maintenance_items WHERE asset_id IN ({ph})", plane_ids).fetchall()]
         if item_ids:
-            conn.execute(f"DELETE FROM maintenance_log WHERE item_id IN ({_ids_placeholders(item_ids)})", item_ids)
+            iph = _ids_placeholders(item_ids)
+            conn.execute(f"DELETE FROM maintenance_log WHERE item_id IN ({iph})", item_ids)
+            conn.execute(f"DELETE FROM project_section_maint_items WHERE maint_item_id IN ({iph})", item_ids)
         conn.execute(f"DELETE FROM maintenance_items WHERE asset_id IN ({ph})", plane_ids)
+        conn.execute(f"UPDATE project_sections SET linked_todo_id = NULL WHERE linked_todo_id IN "
+                     f"(SELECT id FROM plane_todos WHERE asset_id IN ({ph}))", plane_ids)
         conn.execute(f"DELETE FROM plane_todos WHERE asset_id IN ({ph})", plane_ids)
         conn.execute(f"DELETE FROM compression_checks WHERE asset_id IN ({ph})", plane_ids)
         _delete_photo_files(conn, f"asset_id IN ({ph}) AND project_id IS NULL AND part_id IS NULL", plane_ids)

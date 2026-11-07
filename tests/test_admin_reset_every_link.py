@@ -51,7 +51,6 @@ class ResetEveryLinkTest(OpsHubTestCase):
         self.assertNotIn("Reset didn't run", html)
         self.assertNotIn("FOREIGN KEY constraint failed", html)
 
-    @open_finding("qa-reset-planes-linked-records")
     def test_reset_planes_with_a_record_in_every_linked_table(self):
         aid = self.make_asset("N7001R")
         self.exec("UPDATE assets SET is_flight_asset = 1 WHERE id = ?", (aid,))
