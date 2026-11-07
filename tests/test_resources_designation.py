@@ -51,3 +51,12 @@ class ResourcesDesignationTest(OpsHubTestCase):
             c.post(f"{GS}/resources/{rid}/edit", data={"title": "Hacked"})
         self.assertEqual(self.q1("SELECT title FROM acs_resources WHERE id = ?", (rid,))["title"],
                          "General Operating and Flight Rules")
+
+    def test_phone_number_keeps_width_and_upload_note_admin_only(self):
+        self.add(designation="FAA-S-8081-9E")
+        self.assertIn("Upload the regulations", self.login("master").get(f"{GS}/resources").get_data(as_text=True))
+        self.exec("UPDATE users SET academy_access=1 WHERE id=?", (self.users["cfi"]["id"],))
+        body = self.login("cfi").get(f"{GS}/resources").get_data(as_text=True)
+        self.assertNotIn("Upload the regulations", body)
+        self.assertIn("FAA-S-8081-9E", body)
+        self.assertIn(".c-fpn { order: 1; flex: 1 1 auto;", body)

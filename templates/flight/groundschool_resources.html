@@ -33,7 +33,7 @@
     }
     .resources-table td { display: block; width: auto !important; border: none !important; padding: 0 !important; }
     .resources-table td:empty { display: none; }
-    .resources-table .c-fpn { order: 1; flex: 1 1 0; min-width: 0; }
+    .resources-table .c-fpn { order: 1; flex: 1 1 auto; min-width: 0; }
     .resources-table .c-act { order: 2; }
     .resources-table .c-title { order: 3; flex: 1 0 100%; line-height: 1.25; }
     .resources-table .meta { order: 4; font-size: .75rem; white-space: nowrap; }
@@ -49,9 +49,9 @@
   </button>
   {% endif %}
 </div>
-<p class="text-light opacity-75 small mb-3">Upload the regulations, Advisory Circulars, and FAA handbooks a Task's
+{% if flight_admin %}<p class="text-light opacity-75 small mb-3">Upload the regulations, Advisory Circulars, and FAA handbooks a Task's
   References point to (14 CFR Parts, ACs, FAA-H-8083 handbooks). Once uploaded, matching citations in a Task's
-  References auto-link to the page they were found on.</p>
+  References auto-link to the page they were found on.</p>{% endif %}
 
 {% if whats_new %}
 <div class="card academy-card mb-3" id="whatsNew"><div class="card-body py-2">
