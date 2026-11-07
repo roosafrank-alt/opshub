@@ -23,6 +23,15 @@ class ShopStatBoxesByRoleTest(OpsHubTestCase):
         self.assertIn(f'href="{"/projects"}"', body)
         self.assertIn('href="/parts?low_stock=1"', body)
 
+    def test_no_duplicate_boxes_counts_on_section_titles(self):
+        c = self.login("shop_admin")
+        body = c.get("/shop").get_data(as_text=True)
+        self.assertNotIn(">Upcoming Projects<", body)
+        self.assertNotIn(">Low Stock Items<", body)
+        self.assertIn('id="upcoming-count"', body)
+        self.assertIn('id="low-stock-count"', body)
+        self.assertIn("See all", body)
+
     def test_admin_sees_pending_orders_not_open_squawks(self):
         c = self.login("shop_admin")
         body = c.get("/shop").get_data(as_text=True)
