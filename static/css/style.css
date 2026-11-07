@@ -729,3 +729,22 @@ body .legend-swatch { width: .8rem; height: .8rem; border-radius: 2px; }
   .orders-tabs .nav-link { padding: .5rem .5rem; white-space: nowrap; font-size: .95rem; }
   .orders-tabs .badge { font-size: .65em; padding: .25em .35em; }
 }
+
+/* Billing on a phone: each flight is two short lines (tick + date/plane/
+   instructor + total, then the grey details + buttons) instead of a box of
+   nine labelled fields. Laptops keep the table. */
+.billing-stack .bill-l1, .billing-stack .bill-l2 { display: none; }
+@media (max-width: 575.98px) {
+  .billing-stack tbody tr.billing-row {
+    grid-template-columns: auto 1fr auto; align-items: center; gap: .1rem .5rem; padding: .35rem .5rem;
+  }
+  .billing-stack td.bill-det { display: none !important; }
+  .billing-stack td.bill-sel { grid-column: 1; grid-row: 1; }
+  .billing-stack td.bill-l1 { display: block; grid-column: 2; grid-row: 1; font-size: .85rem; }
+  .billing-stack td.bill-tot { grid-column: 3; grid-row: 1; text-align: right !important; }
+  .billing-stack td.bill-l2 { display: block; grid-column: 1 / 3; grid-row: 2; font-size: .75rem; color: #6c757d; }
+  .billing-stack td.bill-act { grid-column: 3 !important; grid-row: 2; white-space: nowrap !important; }
+  .billing-stack td.bill-stat { grid-column: 1 / -1; grid-row: 3; }
+  .billing-stack td[data-label]::before { display: none !important; }
+}
+@media (min-width: 576px) { .billing-tools { width: auto !important; } }

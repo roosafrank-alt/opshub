@@ -177,11 +177,19 @@ class FlightPaymentsTest(OpsHubTestCase):
     def test_billing_page_has_the_new_controls(self):
         self._flight()
         html = self.login("master").get("/flight/billing").get_data(as_text=True)
-        self.assertIn("Mark <span id=\"billing-selected-n\">0</span> selected paid", html)
+        self.assertIn("selected paid", html)
+        self.assertIn("Mark paid (<span class=\"billing-selected-n\">0</span>)", html)
         self.assertIn("Pay with Card", html)
         self.assertIn("How was it paid?", html)
         self.assertIn("Connect Wave", html)
         self.assertNotIn("/billing/student/", html.split("pay-card")[0].split("wave-invoice")[0][-0:] or "zzz")
+
+    def test_billing_flight_has_two_short_phone_lines(self):
+        self._flight()
+        html = self.login("master").get("/flight/billing").get_data(as_text=True)
+        self.assertIn('class="bill-l1"', html)
+        self.assertIn('class="bill-l2"', html)
+        self.assertIn("plane", html.split('class="bill-l2"')[1].split("</td>")[0])
 
     def test_old_per_student_mark_paid_route_is_gone(self):
         r = self.login("master").post(f"/flight/billing/student/{self.student_id}/mark_paid")
